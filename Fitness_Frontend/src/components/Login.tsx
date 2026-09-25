@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { useAuthStore } from '../store/auth';
 
 export default function Login({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('');
@@ -9,25 +8,14 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const login = useAuthStore((s) => s.login);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token || '');
+      await login(email, password);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Network error');

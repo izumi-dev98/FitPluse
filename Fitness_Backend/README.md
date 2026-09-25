@@ -70,6 +70,11 @@ Fitness_Backend/
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Health check |
+| `GET` | `/api/auth/signup` | Create User Account |
+| `GET` | `/api/auth/login` | Login User Account |
+| `GET` | `/api/auth/me` | Find Account |
+| `GET` | `/api/auth/refresh` | Auto refresh token |
+
 | `POST` | `/api/bmr` | Calculate BMR from gender, weight, height, age |
 | `POST` | `/api/tdee` | Calculate TDEE from BMR + activity level |
 | `POST` | `/api/calorie-target` | Calculate daily calorie target by goal type |

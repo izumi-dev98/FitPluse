@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { useAuthStore } from '../store/auth';
 
 export default function Signup({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('');
@@ -12,6 +11,7 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const signup = useAuthStore((s) => s.signup);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,21 +26,7 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Signup failed');
-        setLoading(false);
-        return;
-      }
-      if (data.access_token) {
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token || '');
-      }
+      await signup(email, password, name);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Network error');
