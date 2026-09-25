@@ -82,9 +82,8 @@ export default function App() {
         <Goals />
       </main>
 
-      <footer className="border-t border-slate-800/60 bg-slate-950/50 py-10 text-center text-slate-500 text-sm">
-        <p>Fitness Backend API connected at <code className="text-brand-400">http://localhost:3000</code></p>
-        <p className="mt-2">Branch: <code>izumi</code> — Built with React, Tailwind, TanStack Query, Zustand, Zod & SweetAlert2</p>
+      <footer className="border-t border-slate-800/60 bg-slate-950/50 py-6 text-center text-slate-600 text-xs">
+        <p>FitPulse</p>
       </footer>
 
       <Modal />
