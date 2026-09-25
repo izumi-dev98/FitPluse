@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { User, Lock, Save, Loader2, Camera, Check, Upload, Image as ImageIcon } from 'lucide-react';
+import { PageHeader } from '../components/ui';
 import Swal from 'sweetalert2';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function ProfilePage() {
   const [userId, setUserId] = useState('');
@@ -167,7 +166,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-16 text-center">
+      <div className="py-16 text-center">
         <Loader2 className="text-brand-400 animate-spin mx-auto mb-4" size={32} />
         <p className="text-slate-400">Loading profile...</p>
       </div>
@@ -175,11 +174,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-10">
-      <h2 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-2">
-        <User className="text-brand-400" /> Profile
-      </h2>
-      <p className="text-slate-400 text-sm mb-8">Manage your account, goals, and preferences.</p>
+    <div>
+      <PageHeader title="Profile" subtitle="Account, body stats, photos, and security." icon={User} />
 
       {/* Messages */}
       {successMsg && <div className="mb-4 bg-green-900/30 border border-green-600/40 text-green-300 rounded-xl px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> {successMsg}</div>}

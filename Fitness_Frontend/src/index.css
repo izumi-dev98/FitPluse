@@ -2,12 +2,27 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
+  --color-brand-400: #4ade80;
   --color-brand-500: #22c55e;
   --color-brand-600: #16a34a;
+  --color-brand-900: #14532d;
+  --color-brand-950: #052e16;
+  --color-ink: #070b10;
+  --color-panel: #0f1620;
+  --color-protein: #f87171;
+  --color-carbs: #fbbf24;
+  --color-fat: #60a5fa;
+  --color-water: #38bdf8;
 }
 
 html { scroll-behavior: smooth; }
-body { font-family: var(--font-sans); background: #0b1117; color: #f8fafc; }
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #0b1117; }
-::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 4px; }
+body {
+  font-family: var(--font-sans);
+  background: #070b10;
+  color: #f8fafc;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #070b10; }
+::-webkit-scrollbar-thumb { background: #1f3d2b; border-radius: 4px; }
+
+input, select, textarea { color-scheme: dark; }

@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, Scale, Calculator, Info, ArrowRight, RefreshCw, Target } from 'lucide-react';
+import { TrendingUp, Scale, Calculator, Info, RefreshCw, Target } from 'lucide-react';
+import { PageHeader, Card } from '../components/ui';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-import { calcBMR, calcTDEE, calcTarget, GOAL_LABELS, type GoalType } from '../lib/theory';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function ProgressPage() {
   const [userId, setUserId] = useState('');
@@ -19,14 +17,13 @@ export default function ProgressPage() {
   const [bodyFat, setBodyFat] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [adjustmentMsg, setAdjustmentMsg] = useState('');
 
   async function loadData(uid: string) {
     try {
       const [wData, pData, gData] = await Promise.all([
-        apiClient.getWeightHistory?.(uid) ? apiClient.getWeightHistory(uid) : Promise.resolve([]),
-        apiClient.getProfile?.() ? apiClient.getProfile() : Promise.resolve([]),
-        apiClient.getGoals?.(uid) ? apiClient.getGoals(uid) : Promise.resolve([]),
+        apiClient.getWeightHistory(uid),
+        apiClient.getProfile(),
+        apiClient.getGoals(uid),
       ]);
       setWeightHistory(Array.isArray(wData) ? wData.sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()) : []);
       const p = Array.isArray(pData) ? pData[0] : pData;
@@ -113,46 +110,44 @@ export default function ProgressPage() {
     weight: Number(w.weight),
   }));
 
-  // Macro split for chart
-  const proteinCal = 0; // Would need food data
-
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-16 text-center">
+      <div className="py-16 text-center">
         <p className="text-slate-400">Loading progress...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-10">
-      <h2 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-2">
-        <TrendingUp className="text-brand-400" /> Progress
-      </h2>
-      <p className="text-slate-400 text-sm mb-8">Track weight trends, body metrics, and goal progress.</p>
+    <div>
+      <PageHeader
+        title="Progress"
+        subtitle="Weight trend, weekly change, and calorie adjustment hints."
+        icon={TrendingUp}
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+        <Card className="text-center">
           <Scale className="text-brand-400 mx-auto mb-2" size={22} />
           <div className="text-xs text-slate-400">Latest Weight</div>
           <div className="text-white font-bold text-xl">{sorted.length ? `${sorted[0].weight} kg` : '—'}</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+        </Card>
+        <Card className="text-center">
           <Calculator className="text-brand-400 mx-auto mb-2" size={22} />
           <div className="text-xs text-slate-400">7-Day Avg</div>
           <div className="text-white font-bold text-xl">{avgWeight ?? '—'} kg</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+        </Card>
+        <Card className="text-center">
           <Target className="text-brand-400 mx-auto mb-2" size={22} />
           <div className="text-xs text-slate-400">BMR</div>
           <div className="text-white font-bold text-xl">{profile?.bmr ?? '—'}</div>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+        </Card>
+        <Card className="text-center">
           <Info className="text-brand-400 mx-auto mb-2" size={22} />
           <div className="text-xs text-slate-400">TDEE</div>
           <div className="text-white font-bold text-xl">{profile?.tdee ?? '—'}</div>
-        </div>
+        </Card>
       </div>
 
       {/* Weekly Adjustment */}
