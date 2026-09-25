@@ -1,29 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProfileSection from './components/ProfileSection';
 import Calculator from './components/Calculator';
 import Goals from './components/Goals';
 import Modal from './components/Modal';
-import { Menu } from 'lucide-react';
+import AuthPage from './components/AuthPage';
+import AuthStatus from './components/AuthStatus';
+import { Menu, LogOut } from 'lucide-react';
 
 export default function App() {
   const [navOpen, setNavOpen] = useState(false);
+  const [isAuth, setIsAuth] = useState(!!localStorage.getItem('access_token'));
+
+  useEffect(() => {
+    const onStorage = () => setIsAuth(!!localStorage.getItem('access_token'));
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  function handleAuth() {
+    setIsAuth(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setIsAuth(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  if (!isAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-ink to-brand-950 text-slate-100 font-sans selection:bg-brand-500/30">
+        <main>
+          <AuthPage onAuth={handleAuth} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-ink text-slate-100 font-sans selection:bg-brand-500/30">
       <nav className="sticky top-0 z-40 bg-ink/90 backdrop-blur-md border-b border-slate-800/60">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="#" className="text-xl font-extrabold text-brand-400 tracking-tight">FitPulse</a>
-          <div className="hidden md:flex gap-6 text-sm font-medium text-slate-300">
+          <div className="hidden md:flex gap-6 text-sm font-medium text-slate-300 items-center">
             <a href="#profile" className="hover:text-brand-400 transition">Profile</a>
             <a href="#calculator" className="hover:text-brand-400 transition">Calculator</a>
             <a href="#goals" className="hover:text-brand-400 transition">Goals</a>
           </div>
-          <button className="md:hidden" onClick={() => setNavOpen(!navOpen)} aria-label="Menu"><Menu /></button>
+          <div className="flex items-center gap-3">
+            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600/20 text-red-300 hover:bg-red-600/30 border border-red-800/60 text-sm font-medium transition"><LogOut size={14} /> Logout</button>
+            <button className="md:hidden" onClick={() => setNavOpen(!navOpen)} aria-label="Menu"><Menu /></button>
+          </div>
         </div>
         {navOpen && (
           <div className="md:hidden bg-slate-900 border-t border-slate-800 px-6 py-4 space-y-3 text-sm font-medium">
             <a href="#profile" onClick={() => setNavOpen(false)} className="block hover:text-brand-400">Profile</a>
             <a href="#calculator" onClick={() => setNavOpen(false)} className="block hover:text-brand-400">Calculator</a>
             <a href="#goals" onClick={() => setNavOpen(false)} className="block hover:text-brand-400">Goals</a>
+            <button onClick={() => { setNavOpen(false); handleLogout(); }} className="block text-red-300">Logout</button>
           </div>
         )}
       </nav>
@@ -40,6 +76,7 @@ export default function App() {
       </header>
 
       <main>
+        <AuthStatus />
         <ProfileSection />
         <Calculator />
         <Goals />
@@ -47,7 +84,7 @@ export default function App() {
 
       <footer className="border-t border-slate-800/60 bg-slate-950/50 py-10 text-center text-slate-500 text-sm">
         <p>Fitness Backend API connected at <code className="text-brand-400">http://localhost:3000</code></p>
-        <p className="mt-2">Built with React, Tailwind, TanStack Query, Zustand, Zod & SweetAlert2</p>
+        <p className="mt-2">Branch: <code>izumi</code> — Built with React, Tailwind, TanStack Query, Zustand, Zod & SweetAlert2</p>
       </footer>
 
       <Modal />
