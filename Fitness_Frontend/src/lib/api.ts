@@ -1,11 +1,27 @@
+import { useAuthStore } from '../store/auth';
+
 const base = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export async function api(path: string, opts?: RequestInit) {
+export async function api(path: string, opts?: RequestInit, retry = true) {
+  // Always use a fresh (auto-refreshed if expired) token
+  const token = await useAuthStore.getState().getValidToken();
   const res = await fetch(`${base}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(opts?.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts?.headers || {}),
+    },
     ...opts,
     body: opts?.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
   });
+  // Access token died mid-flight (e.g. revoked) — force refresh once and retry
+  if (res.status === 401 && retry) {
+    const state = useAuthStore.getState();
+    if (state.refreshToken) {
+      const fresh = await state.refreshNow();
+      if (fresh && fresh !== token) return api(path, opts, false);
+    }
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

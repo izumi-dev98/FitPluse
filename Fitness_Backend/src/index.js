@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { supabase } from './config/supabase.js';
+import { supabase, getUserClient } from './config/supabase.js';
 import { calculateBMR, calculateTDEE, calculateCalorieTarget, calculateProteinTarget, calculateFatTarget, calculateMacros } from './utils/calculator.js';
 
 const app = express();
@@ -19,14 +19,122 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ==================== AUTH (backend-handled login) ====================
+
+// Signup — creates auth user, trigger auto-creates public.profiles
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters' });
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email: String(email),
+      password: String(password),
+      options: { data: { name: name ? String(name) : String(email).split('@')[0] } },
+    });
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({
+      user: data.user,
+      session: data.session, // null if email confirmation enabled
+      access_token: data.session?.access_token || null,
+      refresh_token: data.session?.refresh_token || null,
+    });
+  } catch (err) {
+    console.error('Signup error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Login — returns access_token for Postman Authorization header
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: String(email),
+      password: String(password),
+    });
+    if (error) return res.status(401).json({ error: error.message });
+    res.json({
+      user: data.user,
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at,
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Refresh session
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+    if (!refresh_token) return res.status(400).json({ error: 'refresh_token is required' });
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: String(refresh_token) });
+    if (error) return res.status(401).json({ error: error.message });
+    res.json({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at,
+    });
+  } catch (err) {
+    console.error('Refresh error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Me — validates Bearer token, returns user + profile
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization: Bearer <access_token>' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token' });
+    const { data: profile } = await userClient
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    res.json({ user, profile });
+  } catch (err) {
+    console.error('Me error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ==================== PROFILES ====================
 
-// Get profile
+// Get own profile — requires Authorization: Bearer <access_token>
 app.get('/api/profiles', async (req, res) => {
   try {
-    const profile = await supabase.from('profiles').select('*').single();
-    if (!profile) return res.status(404).json({ error: 'Profile not found' });
-    res.json(profile);
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization: Bearer <access_token>' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    const { data, error } = await userClient
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Profile not found' });
+    res.json(data);
   } catch (err) {
     console.error('Profile fetch error:', err);
     res.status(500).json({ error: 'Internal server error' });
