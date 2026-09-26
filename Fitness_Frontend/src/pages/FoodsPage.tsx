@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Apple, Plus, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { qk, useInvalidateDaily } from '../lib/queries';
 import { PageHeader, Card, Modal, PaginationBar, EmptyState } from '../components/ui';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -45,6 +47,8 @@ export default function FoodsPage() {
 
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const qc = useQueryClient();
+  const invalidateDaily = useInvalidateDaily();
 
   useEffect(() => {
     if (!accessToken || !user?.id) return;
@@ -62,6 +66,8 @@ export default function FoodsPage() {
       setForm(emptyForm);
       setCreateOpen(false);
       await loadFoods(userId);
+      // Refresh the shared catalog cache so the Daily log modal lists the new food.
+      qc.invalidateQueries({ queryKey: qk.foods(userId) });
       Swal.fire({ icon: 'success', title: 'Food added', timer: 1400, showConfirmButton: false });
     } catch (err: any) {
       Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Add food failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
@@ -89,6 +95,7 @@ export default function FoodsPage() {
         fat: (Number(food.fat) || 0) * q,
       });
       await loadLogs(userId);
+      invalidateDaily(userId);
       Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
     } catch (err: any) {
       Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Log failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
