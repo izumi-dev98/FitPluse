@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { 
   Award, Trophy, Lock, ChevronDown, Target, Zap, Crown, Star, Flag, 
   TrendingUp, Medal, Sparkles, BarChart2, HelpCircle
 } from 'lucide-react';
 import { PageHeader, ProgressBar } from '../components/ui';
-import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { useBadges, useUserBadges } from '../lib/queries';
 import {
   BADGE_DEFINITIONS,
   getBadgesByGoalType,
@@ -34,10 +34,26 @@ const ICON_MAP: Record<string, any> = {
 };
 
 export default function BadgesPage() {
-  const { user, accessToken } = useAuthStore();
-  const [badges, setBadges] = useState<any[]>([]);
-  const [userBadges, setUserBadges] = useState<UserBadgeProgress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const uid = user?.id;
+
+  // Shared cached queries — revisits render instantly with no refetch.
+  const badgesQ = useBadges(uid);
+  const userBadgesQ = useUserBadges(uid);
+  const badges: any[] = badgesQ.data ?? [];
+  const userBadges: UserBadgeProgress[] = useMemo(
+    () =>
+      (userBadgesQ.data ?? []).map((ub: any) => ({
+        badgeId: ub.badge_id,
+        earned: true,
+        earnedAt: ub.earned_at,
+        progress: 100,
+        currentValue: 100,
+        targetValue: 100,
+      })),
+    [userBadgesQ.data],
+  );
+  const loading = badgesQ.isLoading || userBadgesQ.isLoading;
   const [expandedGoals, setExpandedGoals] = useState<Record<GoalType, boolean>>({
     skinny_to_fit: true,
     muscle_gain: false,
@@ -48,44 +64,6 @@ export default function BadgesPage() {
   });
   const [selectedBadge, setSelectedBadge] = useState<ExtendedBadge | null>(null);
   const [showDetail, setShowDetail] = useState(false);
-
-  // Fetch all badges and user's earned badges
-  async function loadBadges(uid: string) {
-    try {
-      const [allBadgesData, earnedBadgesData] = await Promise.all([
-        apiClient.getBadges(uid),
-        apiClient.getUserBadges(uid),
-      ]);
-      
-      const allBadges = Array.isArray(allBadgesData) ? allBadgesData : [];
-      const earnedBadges = Array.isArray(earnedBadgesData) ? earnedBadgesData : [];
-      
-      setBadges(allBadges);
-      
-      // Convert earned badges to UserBadgeProgress format
-      const progress: UserBadgeProgress[] = earnedBadges.map((ub: any) => ({
-        badgeId: ub.badge_id,
-        earned: true,
-        earnedAt: ub.earned_at,
-        progress: 100,
-        currentValue: 100,
-        targetValue: 100,
-      }));
-      setUserBadges(progress);
-    } catch (err) {
-      console.error('Failed to load badges:', err);
-      setBadges([]);
-      setUserBadges([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (accessToken && user?.id) {
-      loadBadges(user.id);
-    }
-  }, [accessToken, user?.id]);
 
   // Calculate progress for all badges
   const progressInputs = useMemo((): ProgressInputs => {

@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Trophy, Utensils, Scale } from 'lucide-react';
-import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Card, MacroRow, Ring } from '../components/ui';
+import {
+  useDailyExercises,
+  useDailyFoods,
+  useDailyRecords,
+  useGoals,
+  useWaterIntake,
+  useWeightHistory,
+} from '../lib/queries';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -19,91 +26,80 @@ function greeting() {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [loading, setLoading] = useState(true);
-  const [goalCalories, setGoalCalories] = useState<number | null>(null);
-  const [proteinTarget, setProteinTarget] = useState(0);
-  const [fatTarget, setFatTarget] = useState(0);
-  const [carbTarget, setCarbTarget] = useState(0);
-  const [goalType, setGoalType] = useState<string | null>(null);
-  const [consumed, setConsumed] = useState(0);
-  const [burned, setBurned] = useState(0);
-  const [protein, setProtein] = useState(0);
-  const [fat, setFat] = useState(0);
-  const [carbs, setCarbs] = useState(0);
-  const [water, setWater] = useState(0);
-  const [steps, setSteps] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [latestWeight, setLatestWeight] = useState<number | null>(null);
+  const uid = user?.id;
 
-  useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
-    const uid = user.id;
-    (async () => {
-      try {
-        const today = todayStr();
-        const [records, goals, foods, exercises, waters, weights] = await Promise.all([
-          apiClient.getDailyRecords(uid).catch(() => []),
-          apiClient.getGoals(uid).catch(() => []),
-          apiClient.getDailyFoods(uid).catch(() => []),
-          apiClient.getDailyExercises(uid).catch(() => []),
-          apiClient.getWaterIntake(uid).catch(() => []),
-          apiClient.getWeightHistory(uid).catch(() => []),
-        ]);
-        const recs = Array.isArray(records) ? records : [];
-        const todayRec = recs.find((r: any) => r.record_date === today);
-        setSteps(Number(todayRec?.steps) || 0);
+  // Shared cached queries — switching back to this route within staleTime
+  // renders instantly with no refetch.
+  const goalsQ = useGoals(uid);
+  const recordsQ = useDailyRecords(uid);
+  const foodsQ = useDailyFoods(uid);
+  const exercisesQ = useDailyExercises(uid);
+  const waterQ = useWaterIntake(uid);
+  const weightsQ = useWeightHistory(uid);
 
-        const gList = Array.isArray(goals) ? goals : [];
-        const active = gList.find((g: any) => g.status === 'active');
-        if (active) {
-          setGoalCalories(Number(active.target_calories ?? active.target_value) || null);
-          setProteinTarget(Number(active.protein_target) || 0);
-          setFatTarget(Number(active.fat_target) || 0);
-          setCarbTarget(Number(active.carb_target) || 0);
-          setGoalType(String(active.goal_type || '').replace(/_/g, ' '));
-        }
+  const loading =
+    goalsQ.isLoading ||
+    recordsQ.isLoading ||
+    foodsQ.isLoading ||
+    exercisesQ.isLoading ||
+    waterQ.isLoading ||
+    weightsQ.isLoading;
 
-        const foodList = Array.isArray(foods) ? foods : [];
-        const todayFoods = foodList.filter((f: any) => {
-          const d = f.record_date || String(f.created_at || '').slice(0, 10);
-          return d === today || (todayRec && f.daily_record_id === todayRec.id);
-        });
-        setConsumed(todayFoods.reduce((s: number, f: any) => s + (Number(f.calories) || 0), 0));
-        setProtein(todayFoods.reduce((s: number, f: any) => s + (Number(f.protein) || 0), 0));
-        setFat(todayFoods.reduce((s: number, f: any) => s + (Number(f.fat) || 0), 0));
-        setCarbs(todayFoods.reduce((s: number, f: any) => s + (Number(f.carbohydrates) || 0), 0));
+  const { steps, goalCalories, proteinTarget, fatTarget, carbTarget, goalType, consumed, burned, protein, fat, carbs, water, streak, latestWeight } = useMemo(() => {
+    const today = todayStr();
+    const recs = recordsQ.data ?? [];
+    const todayRec = recs.find((r: any) => r.record_date === today);
 
-        const exList = Array.isArray(exercises) ? exercises : [];
-        const todayEx = exList.filter((e: any) => {
-          const d = e.record_date || String(e.created_at || '').slice(0, 10);
-          return d === today || (todayRec && e.daily_record_id === todayRec.id);
-        });
-        setBurned(todayEx.reduce((s: number, e: any) => s + (Number(e.calories_burned) || 0), 0));
+    const gList = goalsQ.data ?? [];
+    const active = gList.find((g: any) => g.status === 'active');
 
-        const wList = Array.isArray(waters) ? waters : [];
-        const todayWater = wList.filter((w: any) => String(w.recorded_at || w.created_at || '').slice(0, 10) === today);
-        const waterSum = todayWater.reduce((s: number, w: any) => s + (Number(w.amount_ml) || 0), 0);
-        setWater(waterSum || Number(todayRec?.water_ml) || 0);
+    const foodList = foodsQ.data ?? [];
+    const todayFoods = foodList.filter((f: any) => {
+      const d = f.record_date || String(f.created_at || '').slice(0, 10);
+      return d === today || (todayRec && f.daily_record_id === todayRec.id);
+    });
 
-        const dates = new Set(recs.map((r: any) => r.record_date).filter(Boolean));
-        let s = 0;
-        const d = new Date();
-        for (let i = 0; i < 30; i++) {
-          const key = d.toISOString().slice(0, 10);
-          if (dates.has(key)) { s++; d.setDate(d.getDate() - 1); }
-          else break;
-        }
-        setStreak(s);
+    const exList = exercisesQ.data ?? [];
+    const todayEx = exList.filter((e: any) => {
+      const d = e.record_date || String(e.created_at || '').slice(0, 10);
+      return d === today || (todayRec && e.daily_record_id === todayRec.id);
+    });
 
-        const wHist = Array.isArray(weights) ? weights : [];
-        if (wHist.length) {
-          const latest = [...wHist].sort((a: any, b: any) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0];
-          setLatestWeight(Number(latest.weight) || null);
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, [user?.id]);
+    const wList = waterQ.data ?? [];
+    const todayWater = wList.filter((w: any) => String(w.recorded_at || w.created_at || '').slice(0, 10) === today);
+    const waterSum = todayWater.reduce((s: number, w: any) => s + (Number(w.amount_ml) || 0), 0);
+
+    const dates = new Set(recs.map((r: any) => r.record_date).filter(Boolean));
+    let s = 0;
+    const d = new Date();
+    for (let i = 0; i < 30; i++) {
+      const key = d.toISOString().slice(0, 10);
+      if (dates.has(key)) { s++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+
+    const wHist = weightsQ.data ?? [];
+    const latest = wHist.length
+      ? [...wHist].sort((a: any, b: any) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0]
+      : null;
+
+    return {
+      steps: Number(todayRec?.steps) || 0,
+      goalCalories: active ? Number(active.target_calories ?? active.target_value) || null : null,
+      proteinTarget: active ? Number(active.protein_target) || 0 : 0,
+      fatTarget: active ? Number(active.fat_target) || 0 : 0,
+      carbTarget: active ? Number(active.carb_target) || 0 : 0,
+      goalType: active ? String(active.goal_type || '').replace(/_/g, ' ') : null,
+      consumed: todayFoods.reduce((sum: number, f: any) => sum + (Number(f.calories) || 0), 0),
+      burned: todayEx.reduce((sum: number, e: any) => sum + (Number(e.calories_burned) || 0), 0),
+      protein: todayFoods.reduce((sum: number, f: any) => sum + (Number(f.protein) || 0), 0),
+      fat: todayFoods.reduce((sum: number, f: any) => sum + (Number(f.fat) || 0), 0),
+      carbs: todayFoods.reduce((sum: number, f: any) => sum + (Number(f.carbohydrates) || 0), 0),
+      water: waterSum || Number(todayRec?.water_ml) || 0,
+      streak: s,
+      latestWeight: latest ? Number(latest.weight) || null : null,
+    };
+  }, [recordsQ.data, goalsQ.data, foodsQ.data, exercisesQ.data, waterQ.data, weightsQ.data]);
 
   const remaining = goalCalories != null ? goalCalories - consumed : null;
   const pct = goalCalories ? Math.round((consumed / goalCalories) * 100) : 0;
