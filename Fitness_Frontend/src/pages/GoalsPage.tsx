@@ -6,7 +6,7 @@ import DailyRecordModal from '../components/DailyRecordModal';
 import Swal from 'sweetalert2';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-import { calcBMR, calcTDEE, calcTarget, calcMacros, GOAL_GUIDANCE, GOAL_LABELS, recommendGoal, type GoalType } from '../lib/theory';
+import { calcBMR, calcTDEE, calcTarget, calcMacros, GOAL_GUIDANCE, GOAL_LABELS, type GoalType } from '../lib/theory';
 import {
   enrichDailyRecords, formatDay, todayKey, verdictClass, type DailyRow,
 } from '../lib/dailyHistory';
@@ -63,18 +63,34 @@ export default function GoalsPage() {
   const tdee = Math.round(calcTDEE(bmr, form.activity_level));
   const target = Math.round(calcTarget(tdee, form.goal_type));
   const macros = calcMacros(target, Number(form.weight_kg) || 0);
-  const recommendedGoal = recommendGoal(Number(form.weight_kg) || 0, Number(form.height_cm) || 0);
-  const guidance = GOAL_GUIDANCE[form.goal_type];
 
   async function loadGoals(uid: string) {
     try {
-      const [data, recs] = await Promise.all([
+      const [data, recs, foodLogs, exerciseLogs] = await Promise.all([
         apiClient.getGoals(uid),
         apiClient.getDailyRecords(uid).catch(() => []),
+        apiClient.getDailyFoods(uid).catch(() => []),
+        apiClient.getDailyExercises(uid).catch(() => []),
       ]);
       const allGoals = Array.isArray(data) ? data : [];
+      const recordsById = new Map((Array.isArray(recs) ? recs : []).map((record: any) => [String(record.id), record.record_date]));
+      const foodTotals = new Map<string, number>();
+      const exerciseTotals = new Map<string, number>();
+      (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: any) => {
+        const date = String(recordsById.get(String(food.daily_record_id)) || food.record_date || food.created_at || '').slice(0, 10);
+        if (date) foodTotals.set(date, (foodTotals.get(date) || 0) + (Number(food.calories) || 0));
+      });
+      (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach((exercise: any) => {
+        const date = String(recordsById.get(String(exercise.daily_record_id)) || exercise.record_date || exercise.created_at || '').slice(0, 10);
+        if (date) exerciseTotals.set(date, (exerciseTotals.get(date) || 0) + (Number(exercise.calories_burned) || 0));
+      });
+      const mergedRecords = (Array.isArray(recs) ? recs : []).map((record: any) => ({
+        ...record,
+        calories_consumed: Math.max(Number(record.calories_consumed) || 0, foodTotals.get(String(record.record_date)) || 0),
+        calories_burned: Math.max(Number(record.calories_burned) || 0, exerciseTotals.get(String(record.record_date)) || 0),
+      }));
       setGoals(allGoals);
-      setRecords(Array.isArray(recs) ? recs : []);
+      setRecords(mergedRecords);
       const active = allGoals.find((g: any) => g.status === 'active');
       setActiveGoal(active || null);
     } catch { 
@@ -692,17 +708,6 @@ export default function GoalsPage() {
               {/* Goal Type Selector */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-3">What's your goal?</label>
-                <div className="mb-3 rounded-xl border border-brand-600/30 bg-brand-900/15 p-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-brand-300 font-bold">Suggested starting goal: {GOAL_LABELS[recommendedGoal]}</div>
-                      <p className="text-slate-400 text-xs mt-1">Based on BMI from your current height and weight. It is a starting point, not a diagnosis.</p>
-                    </div>
-                    {form.goal_type !== recommendedGoal && (
-                      <button type="button" onClick={() => setForm({ ...form, goal_type: recommendedGoal })} className="shrink-0 px-3 py-1.5 rounded-lg bg-brand-400 text-slate-950 text-xs font-bold">Use suggestion</button>
-                    )}
-                  </div>
-                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {(Object.keys(GOAL_LABELS) as GoalType[]).map(gt => (
                     <button
@@ -725,19 +730,6 @@ export default function GoalsPage() {
                       )}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-                <div className="text-sm font-bold text-white">{GOAL_LABELS[form.goal_type]}</div>
-                <p className="text-xs text-slate-400 mt-1">{guidance.summary}</p>
-                <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-                  <span className="text-slate-500">Calorie strategy <b className="text-slate-200 block mt-0.5">{guidance.calories}</b></span>
-                  <span className="text-slate-500">Protein range <b className="text-slate-200 block mt-0.5">{guidance.protein}</b></span>
-                </div>
-                <div className="grid md:grid-cols-2 gap-3 mt-3">
-                  <RecommendationList title="Food" items={guidance.food} compact />
-                  <RecommendationList title="Exercise" items={guidance.exercise} compact />
                 </div>
               </div>
 

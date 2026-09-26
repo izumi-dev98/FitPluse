@@ -69,13 +69,32 @@ export default function CalendarPage() {
     (async () => {
       setLoading(true);
       try {
-        const [g, recs] = await Promise.all([
+        const [g, recs, foodLogs, exerciseLogs] = await Promise.all([
           apiClient.getGoals(user.id).catch(() => []),
           apiClient.getDailyRecords(user.id).catch(() => []),
+          apiClient.getDailyFoods(user.id).catch(() => []),
+          apiClient.getDailyExercises(user.id).catch(() => []),
         ]);
         const goalList = Array.isArray(g) ? g : [];
+        const recordList = Array.isArray(recs) ? recs : [];
+        const recordsById = new Map(recordList.map((record: any) => [String(record.id), record.record_date]));
+        const foodTotals = new Map<string, number>();
+        const exerciseTotals = new Map<string, number>();
+        (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: any) => {
+          const date = String(recordsById.get(String(food.daily_record_id)) || food.record_date || food.created_at || '').slice(0, 10);
+          if (date) foodTotals.set(date, (foodTotals.get(date) || 0) + (Number(food.calories) || 0));
+        });
+        (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach((exercise: any) => {
+          const date = String(recordsById.get(String(exercise.daily_record_id)) || exercise.record_date || exercise.created_at || '').slice(0, 10);
+          if (date) exerciseTotals.set(date, (exerciseTotals.get(date) || 0) + (Number(exercise.calories_burned) || 0));
+        });
+        const mergedRecords = recordList.map((record: any) => ({
+          ...record,
+          calories_consumed: Math.max(Number(record.calories_consumed) || 0, foodTotals.get(String(record.record_date)) || 0),
+          calories_burned: Math.max(Number(record.calories_burned) || 0, exerciseTotals.get(String(record.record_date)) || 0),
+        }));
         setGoals(goalList);
-        setRows(enrichDailyRecords(Array.isArray(recs) ? recs : [], goalList));
+        setRows(enrichDailyRecords(mergedRecords, goalList));
       } catch {
         setGoals([]);
         setRows([]);
