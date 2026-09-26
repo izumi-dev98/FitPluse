@@ -209,7 +209,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-3xl">
         {/* Header */}
         <div className="text-center mb-6">
           <p className="text-brand-400 text-sm font-semibold mb-1">Welcome to FitPulse</p>
@@ -371,7 +371,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
           {/* ===== NEW STEP 5: FEATURE CARDS ===== */}
           {isFeaturesStep && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-full">
               {FEATURE_CARDS.map((feature) => (
                 <button
                   key={feature.id}
