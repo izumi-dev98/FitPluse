@@ -371,12 +371,12 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
           {/* ===== NEW STEP 5: FEATURE CARDS ===== */}
           {isFeaturesStep && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {FEATURE_CARDS.map((feature) => (
                 <button
                   key={feature.id}
                   type="button"
-                  className={`flex flex-col items-start gap-3 p-4 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full`}
+                  className={`flex flex-col items-start gap-3 p-5 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full min-w-0`}
                 >
                   <span className={`relative inline-flex h-11 w-11 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
                     <feature.icon size={22} />
