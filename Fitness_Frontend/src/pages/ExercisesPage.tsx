@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dumbbell, Plus, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { qk, useInvalidateDaily } from '../lib/queries';
 import { PageHeader, Card, Modal, PaginationBar, EmptyState } from '../components/ui';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -42,6 +44,8 @@ export default function ExercisesPage() {
 
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const qc = useQueryClient();
+  const invalidateDaily = useInvalidateDaily();
 
   useEffect(() => {
     if (!accessToken || !user?.id) return;
@@ -58,6 +62,8 @@ export default function ExercisesPage() {
       setForm(emptyForm);
       setCreateOpen(false);
       await load(userId);
+      // Refresh the shared catalog cache so the Daily log modal lists the new exercise.
+      qc.invalidateQueries({ queryKey: qk.exercises(userId) });
       Swal.fire({ icon: 'success', title: 'Exercise added', timer: 1400, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Add exercise failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
@@ -77,6 +83,7 @@ export default function ExercisesPage() {
         ...log,
       });
       await load(userId);
+      invalidateDaily(userId);
       Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Log failed. Check backend daily-exercises + daily-records.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
