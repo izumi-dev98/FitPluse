@@ -5,11 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { qk, useInvalidateDaily } from '../lib/queries';
-import { PageHeader, Card, Modal, PaginationBar, EmptyState } from '../components/ui';
+import { PageHeader, Card, PaginationBar, EmptyState } from '../components/ui';
+import { CustomFieldsModal, FOOD_BASE_FIELDS, FOOD_CUSTOM_FIELD_SUGGESTIONS } from '../components/CustomFieldsModal';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = 8;
-const emptyForm = { name: '', serving_size: 100, serving_unit: 'g', calories: 0, protein: 0, carbohydrates: 0, fat: 0, fiber: 0 };
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -30,7 +30,9 @@ export default function FoodsPage() {
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [form, setForm] = useState(emptyForm);
+  
+  // Custom fields modal state - start empty, user adds fields
+  const [customFields] = useState<import('../components/CustomFieldsModal').CustomField[]>([]);
 
   async function loadFoods(uid: string) {
     try {
@@ -57,16 +59,13 @@ export default function FoodsPage() {
     loadLogs(user.id);
   }, [accessToken, user?.id]);
 
-  async function handleAddFood(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name) return;
+  async function handleCreateFood(data: Record<string, any>) {
+    if (!data.name) return;
     setCreating(true);
     try {
-      await apiClient.createFood({ user_id: userId, ...form });
-      setForm(emptyForm);
+      await apiClient.createFood({ user_id: userId, ...data });
       setCreateOpen(false);
       await loadFoods(userId);
-      // Refresh the shared catalog cache so the Daily log modal lists the new food.
       qc.invalidateQueries({ queryKey: qk.foods(userId) });
       Swal.fire({ icon: 'success', title: 'Food added', timer: 1400, showConfirmButton: false });
     } catch (err: any) {
@@ -137,7 +136,7 @@ export default function FoodsPage() {
     <div>
       <PageHeader
         title="Foods"
-        subtitle="Keep your food library, then log meals. Create items in a popup."
+        subtitle="Keep your food library, then log meals. Create items in a popup with custom fields."
         icon={Apple}
         action={
           <button
@@ -267,28 +266,17 @@ export default function FoodsPage() {
         )}
       </Card>
 
-      <Modal open={createOpen} title="Create my food" onClose={() => setCreateOpen(false)}>
-        <form onSubmit={handleAddFood} className="space-y-3">
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Name"
-            required
-            className="w-full p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-          />
-          <div className="grid grid-cols-3 gap-2">
-            <input type="number" value={form.serving_size} onChange={(e) => setForm({ ...form, serving_size: Number(e.target.value) })} placeholder="Size" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <input value={form.serving_unit} onChange={(e) => setForm({ ...form, serving_unit: e.target.value })} placeholder="g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <input type="number" value={form.calories} onChange={(e) => setForm({ ...form, calories: Number(e.target.value) })} placeholder="kcal" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <input type="number" value={form.protein} onChange={(e) => setForm({ ...form, protein: Number(e.target.value) })} placeholder="P g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <input type="number" value={form.carbohydrates} onChange={(e) => setForm({ ...form, carbohydrates: Number(e.target.value) })} placeholder="C g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <input type="number" value={form.fat} onChange={(e) => setForm({ ...form, fat: Number(e.target.value) })} placeholder="F g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-          </div>
-          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50">
-            {creating ? 'Saving...' : 'Save food'}
-          </button>
-        </form>
-      </Modal>
+      <CustomFieldsModal
+        open={createOpen}
+        title="Create my food"
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreateFood}
+        submitting={creating}
+        initialFields={customFields}
+        baseFields={FOOD_BASE_FIELDS}
+        submitLabel="Save food"
+        suggestions={FOOD_CUSTOM_FIELD_SUGGESTIONS}
+      />
     </div>
   );
 }

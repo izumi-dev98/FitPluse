@@ -5,11 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { qk, useInvalidateDaily } from '../lib/queries';
-import { PageHeader, Card, Modal, PaginationBar, EmptyState } from '../components/ui';
+import { PageHeader, Card, PaginationBar, EmptyState } from '../components/ui';
+import { CustomFieldsModal, EXERCISE_BASE_FIELDS, EXERCISE_CUSTOM_FIELD_SUGGESTIONS } from '../components/CustomFieldsModal';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = 8;
-const emptyForm = { name: '', exercise_type: 'Strength', description: '' };
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -28,8 +28,10 @@ export default function ExercisesPage() {
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [form, setForm] = useState(emptyForm);
   const [log, setLog] = useState({ sets: 3, reps: 10, duration_minutes: 30, calories_burned: 200, distance_km: 0 });
+  
+  // Custom fields modal state - start empty, user adds fields
+  const [customFields] = useState<import('../components/CustomFieldsModal').CustomField[]>([]);
 
   async function load(uid: string) {
     try {
@@ -53,16 +55,13 @@ export default function ExercisesPage() {
     load(user.id);
   }, [accessToken, user?.id]);
 
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name || !userId) return;
+  async function handleCreateExercise(data: Record<string, any>) {
+    if (!data.name || !userId) return;
     setCreating(true);
     try {
-      await apiClient.createExercise({ user_id: userId, ...form });
-      setForm(emptyForm);
+      await apiClient.createExercise({ user_id: userId, ...data });
       setCreateOpen(false);
       await load(userId);
-      // Refresh the shared catalog cache so the Daily log modal lists the new exercise.
       qc.invalidateQueries({ queryKey: qk.exercises(userId) });
       Swal.fire({ icon: 'success', title: 'Exercise added', timer: 1400, showConfirmButton: false });
     } catch {
@@ -124,7 +123,7 @@ export default function ExercisesPage() {
     <div>
       <PageHeader
         title="Workouts"
-        subtitle="Save exercises, then log sets and calories burned."
+        subtitle="Save exercises, then log sets and calories burned. Create items with custom fields."
         icon={Dumbbell}
         action={
           <button
@@ -244,35 +243,17 @@ export default function ExercisesPage() {
         )}
       </Card>
 
-      <Modal open={createOpen} title="Create my exercise" onClose={() => setCreateOpen(false)}>
-        <form onSubmit={handleAdd} className="space-y-3">
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Name e.g. Push-ups"
-            required
-            className="w-full p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={form.exercise_type}
-              onChange={(e) => setForm({ ...form, exercise_type: e.target.value })}
-              className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-            >
-              <option>Strength</option><option>Cardio</option><option>Flexibility</option><option>Sports</option>
-            </select>
-            <input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Description"
-              className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-            />
-          </div>
-          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50">
-            {creating ? 'Saving...' : 'Save exercise'}
-          </button>
-        </form>
-      </Modal>
+      <CustomFieldsModal
+        open={createOpen}
+        title="Create my exercise"
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreateExercise}
+        submitting={creating}
+        initialFields={customFields}
+        baseFields={EXERCISE_BASE_FIELDS}
+        submitLabel="Save exercise"
+        suggestions={EXERCISE_CUSTOM_FIELD_SUGGESTIONS}
+      />
     </div>
   );
 }

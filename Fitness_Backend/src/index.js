@@ -743,9 +743,7 @@ app.post('/api/water-intake', async (req, res) => {
     const { data, error } = await supabase.from('water_intake').insert({
       user_id: String(user_id),
       amount_ml: Number(amount_ml),
-      recorded_at: new Date(),
-      created_at: new Date(),
-      updated_at: new Date(),
+      // recorded_at has DEFAULT NOW() in the schema
     }).select().single();
     if (error) throw error;
     res.status(201).json(data);
