@@ -371,22 +371,22 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
           {/* ===== NEW STEP 5: FEATURE CARDS ===== */}
           {isFeaturesStep && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-5xl mx-auto">
               {FEATURE_CARDS.map((feature) => (
                 <button
                   key={feature.id}
                   type="button"
-                  className={`flex flex-col items-start gap-3 p-5 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full min-w-0`}
+                  className={`flex flex-col items-start gap-3 p-6 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full min-w-0`}
                 >
-                  <span className={`relative inline-flex h-11 w-11 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
-                    <feature.icon size={22} />
+                  <span className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
+                    <feature.icon size={24} />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-bold text-base leading-tight">{feature.title}</h3>
-                    <p className="text-slate-400 text-sm">{feature.subtitle}</p>
-                    <p className="text-slate-500 text-sm mt-1.5 line-clamp-3 flex-1">{feature.description}</p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-400 mt-2">
-                      <Sparkles size={10} /> {feature.highlight}
+                    <h3 className="text-white font-bold text-lg leading-tight">{feature.title}</h3>
+                    <p className="text-slate-400 text-base">{feature.subtitle}</p>
+                    <p className="text-slate-500 text-base mt-2 line-clamp-3 flex-1">{feature.description}</p>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-white/5 border border-white/10 text-slate-400 mt-3">
+                      <Sparkles size={12} /> {feature.highlight}
                     </span>
                   </div>
                 </button>
