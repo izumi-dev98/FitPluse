@@ -206,7 +206,7 @@ export default function ProgressPage() {
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
               <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc' }} />
-              <Line type="monotone" dataKey="weight" stroke="#22c55e" strokeWidth={3} dot={{ fill: '#22c55e', r: 5 }} activeDot={{ r: 8 }} />
+              <Line type="monotone" dataKey="weight" stroke="#65a30d" strokeWidth={3} dot={{ fill: '#65a30d', r: 5 }} activeDot={{ r: 8 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -228,7 +228,7 @@ export default function ProgressPage() {
           </div>
           <div className="col-span-2 md:col-span-1">
             <button type="submit" disabled={saving}
-              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
+              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? 'Saving...' : 'Log Weight'}
             </button>
           </div>

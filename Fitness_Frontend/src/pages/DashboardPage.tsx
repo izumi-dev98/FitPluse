@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ArrowRight, Droplets, Dumbbell, Footprints, Target, Trophy, Utensils, Scale } from 'lucide-react';
+import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Trophy, Utensils, Scale } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Card, MacroRow, Ring } from '../components/ui';
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         </div>
         <button
           onClick={() => navigate('/daily')}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold shadow-lg shadow-brand-600/20"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold shadow-lg shadow-brand-400/20"
         >
           Log today <ArrowRight size={16} />
         </button>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
                     <div className="text-xs text-slate-500">Burned</div>
-                    <div className="font-bold text-orange-400">{Math.round(burned)}</div>
+                    <div className="font-bold text-white">{Math.round(burned)}</div>
                   </div>
                 </div>
                 {!goalCalories && (
@@ -184,7 +184,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 text-water text-xs font-semibold mb-2"><Droplets size={16} /> Water</div>
               <div className="text-2xl font-extrabold text-white">{water}<span className="text-sm font-medium text-slate-500"> ml</span></div>
               <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-sky-400 rounded-full" style={{ width: `${Math.min(100, Math.round((water / WATER_GOAL) * 100))}%` }} />
+                <div className="h-full bg-water rounded-full" style={{ width: `${Math.min(100, Math.round((water / WATER_GOAL) * 100))}%` }} />
               </div>
               <p className="text-[11px] text-slate-500 mt-1">Goal {WATER_GOAL} ml</p>
             </Card>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
               <p className="text-[11px] text-slate-500 mt-1">Goal {STEPS_GOAL.toLocaleString()}</p>
             </Card>
             <Card>
-              <div className="flex items-center gap-2 text-purple-400 text-xs font-semibold mb-2"><Activity size={16} /> Streak</div>
+              <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold mb-2"><Flame size={16} /> Streak</div>
               <div className="text-2xl font-extrabold text-white">{streak} <span className="text-sm font-medium text-slate-500">days</span></div>
               <p className="text-[11px] text-slate-500 mt-2">Days logged in a row</p>
             </Card>
@@ -210,10 +210,10 @@ export default function DashboardPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { icon: Utensils, label: 'Log food', desc: 'Meals & macros', href: '/daily', color: 'text-yellow-400' },
+              { icon: Utensils, label: 'Log food', desc: 'Meals & macros', href: '/daily', color: 'text-slate-400' },
               { icon: Dumbbell, label: 'Log workout', desc: 'Sets, reps, burn', href: '/daily', color: 'text-brand-400' },
-              { icon: Target, label: 'Goals', desc: 'Calories & macros', href: '/goals', color: 'text-sky-400' },
-              { icon: Trophy, label: 'Badges', desc: 'Achievements', href: '/badges', color: 'text-purple-400' },
+              { icon: Target, label: 'Goals', desc: 'Calories & macros', href: '/goals', color: 'text-slate-400' },
+              { icon: Trophy, label: 'Badges', desc: 'Achievements', href: '/badges', color: 'text-slate-400' },
             ].map((item) => (
               <button
                 key={item.label}

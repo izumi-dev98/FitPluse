@@ -1,28 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
-  --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-900: #14532d;
-  --color-brand-950: #052e16;
-  --color-ink: #070b10;
-  --color-panel: #0f1620;
-  --color-protein: #f87171;
-  --color-carbs: #fbbf24;
-  --color-fat: #60a5fa;
-  --color-water: #38bdf8;
+  --font-display: 'Barlow Condensed', 'Inter', system-ui, sans-serif;
+  /* 60/30/10 system — dark slate chrome, ONE volt-lime accent */
+  --color-brand-300: #bef264;
+  --color-brand-400: #a3e635;
+  --color-brand-500: #84cc16;
+  --color-brand-600: #65a30d;
+  --color-brand-900: #365314;
+  --color-brand-950: #1a2e05;
+  --color-ink: #0b0f14;
+  --color-panel: #121a24;
+  /* Muted data-viz tints (small surface only — labels always accompany color) */
+  --color-protein: #dd8a8a;
+  --color-carbs: #d9a94e;
+  --color-fat: #8aa8d6;
+  --color-water: #5fb8b5;
 }
 
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-sans);
-  background: #070b10;
+  background: #0b0f14;
   color: #f8fafc;
 }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #070b10; }
-::-webkit-scrollbar-thumb { background: #1f3d2b; border-radius: 4px; }
+::-webkit-scrollbar-track { background: #0b0f14; }
+::-webkit-scrollbar-thumb { background: #26313d; border-radius: 4px; }
 
 input, select, textarea { color-scheme: dark; }
+
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+:focus-visible {
+  outline: 2px solid #a3e635;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}

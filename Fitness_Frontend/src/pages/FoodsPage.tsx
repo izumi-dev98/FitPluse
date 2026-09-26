@@ -64,7 +64,7 @@ export default function FoodsPage() {
       await loadFoods(userId);
       Swal.fire({ icon: 'success', title: 'Food added', timer: 1400, showConfirmButton: false });
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Add food failed.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Add food failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setCreating(false);
   }
@@ -91,7 +91,7 @@ export default function FoodsPage() {
       await loadLogs(userId);
       Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Log failed.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Log failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setSaving(false);
   }
@@ -136,7 +136,7 @@ export default function FoodsPage() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold"
           >
             <Plus size={16} /> My Food
           </button>
@@ -211,7 +211,7 @@ export default function FoodsPage() {
             </div>
             <div className="flex gap-2">
               <input type="number" min={0.25} step={0.25} value={qty} onChange={(e) => setQty(Number(e.target.value))} className="w-24 p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <button onClick={handleLogFood} disabled={!selectedId || saving} className="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={handleLogFood} disabled={!selectedId || saving} className="flex-1 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
                 <Plus size={16} /> {saving ? 'Logging...' : 'Add to Daily'}
               </button>
             </div>
@@ -277,7 +277,7 @@ export default function FoodsPage() {
             <input type="number" value={form.carbohydrates} onChange={(e) => setForm({ ...form, carbohydrates: Number(e.target.value) })} placeholder="C g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
             <input type="number" value={form.fat} onChange={(e) => setForm({ ...form, fat: Number(e.target.value) })} placeholder="F g" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
           </div>
-          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold disabled:opacity-50">
+          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50">
             {creating ? 'Saving...' : 'Save food'}
           </button>
         </form>

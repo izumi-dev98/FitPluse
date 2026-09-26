@@ -39,7 +39,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-ink text-slate-100 font-sans selection:bg-brand-500/30">
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-slate-800/80 bg-[#0a1017]">
         <Link to="/" className="px-5 h-16 flex items-center gap-2.5 border-b border-slate-800/80">
-          <span className="h-8 w-8 rounded-lg bg-brand-600 grid place-items-center text-white font-black text-sm">FP</span>
+          <span className="h-8 w-8 rounded-lg bg-brand-400 grid place-items-center text-slate-950 font-black text-sm">FP</span>
           <span className="text-lg font-extrabold tracking-tight text-white">FitPulse</span>
         </Link>
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">

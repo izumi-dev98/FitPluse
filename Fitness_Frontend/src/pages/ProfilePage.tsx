@@ -87,7 +87,7 @@ export default function ProfilePage() {
       setSuccessMsg('Avatar updated!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload avatar.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload avatar.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setSaving(false);
   }
@@ -110,7 +110,7 @@ export default function ProfilePage() {
       setSuccessMsg('Body progress image saved!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload body image.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to upload body image.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -132,7 +132,7 @@ export default function ProfilePage() {
       setTimeout(() => setSuccessMsg(''), 3000);
       await loadProfile(userId);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update profile.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update profile.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setSaving(false);
   }
@@ -159,7 +159,7 @@ export default function ProfilePage() {
       setSuccessMsg('Password changed successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Password change failed.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Password change failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setPwSaving(false);
   }
@@ -198,7 +198,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold transition">
+            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition">
               <Camera size={16} /> {avatarPreview ? 'Change Avatar' : 'Upload Avatar'}
               <input type="file" accept="image/*" className="hidden"
                 onChange={e => { if (e.target.files?.[0]) { setAvatarFile(e.target.files[0]); setAvatarPreview(URL.createObjectURL(e.target.files[0])); } }} />
@@ -260,7 +260,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex items-end">
             <button type="submit" disabled={saving}
-              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
+              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save Profile
             </button>
           </div>
@@ -297,7 +297,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={pwSaving}
-                className="flex-1 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
+                className="flex-1 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {pwSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save Password
               </button>
               <button type="button" onClick={() => { setShowPasswordSection(false); setPwError(''); }}
@@ -314,7 +314,7 @@ export default function ProfilePage() {
             <ImageIcon size={20} className="text-brand-400" /> Body Progress Images
           </h3>
           <button onClick={() => setShowImageUpload(!showImageUpload)}
-            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold transition">
+            className="px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition">
             {showImageUpload ? 'Cancel' : '+ Upload'}
           </button>
         </div>
@@ -343,7 +343,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <button type="submit" disabled={!imageFile}
-              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition disabled:opacity-50">
+              className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50">
               Save Body Progress Image
             </button>
           </form>

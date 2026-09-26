@@ -167,7 +167,7 @@ export default function GoalsPage() {
         icon: 'success',
         title: activeGoal ? 'Goal Updated!' : 'Goal Created!',
         text: activeGoal ? 'Your previous goal was completed and new one is active.' : 'Your fitness goal is now active.',
-        confirmButtonColor: '#22c55e',
+        confirmButtonColor: '#65a30d',
         timer: 2000,
         timerProgressBar: true,
       });
@@ -176,7 +176,7 @@ export default function GoalsPage() {
         icon: 'error',
         title: 'Save Failed',
         text: e.message || 'Failed to create goal. Make sure backend is running.',
-        confirmButtonColor: '#22c55e',
+        confirmButtonColor: '#65a30d',
       });
     }
     setSaving(false);
@@ -305,7 +305,7 @@ export default function GoalsPage() {
 
           <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap gap-3 justify-center">
             <button onClick={handleChangeGoal}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition shadow-lg shadow-brand-600/20">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20">
               <RotateCcw size={16} /> Change Goal
             </button>
             <Link to="/daily" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700">
@@ -327,7 +327,7 @@ export default function GoalsPage() {
           </p>
           <button 
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-lg transition shadow-xl shadow-brand-600/30"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-lg transition shadow-xl shadow-brand-600/30"
           >
             <Target size={20} /> Create My First Goal
           </button>
@@ -353,7 +353,7 @@ export default function GoalsPage() {
               type="button"
               onClick={() => setHistoryTab('daily')}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ${
-                historyTab === 'daily' ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white'
+                historyTab === 'daily' ? 'bg-brand-400 text-slate-950' : 'text-slate-400 hover:text-white'
               }`}
             >
               <CalendarDays size={14} /> Daily records
@@ -362,7 +362,7 @@ export default function GoalsPage() {
               type="button"
               onClick={() => setHistoryTab('goals')}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ${
-                historyTab === 'goals' ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white'
+                historyTab === 'goals' ? 'bg-brand-400 text-slate-950' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Flag size={14} /> Goal history
@@ -422,7 +422,7 @@ export default function GoalsPage() {
                 title="No daily records yet"
                 hint="Log food, exercise, water, or steps on the Daily page. They’ll show up here against your calorie target."
                 action={
-                  <Link to="/daily" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold">
+                  <Link to="/daily" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold">
                     <ArrowRight size={14} /> Open Daily Tracker
                   </Link>
                 }
@@ -521,7 +521,7 @@ export default function GoalsPage() {
                             type="button"
                             onClick={() => setPage(n)}
                             className={`min-w-8 h-8 rounded-lg text-xs font-bold ${
-                              n === page ? 'bg-brand-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+                              n === page ? 'bg-brand-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
                             }`}
                           >
                             {n}
@@ -665,7 +665,7 @@ export default function GoalsPage() {
                       onClick={() => setForm({ ...form, goal_type: gt })}
                       className={`px-3 py-3 rounded-xl text-sm font-bold border transition relative overflow-hidden ${
                         form.goal_type === gt
-                          ? 'bg-brand-600 border-brand-500 text-white shadow-lg shadow-brand-600/20'
+                          ? 'bg-brand-400 border-brand-300 text-slate-950 shadow-lg shadow-brand-400/20'
                           : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-brand-500/50 hover:bg-slate-900'
                       }`}
                     >
@@ -763,7 +763,7 @@ export default function GoalsPage() {
                   Cancel
                 </button>
                 <button onClick={handleSave} disabled={saving}
-                  className="flex-1 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition shadow-lg shadow-brand-600/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-1 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20 disabled:opacity-50 flex items-center justify-center gap-2">
                   {saving ? (
                     <>
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
