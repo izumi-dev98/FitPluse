@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 export type Language = 'en' | 'my';
 
@@ -38,9 +38,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (language === 'en') return value;
     return Object.entries(MYANMAR).sort(([a], [b]) => b.length - a.length).reduce((text, [english, myanmar]) => text.replaceAll(english, myanmar), value);
   };
+  const originalTextRef = useRef(new WeakMap<Text, string>());
+  const translatedTextRef = useRef(new WeakMap<Text, string>());
+  const originalAttributesRef = useRef(new WeakMap<Element, Record<string, string>>());
+  const translatedAttributesRef = useRef(new WeakMap<Element, Record<string, string>>());
   useEffect(() => {
-    const originalText = new WeakMap<Text, string>();
-    const originalAttributes = new WeakMap<Element, Record<string, string>>();
+    const originalText = originalTextRef.current;
+    const translatedText = translatedTextRef.current;
+    const originalAttributes = originalAttributesRef.current;
+    const translatedAttributes = translatedAttributesRef.current;
     const attributes = ['placeholder', 'title', 'aria-label'];
     let translating = false;
     const translateDom = () => {
@@ -52,21 +58,30 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       while ((node = walker.nextNode())) {
         const textNode = node as Text;
         if (!textNode.parentElement || ['SCRIPT', 'STYLE'].includes(textNode.parentElement.tagName)) continue;
-        if (!originalText.has(textNode)) originalText.set(textNode, textNode.nodeValue || '');
+        const currentText = textNode.nodeValue || '';
+        const previousTranslation = translatedText.get(textNode);
+        if (!originalText.has(textNode) || (previousTranslation !== undefined && currentText !== previousTranslation)) {
+          originalText.set(textNode, currentText);
+        }
         const nextText = translate(originalText.get(textNode) || '');
-        if (textNode.nodeValue !== nextText) textNode.nodeValue = nextText;
+        if (currentText !== nextText) textNode.nodeValue = nextText;
+        translatedText.set(textNode, nextText);
       }
       document.body.querySelectorAll('*').forEach((element) => {
         const saved = originalAttributes.get(element) || {};
+        const translated = translatedAttributes.get(element) || {};
         attributes.forEach((attribute) => {
           const value = element.getAttribute(attribute);
           if (value !== null && saved[attribute] === undefined) saved[attribute] = value;
+          if (value !== null && translated[attribute] !== undefined && value !== translated[attribute]) saved[attribute] = value;
           if (saved[attribute] !== undefined) {
             const nextValue = translate(saved[attribute]);
             if (value !== nextValue) element.setAttribute(attribute, nextValue);
+            translated[attribute] = nextValue;
           }
         });
         originalAttributes.set(element, saved);
+        translatedAttributes.set(element, translated);
       });
       } finally {
         translating = false;
