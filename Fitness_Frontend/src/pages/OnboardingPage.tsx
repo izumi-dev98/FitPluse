@@ -48,21 +48,21 @@ const FEATURE_CARDS = [
   {
     id: 'food',
     title: 'Smart Food Tracking',
-    subtitle: 'Log meals, scan barcodes, get macros',
+    subtitle: 'Create Your Own food, Macro & Fooddatabase',
     icon: Utensils,
-    description: 'AI-powered food recognition, barcode scanner, and a massive database. Track calories, protein, carbs, and fats effortlessly.',
-    highlight: '1M+ foods in database',
+    description: 'Build custom foods, set macros, and access a massive verified database. Log meals fast with barcode scan and AI recognition.',
+    highlight: 'Custom foods + 1M database',
     color: 'bg-amber-500/20 border-amber-500/30',
     iconColor: 'text-amber-400',
     bgGradient: 'from-amber-900/20 to-amber-900/5',
   },
   {
     id: 'workout',
-    title: 'Workout Plans',
-    subtitle: 'Science-based routines for every goal',
+    title: 'Workout Tracking',
+    subtitle: 'Log exercises, sets, reps & progress',
     icon: Dumbbell,
-    description: 'Personalized programs that adapt to your progress. Strength, hypertrophy, fat loss, or maintenance — we build the plan.',
-    highlight: 'Adaptive progressive overload',
+    description: 'Track workouts like food — exercises, sets, reps, weight, RPE. Built-in rest timer, plate calculator, and progression charts.',
+    highlight: 'Exercise library + timer',
     color: 'bg-red-500/20 border-red-500/30',
     iconColor: 'text-red-400',
     bgGradient: 'from-red-900/20 to-red-900/5',
@@ -81,9 +81,9 @@ const FEATURE_CARDS = [
   {
     id: 'anyai',
     title: 'AnyAI Coach',
-    subtitle: 'Your 24/7 fitness intelligence',
+    subtitle: 'My daily process & smart guidance',
     icon: Brain,
-    description: 'Ask anything — meal ideas, form checks, plateau fixes, motivation. Context-aware answers based on your data and goals.',
+    description: 'Your 24/7 fitness intelligence. Ask anything — meal ideas, form checks, plateau fixes. Context-aware answers from your logs and goals.',
     highlight: 'Context-aware responses',
     color: 'bg-violet-500/20 border-violet-500/30',
     iconColor: 'text-violet-400',
@@ -371,26 +371,21 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
           {/* ===== NEW STEP 5: FEATURE CARDS ===== */}
           {isFeaturesStep && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {FEATURE_CARDS.map((feature) => (
                 <button
                   key={feature.id}
                   type="button"
-                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient}`}
+                  className={`flex flex-col items-start gap-3 p-4 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full`}
                 >
-                  <span className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
-                    <feature.icon size={24} />
+                  <span className={`relative inline-flex h-11 w-11 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
+                    <feature.icon size={22} />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-white font-bold text-base">{feature.title}</h3>
-                        <p className="text-slate-400 text-sm">{feature.subtitle}</p>
-                      </div>
-                      <ArrowRight size={18} className="text-slate-500 shrink-0" />
-                    </div>
-                    <p className="text-slate-500 text-sm mt-2 line-clamp-2">{feature.description}</p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-400 mt-3">
+                    <h3 className="text-white font-bold text-base leading-tight">{feature.title}</h3>
+                    <p className="text-slate-400 text-sm">{feature.subtitle}</p>
+                    <p className="text-slate-500 text-sm mt-1.5 line-clamp-3 flex-1">{feature.description}</p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-400 mt-2">
                       <Sparkles size={10} /> {feature.highlight}
                     </span>
                   </div>
