@@ -3,11 +3,25 @@ import { persist } from 'zustand/middleware';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Auth user object (Supabase auth user merged with optional cached profile
+// fields). Profile table data is the source of truth — see useProfile().
+export interface AuthUser {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  goal_type?: string | null;
+  weight_kg?: number | null;
+  height_cm?: number | null;
+  age?: number | null;
+  gender?: string | null;
+  activity_level?: string | null;
+}
+
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   expiresAt: number | null; // unix seconds from Supabase
-  user: any | null;
+  user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;

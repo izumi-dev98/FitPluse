@@ -18,6 +18,23 @@ export function fmtInt(v: number | string | null | undefined): string {
   return Math.round(n).toLocaleString('en-US');
 }
 
+// A profile counts as onboarded once the fields the app depends on
+// (targets, BMR/TDEE, dashboard stats) are all filled. Age may come from
+// dob (preferred) or the legacy age column.
+export function isProfileComplete(p: {
+  age?: number | null;
+  dob?: string | null;
+  height?: number | string | null;
+  weight?: number | string | null;
+  gender?: string | null;
+  activity_level?: string | null;
+} | null | undefined): boolean {
+  const hasAge =
+    (p?.dob ? ageFromDob(p.dob) !== null : false) || typeof p?.age === 'number';
+  const filled = (v: unknown) => v !== null && v !== undefined && v !== '';
+  return !!p && hasAge && filled(p.height) && filled(p.weight) && !!p.gender && !!p.activity_level;
+}
+
 export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }

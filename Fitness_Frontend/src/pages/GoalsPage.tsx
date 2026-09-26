@@ -25,6 +25,7 @@ import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { useProfile } from "../lib/queries";
 import { ageFromDob, fmtInt } from "../lib/format";
+import type { DailyRecord, DailyFoodRow, DailyExerciseRow, Goal } from "../lib/database";
 import {
   calcBMR,
   calcTDEE,
@@ -54,13 +55,23 @@ type CalcInputs = {
   height_cm: number;
   dob: string;
   age: number;
-  activity_level:
-    | "sedentary"
-    | "lightly_active"
-    | "moderately_active"
-    | "very_active"
-    | "extremely_active";
+  activity_level: ActivityLevel;
 };
+
+const ACTIVITY_LEVELS = [
+  "sedentary",
+  "lightly_active",
+  "moderately_active",
+  "very_active",
+  "extremely_active",
+] as const;
+type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
+
+function toActivityLevel(v: unknown, fallback: ActivityLevel): ActivityLevel {
+  return typeof v === "string" && (ACTIVITY_LEVELS as readonly string[]).includes(v)
+    ? (v as ActivityLevel)
+    : fallback;
+}
 
 function RecommendationList({
   title,
@@ -94,12 +105,12 @@ function RecommendationList({
 
 export default function GoalsPage() {
   const { user } = useAuthStore();
-  const [goals, setGoals] = useState<any[]>([]);
-  const [records, setRecords] = useState<any[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeGoal, setActiveGoal] = useState<any>(null);
+  const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [historyTab, setHistoryTab] = useState<HistoryTab>("daily");
   const [range, setRange] = useState<RangeKey>(14);
   const [page, setPage] = useState(1);
@@ -111,7 +122,7 @@ export default function GoalsPage() {
     height_cm: user?.height_cm || 175,
     dob: "",
     age: user?.age || 30,
-    activity_level: user?.activity_level || "moderately_active",
+    activity_level: toActivityLevel(user?.activity_level, "moderately_active"),
   });
 
   // Prefill the calculator from the user's profile (not the auth user object,
@@ -130,7 +141,7 @@ export default function GoalsPage() {
       height_cm: Number(p.height) || prev.height_cm,
       dob: p.dob ? String(p.dob).slice(0, 10) : prev.dob,
       age: (p.dob ? ageFromDob(p.dob) : Number(p.age)) || prev.age,
-      activity_level: p.activity_level || prev.activity_level,
+      activity_level: toActivityLevel(p.activity_level, prev.activity_level),
     }));
   }, [profileQ.data, showModal]);
 
@@ -156,14 +167,14 @@ export default function GoalsPage() {
       ]);
       const allGoals = Array.isArray(data) ? data : [];
       const recordsById = new Map(
-        (Array.isArray(recs) ? recs : []).map((record: any) => [
+        (Array.isArray(recs) ? recs : []).map((record: DailyRecord) => [
           String(record.id),
           record.record_date,
         ]),
       );
       const foodTotals = new Map<string, number>();
       const exerciseTotals = new Map<string, number>();
-      (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: any) => {
+      (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: DailyFoodRow) => {
         const date = String(
           recordsById.get(String(food.daily_record_id)) ||
             food.record_date ||
@@ -177,7 +188,7 @@ export default function GoalsPage() {
           );
       });
       (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach(
-        (exercise: any) => {
+        (exercise: DailyExerciseRow) => {
           const date = String(
             recordsById.get(String(exercise.daily_record_id)) ||
               exercise.record_date ||
@@ -193,7 +204,7 @@ export default function GoalsPage() {
         },
       );
       const mergedRecords = (Array.isArray(recs) ? recs : []).map(
-        (record: any) => ({
+        (record: DailyRecord) => ({
           ...record,
           calories_consumed: Math.max(
             Number(record.calories_consumed) || 0,
@@ -207,7 +218,7 @@ export default function GoalsPage() {
       );
       setGoals(allGoals);
       setRecords(mergedRecords);
-      const active = allGoals.find((g: any) => g.status === "active");
+      const active = allGoals.find((g: Goal) => g.status === "active");
       setActiveGoal(active || null);
     } catch {
       setGoals([]);
@@ -348,12 +359,12 @@ export default function GoalsPage() {
         timer: 2000,
         timerProgressBar: true,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       Swal.fire({
         icon: "error",
         title: "Save Failed",
         text:
-          e.message || "Failed to create goal. Make sure backend is running.",
+          (e instanceof Error ? e.message : null) || "Failed to create goal. Make sure backend is running.",
         confirmButtonColor: "#65a30d",
       });
     }
@@ -378,7 +389,7 @@ export default function GoalsPage() {
         height_cm: Number(p.height) || prev.height_cm,
         dob: p.dob ? String(p.dob).slice(0, 10) : prev.dob,
         age: (p.dob ? ageFromDob(p.dob) : Number(p.age)) || prev.age,
-        activity_level: p.activity_level || prev.activity_level,
+        activity_level: toActivityLevel(p.activity_level, prev.activity_level),
       }));
     }
     setShowModal(true);
@@ -911,7 +922,7 @@ export default function GoalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {goals.map((g: any) => {
+                {goals.map((g) => {
                   const isActive = g.status === "active";
                   const isCompleted = g.status === "completed";
                   return (
@@ -1169,7 +1180,7 @@ export default function GoalsPage() {
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          activity_level: e.target.value as any,
+                          activity_level: e.target.value as CalcInputs["activity_level"],
                         })
                       }
                       className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"

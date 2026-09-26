@@ -16,6 +16,7 @@ import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { Card, EmptyState, MacroRow, PageHeader, Ring } from "../components/ui";
 import { fmtInt } from "../lib/format";
+import type { Exercise, Food } from "../lib/database";
 import {
   ensureTodayRecord,
   useBodyImages,
@@ -43,12 +44,12 @@ export default function DailyPage() {
   const [activeTab, setActiveTab] = useState<TabType>("food");
 
   const [foodSearch, setFoodSearch] = useState("");
-  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [foodQty, setFoodQty] = useState(1);
   const [foodMeal, setFoodMeal] = useState("Breakfast");
 
   const [exerciseSearch, setExerciseSearch] = useState("");
-  const [selectedExercise, setSelectedExercise] = useState<any>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [exLog, setExLog] = useState({
     sets: 3,
     reps: 10,
@@ -88,11 +89,11 @@ export default function DailyPage() {
   const allLoggedExercises = dailyExercisesQ.data ?? [];
 
   const today = todayStr();
-  const rec = records.find((r: any) => r.record_date === today);
+  const rec = records.find((r) => r.record_date === today);
   const dailyFoodsQ = useDailyFoods(uid, rec?.id);
   const loggedFoods = dailyFoodsQ.data ?? [];
 
-  const active = goals.find((g: any) => g.status === "active");
+  const active = goals.find((g) => g.status === "active");
   const goalCalories = active
     ? Number(active.target_calories ?? active.target_value) || null
     : null;
@@ -101,16 +102,16 @@ export default function DailyPage() {
   const carbTarget = active ? Number(active.carb_target) || 0 : 0;
 
   const loggedExercises = rec?.id
-    ? allLoggedExercises.filter((e: any) => e.daily_record_id === rec.id)
+    ? allLoggedExercises.filter((e) => e.daily_record_id === rec.id)
     : [];
   const steps = Number(rec?.steps) || 0;
   const todayWater = waters.filter(
-    (w: any) =>
+    (w) =>
       String(w.recorded_at || w.created_at || "").slice(0, 10) === today,
   );
   const water =
     todayWater.reduce(
-      (s: number, w: any) => s + (Number(w.amount_ml) || 0),
+      (s: number, w) => s + (Number(w.amount_ml) || 0),
       0,
     ) ||
     Number(rec?.water_ml) ||
@@ -300,23 +301,23 @@ export default function DailyPage() {
   ];
 
   const todayFoodCal = loggedFoods.reduce(
-    (s: number, f: any) => s + (Number(f.calories) || 0),
+    (s: number, f) => s + (Number(f.calories) || 0),
     0,
   );
   const todayProtein = loggedFoods.reduce(
-    (s: number, f: any) => s + (Number(f.protein) || 0),
+    (s: number, f) => s + (Number(f.protein) || 0),
     0,
   );
   const todayFat = loggedFoods.reduce(
-    (s: number, f: any) => s + (Number(f.fat) || 0),
+    (s: number, f) => s + (Number(f.fat) || 0),
     0,
   );
   const todayCarbs = loggedFoods.reduce(
-    (s: number, f: any) => s + (Number(f.carbohydrates) || 0),
+    (s: number, f) => s + (Number(f.carbohydrates) || 0),
     0,
   );
   const todayExBurned = loggedExercises.reduce(
-    (s: number, e: any) => s + (Number(e.calories_burned) || 0),
+    (s: number, e) => s + (Number(e.calories_burned) || 0),
     0,
   );
   const remaining = goalCalories != null ? goalCalories - todayFoodCal : null;
@@ -519,7 +520,7 @@ export default function DailyPage() {
                       <span>{fmtInt(kcal)} kcal</span>
                     </div>
                     <div className="space-y-1.5">
-                      {items.map((f: any) => (
+                      {items.map((f) => (
                         <div
                           key={f.id}
                           className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2"
@@ -572,7 +573,7 @@ export default function DailyPage() {
             />
           ) : (
             <div className="space-y-1.5">
-              {loggedExercises.map((e: any) => (
+              {loggedExercises.map((e) => (
                 <div
                   key={e.id}
                   className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2"
@@ -619,7 +620,7 @@ export default function DailyPage() {
           </p>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {bodyImages.map((img: any, i: number) => (
+            {bodyImages.map((img, i: number) => (
               <div
                 key={img.id ?? i}
                 className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950"
@@ -628,7 +629,7 @@ export default function DailyPage() {
                 img.image_url?.startsWith("http") ? (
                   <img
                     src={img.image_url}
-                    alt={img.image_type}
+                    alt={img.image_type ?? undefined}
                     className="w-full h-28 object-cover"
                   />
                 ) : (

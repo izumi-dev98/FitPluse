@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { qk } from '../lib/queries';
+import type { DailyExerciseRow, Exercise } from '../lib/database';
 import { PageHeader, Card, PaginationBar, EmptyState } from '../components/ui';
 import { CustomFieldsModal, EXERCISE_BASE_FIELDS } from '../components/CustomFieldsModal';
 
@@ -16,14 +17,14 @@ function formatDate(value?: string) {
 
 export default function ExercisesPage() {
   const [userId, setUserId] = useState('');
-  const [items, setItems] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [items, setItems] = useState<Exercise[]>([]);
+  const [logs, setLogs] = useState<DailyExerciseRow[]>([]);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [editExercise, setEditExercise] = useState<any>(null);
+  const [editExercise, setEditExercise] = useState<Exercise | null>(null);
   
   // Custom fields modal state - start empty, user adds fields
   const [customFields] = useState<import('../components/CustomFieldsModal').CustomField[]>([]);
@@ -49,7 +50,7 @@ export default function ExercisesPage() {
     load(user.id);
   }, [accessToken, user?.id]);
 
-  async function handleCreateExercise(data: Record<string, any>) {
+  async function handleCreateExercise(data: Record<string, unknown>) {
     if (!data.name || !userId) return;
     setCreating(true);
     try {
@@ -64,7 +65,7 @@ export default function ExercisesPage() {
     setCreating(false);
   }
 
-  async function handleUpdateExercise(data: Record<string, any>) {
+  async function handleUpdateExercise(data: Record<string, unknown>) {
     if (!editExercise || !data.name) return;
     setCreating(true);
     try {
@@ -73,21 +74,21 @@ export default function ExercisesPage() {
       await load(userId);
       qc.invalidateQueries({ queryKey: qk.exercises(userId) });
       Swal.fire({ icon: 'success', title: 'Exercise updated', timer: 1400, showConfirmButton: false });
-    } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Update failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+    } catch (err: unknown) {
+      Swal.fire({ icon: 'error', title: 'Error', text: (err instanceof Error ? err.message : null) || 'Update failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setCreating(false);
   }
 
-  async function handleDeleteExercise(item: any) {
+  async function handleDeleteExercise(item: Exercise) {
     const result = await Swal.fire({ title: `Delete ${item.name}?`, text: 'This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' });
     if (!result.isConfirmed) return;
     try {
       await apiClient.deleteExercise(item.id);
       await load(userId);
       qc.invalidateQueries({ queryKey: qk.exercises(userId) });
-    } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Delete failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+    } catch (err: unknown) {
+      Swal.fire({ icon: 'error', title: 'Error', text: (err instanceof Error ? err.message : null) || 'Delete failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -192,7 +193,7 @@ export default function ExercisesPage() {
         submitLabel="Save exercise"
         allowCustomFields={false}
       />
-      {editExercise && <CustomFieldsModal open={Boolean(editExercise)} title="Edit exercise" onClose={() => setEditExercise(null)} onSubmit={handleUpdateExercise} submitting={creating} initialFields={[]} baseFields={EXERCISE_BASE_FIELDS.map((field) => ({ ...field, value: String(editExercise[field.id] ?? field.value ?? '') }))} submitLabel="Update exercise" allowCustomFields={false} />}
+      {editExercise && <CustomFieldsModal open={Boolean(editExercise)} title="Edit exercise" onClose={() => setEditExercise(null)} onSubmit={handleUpdateExercise} submitting={creating} initialFields={[]} baseFields={EXERCISE_BASE_FIELDS.map((field) => ({ ...field, value: String((editExercise as unknown as Record<string, unknown>)[field.id] ?? field.value ?? '') }))} submitLabel="Update exercise" allowCustomFields={false} />}
     </div>
   );
 }

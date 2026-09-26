@@ -26,3 +26,7 @@ dist-ssr
 # Local opencode tooling (skills, agents) — not for commit
 .opencode/
 opencode.*
+.agents/
+.claude/
+agent/
+skills-lock.json

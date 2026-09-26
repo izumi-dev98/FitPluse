@@ -15,6 +15,7 @@ import Swal from "sweetalert2";
 import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { ageFromDob, fmtInt } from "../lib/format";
+import type { Badge, UserBadge } from "../lib/database";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   qk,
@@ -39,19 +40,19 @@ export default function ProfilePage() {
   const profile = profileQ.data ?? null;
   const goals = goalsQ.data ?? [];
   const bodyImages = bodyImagesQ.data ?? [];
-  const badges = badgesQ.data ?? [];
-  const userBadges = userBadgesQ.data ?? [];
-  const earnedBadges = useMemo(() => {
+  // Catalog rows carry no earned flag — the view adds it client-side.
+  type BadgeWithEarned = Badge & { earned?: boolean; earned_at?: string | null };
+  const earnedBadges: BadgeWithEarned[] = useMemo(() => {
     const earnedDates = new Map(
-      userBadges.map((badge: any) => [String(badge.badge_id), badge.earned_at]),
+      (userBadgesQ.data ?? []).map((badge: UserBadge) => [String(badge.badge_id), badge.earned_at]),
     );
-    return badges
-      .filter((badge: any) => badge.earned)
-      .map((badge: any) => ({
+    return ((badgesQ.data ?? []) as BadgeWithEarned[])
+      .filter((badge) => badge.earned)
+      .map((badge) => ({
         ...badge,
         earned_at: badge.earned_at || earnedDates.get(String(badge.id)),
       }));
-  }, [badges, userBadges]);
+  }, [badgesQ.data, userBadgesQ.data]);
   const loading =
     profileQ.isLoading || goalsQ.isLoading || bodyImagesQ.isLoading;
   const [saving, setSaving] = useState(false);
@@ -551,7 +552,7 @@ export default function ProfilePage() {
 
         {bodyImages.length > 0 ? (
           <div className="grid grid-cols-3 gap-3">
-            {bodyImages.map((img: any, i) => (
+            {bodyImages.map((img, i) => (
               <div
                 key={i}
                 className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950"
@@ -581,7 +582,7 @@ export default function ProfilePage() {
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {earnedBadges.map((badge: any) => (
+            {earnedBadges.map((badge) => (
               <div
                 key={badge.id}
                 className="flex items-center gap-3 bg-slate-950/60 border border-yellow-500/20 rounded-xl px-4 py-3"
@@ -621,7 +622,7 @@ export default function ProfilePage() {
           </p>
         ) : (
           <div className="grid gap-3">
-            {goals.map((g: any) => (
+            {goals.map((g) => (
               <div
                 key={g.id}
                 className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl px-5 py-4"

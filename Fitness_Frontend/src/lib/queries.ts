@@ -1,6 +1,19 @@
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { apiClient } from './api';
 import { useAuthStore } from '../store/auth';
+import type {
+  BodyImage,
+  DailyExerciseRow,
+  DailyFoodRow,
+  DailyRecord,
+  Exercise,
+  Food,
+  Goal,
+  Badge,
+  UserBadge,
+  WaterRow,
+  WeightEntry,
+} from './database';
 
 // Shared cache keys. Screens that show the same data reuse the same key,
 // so switching routes within `staleTime` renders instantly with no refetch.
@@ -24,12 +37,12 @@ export const STALE_TIME = 60_000;
 export const GC_TIME = 10 * 60_000;
 
 // Preserve the pages' current contract: failed reads resolve to [].
-async function arr<T = any>(p: Promise<unknown>): Promise<T[]> {
+async function arr<T>(p: Promise<unknown>): Promise<T[]> {
   const d = await p.catch(() => []);
   return Array.isArray(d) ? (d as T[]) : [];
 }
 
-function useArr<T = any>(key: readonly unknown[], fn: () => Promise<unknown>, uid?: string) {
+function useArr<T>(key: readonly unknown[], fn: () => Promise<unknown>, uid?: string) {
   return useQuery({
     queryKey: key,
     queryFn: () => arr<T>(fn()),
@@ -40,25 +53,25 @@ function useArr<T = any>(key: readonly unknown[], fn: () => Promise<unknown>, ui
   });
 }
 
-export const useGoals = (uid?: string) => useArr(qk.goals(uid), () => apiClient.getGoals(uid!), uid);
+export const useGoals = (uid?: string) => useArr<Goal>(qk.goals(uid), () => apiClient.getGoals(uid!), uid);
 export const useDailyRecords = (uid?: string) =>
-  useArr(qk.dailyRecords(uid), () => apiClient.getDailyRecords(uid!), uid);
+  useArr<DailyRecord>(qk.dailyRecords(uid), () => apiClient.getDailyRecords(uid!), uid);
 export const useDailyFoods = (uid?: string, recordId?: string) =>
-  useArr(qk.dailyFoods(uid, recordId), () => apiClient.getDailyFoods(uid!, recordId), uid);
+  useArr<DailyFoodRow>(qk.dailyFoods(uid, recordId), () => apiClient.getDailyFoods(uid!, recordId), uid);
 export const useDailyExercises = (uid?: string) =>
-  useArr(qk.dailyExercises(uid), () => apiClient.getDailyExercises(uid!), uid);
+  useArr<DailyExerciseRow>(qk.dailyExercises(uid), () => apiClient.getDailyExercises(uid!), uid);
 export const useWaterIntake = (uid?: string) =>
-  useArr(qk.water(uid), () => apiClient.getWaterIntake(uid!), uid);
+  useArr<WaterRow>(qk.water(uid), () => apiClient.getWaterIntake(uid!), uid);
 export const useWeightHistory = (uid?: string) =>
-  useArr(qk.weights(uid), () => apiClient.getWeightHistory(uid!), uid);
-export const useFoods = (uid?: string) => useArr(qk.foods(uid), () => apiClient.getFoods(uid!), uid);
+  useArr<WeightEntry>(qk.weights(uid), () => apiClient.getWeightHistory(uid!), uid);
+export const useFoods = (uid?: string) => useArr<Food>(qk.foods(uid), () => apiClient.getFoods(uid!), uid);
 export const useExercises = (uid?: string) =>
-  useArr(qk.exercises(uid), () => apiClient.getExercises(uid!), uid);
+  useArr<Exercise>(qk.exercises(uid), () => apiClient.getExercises(uid!), uid);
 export const useBodyImages = (uid?: string) =>
-  useArr(qk.bodyImages(uid), () => apiClient.getBodyProgressImages(uid!), uid);
-export const useBadges = (uid?: string) => useArr(qk.badges(uid), () => apiClient.getBadges(uid!), uid);
+  useArr<BodyImage>(qk.bodyImages(uid), () => apiClient.getBodyProgressImages(uid!), uid);
+export const useBadges = (uid?: string) => useArr<Badge>(qk.badges(uid), () => apiClient.getBadges(uid!), uid);
 export const useUserBadges = (uid?: string) =>
-  useArr(qk.userBadges(uid), () => apiClient.getUserBadges(uid!), uid);
+  useArr<UserBadge>(qk.userBadges(uid), () => apiClient.getUserBadges(uid!), uid);
 
 // Own profile (auth token identifies the user — no id needed).
 export const useProfile = () => {
@@ -84,10 +97,10 @@ function todayStr() {
 export async function ensureTodayRecord(qc: QueryClient, uid: string) {
   const recs = await qc.query({
     queryKey: qk.dailyRecords(uid),
-    queryFn: () => arr(apiClient.getDailyRecords(uid)),
+    queryFn: () => arr<DailyRecord>(apiClient.getDailyRecords(uid)),
     staleTime: STALE_TIME,
   });
-  const rec = recs.find((r: any) => r.record_date === todayStr());
+  const rec = recs.find((r) => r.record_date === todayStr());
   if (rec?.id) return rec;
   const created = await apiClient.createDailyRecord({
     user_id: uid,

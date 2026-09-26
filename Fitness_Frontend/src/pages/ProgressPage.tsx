@@ -9,6 +9,7 @@ import { qk, useGoals, useProfile, useWeightHistory } from '../lib/queries';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
+import type { WeightEntry } from '../lib/database';
 
 export default function ProgressPage() {
   const user = useAuthStore((s) => s.user);
@@ -26,7 +27,7 @@ export default function ProgressPage() {
   const weightHistory = useMemo(
     () =>
       [...(weightsQ.data ?? [])].sort(
-        (a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
+        (a: WeightEntry, b: WeightEntry) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
       ),
     [weightsQ.data],
   );
@@ -50,20 +51,20 @@ export default function ProgressPage() {
       qc.invalidateQueries({ queryKey: qk.weights(uid) });
       setWeight('');
       setBodyFat('');
-    } catch (err: any) {
+    } catch {
       setError('Failed to log weight.');
     }
     setSaving(false);
   }
 
   // Calculate averages and adjustments
-  const sorted = [...weightHistory].sort((a: any, b: any) =>
+  const sorted = [...weightHistory].sort((a: WeightEntry, b: WeightEntry) =>
     new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
   );
   const last7 = sorted.slice(0, 7);
   const prev7 = sorted.slice(7, 14);
-  const avgWeight = last7.length ? Math.round((last7.reduce((s: any, w: any) => s + Number(w.weight), 0) / last7.length) * 10) / 10 : null;
-  const prevAvgWeight = prev7.length ? Math.round((prev7.reduce((s: any, w: any) => s + Number(w.weight), 0) / prev7.length) * 10) / 10 : null;
+  const avgWeight = last7.length ? Math.round((last7.reduce((s, w) => s + Number(w.weight), 0) / last7.length) * 10) / 10 : null;
+  const prevAvgWeight = prev7.length ? Math.round((prev7.reduce((s, w) => s + Number(w.weight), 0) / prev7.length) * 10) / 10 : null;
   const weightDiff = avgWeight && prevAvgWeight ? Math.round((avgWeight - prevAvgWeight) * 10) / 10 : null;
 
   // Weekly progress adjustment
@@ -97,7 +98,7 @@ export default function ProgressPage() {
   }
 
   // Chart data
-  const chartData = sorted.slice(0, 14).map((w: any) => ({
+  const chartData = sorted.slice(0, 14).map((w) => ({
     date: new Date(w.recorded_at).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
     weight: Number(w.weight),
   }));

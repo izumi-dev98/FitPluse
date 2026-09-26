@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 import { fmtInt } from '../lib/format';
+import type { DailyExerciseRow, DailyFoodRow, DailyRecord, Goal } from '../lib/database';
 import DailyRecordModal from '../components/DailyRecordModal';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
@@ -60,7 +61,7 @@ export default function CalendarPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const [goals, setGoals] = useState<any[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [rows, setRows] = useState<DailyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DailyRow | null>(null);
@@ -77,19 +78,19 @@ export default function CalendarPage() {
           apiClient.getDailyExercises(user.id).catch(() => []),
         ]);
         const goalList = Array.isArray(g) ? g : [];
-        const recordList = Array.isArray(recs) ? recs : [];
-        const recordsById = new Map(recordList.map((record: any) => [String(record.id), record.record_date]));
+        const recordList: DailyRecord[] = Array.isArray(recs) ? recs : [];
+        const recordsById = new Map(recordList.map((record) => [String(record.id), record.record_date]));
         const foodTotals = new Map<string, number>();
         const exerciseTotals = new Map<string, number>();
-        (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: any) => {
+        (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: DailyFoodRow) => {
           const date = String(recordsById.get(String(food.daily_record_id)) || food.record_date || food.created_at || '').slice(0, 10);
           if (date) foodTotals.set(date, (foodTotals.get(date) || 0) + (Number(food.calories) || 0));
         });
-        (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach((exercise: any) => {
+        (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach((exercise: DailyExerciseRow) => {
           const date = String(recordsById.get(String(exercise.daily_record_id)) || exercise.record_date || exercise.created_at || '').slice(0, 10);
           if (date) exerciseTotals.set(date, (exerciseTotals.get(date) || 0) + (Number(exercise.calories_burned) || 0));
         });
-        const mergedRecords = recordList.map((record: any) => ({
+        const mergedRecords = recordList.map((record) => ({
           ...record,
           calories_consumed: Math.max(Number(record.calories_consumed) || 0, foodTotals.get(String(record.record_date)) || 0),
           calories_burned: Math.max(Number(record.calories_burned) || 0, exerciseTotals.get(String(record.record_date)) || 0),

@@ -74,34 +74,34 @@ export default function DashboardPage() {
   } = useMemo(() => {
     const today = todayStr();
     const recs = recordsQ.data ?? [];
-    const todayRec = recs.find((r: any) => r.record_date === today);
+    const todayRec = recs.find((r) => r.record_date === today);
 
     const gList = goalsQ.data ?? [];
-    const active = gList.find((g: any) => g.status === "active");
+    const active = gList.find((g) => g.status === "active");
 
     const foodList = foodsQ.data ?? [];
-    const todayFoods = foodList.filter((f: any) => {
+    const todayFoods = foodList.filter((f) => {
       const d = f.record_date || String(f.created_at || "").slice(0, 10);
       return d === today || (todayRec && f.daily_record_id === todayRec.id);
     });
 
     const exList = exercisesQ.data ?? [];
-    const todayEx = exList.filter((e: any) => {
+    const todayEx = exList.filter((e) => {
       const d = e.record_date || String(e.created_at || "").slice(0, 10);
       return d === today || (todayRec && e.daily_record_id === todayRec.id);
     });
 
     const wList = waterQ.data ?? [];
     const todayWater = wList.filter(
-      (w: any) =>
+      (w) =>
         String(w.recorded_at || w.created_at || "").slice(0, 10) === today,
     );
     const waterSum = todayWater.reduce(
-      (s: number, w: any) => s + (Number(w.amount_ml) || 0),
+      (s: number, w) => s + (Number(w.amount_ml) || 0),
       0,
     );
 
-    const dates = new Set(recs.map((r: any) => r.record_date).filter(Boolean));
+    const dates = new Set(recs.map((r) => r.record_date).filter(Boolean));
     let s = 0;
     const d = new Date();
     for (let i = 0; i < 30; i++) {
@@ -115,7 +115,7 @@ export default function DashboardPage() {
     const wHist = weightsQ.data ?? [];
     const latest = wHist.length
       ? [...wHist].sort(
-          (a: any, b: any) =>
+          (a, b) =>
             new Date(b.recorded_at).getTime() -
             new Date(a.recorded_at).getTime(),
         )[0]
@@ -133,23 +133,23 @@ export default function DashboardPage() {
         ? String(active.goal_type || "").replace(/_/g, " ")
         : null,
       consumed: todayFoods.reduce(
-        (sum: number, f: any) => sum + (Number(f.calories) || 0),
+        (sum: number, f) => sum + (Number(f.calories) || 0),
         0,
       ),
       burned: todayEx.reduce(
-        (sum: number, e: any) => sum + (Number(e.calories_burned) || 0),
+        (sum: number, e) => sum + (Number(e.calories_burned) || 0),
         0,
       ),
       protein: todayFoods.reduce(
-        (sum: number, f: any) => sum + (Number(f.protein) || 0),
+        (sum: number, f) => sum + (Number(f.protein) || 0),
         0,
       ),
       fat: todayFoods.reduce(
-        (sum: number, f: any) => sum + (Number(f.fat) || 0),
+        (sum: number, f) => sum + (Number(f.fat) || 0),
         0,
       ),
       carbs: todayFoods.reduce(
-        (sum: number, f: any) => sum + (Number(f.carbohydrates) || 0),
+        (sum: number, f) => sum + (Number(f.carbohydrates) || 0),
         0,
       ),
       water: waterSum || Number(todayRec?.water_ml) || 0,
