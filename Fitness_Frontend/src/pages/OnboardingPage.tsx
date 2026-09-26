@@ -24,7 +24,7 @@ import { type GoalType } from '../lib/theory';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../lib/api';
 import { useQueryClient } from '@tanstack/react-query';
-import { qk } from '../lib/queries';
+import { qk, useProfile } from '../lib/queries';
 import { ageFromDob, todayISO } from '../lib/format';
 
 const ACTIVITY_OPTIONS: { value: string; label: string; hint: string; icon: LucideIcon }[] = [
@@ -107,17 +107,17 @@ const TOTAL_STEPS = ORIGINAL_STEPS.length + 2; // 4 original + 2 new = 6
 
 export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void; onSkip: () => void }) {
   const user = useAuthStore((s) => s.user);
-  const { data: profile } = useQueryClient().getQueryData(['profile']) as any;
+  const profileQ = useProfile();
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
   
-  // Original form state
-  const [name, setName] = useState(profile?.name || user?.name || '');
-  const [dob, setDob] = useState(profile?.dob ? String(profile.dob).slice(0, 10) : '');
-  const [gender, setGender] = useState(profile?.gender || '');
-  const [height, setHeight] = useState(profile?.height ? String(profile.height) : '');
-  const [weight, setWeight] = useState(profile?.weight ? String(profile.weight) : '');
-  const [activity, setActivity] = useState(profile?.activity_level || '');
+  // Original form state - prefill from profile if available
+  const [name, setName] = useState(profileQ.data?.name || user?.name || '');
+  const [dob, setDob] = useState(profileQ.data?.dob ? String(profileQ.data.dob).slice(0, 10) : '');
+  const [gender, setGender] = useState(profileQ.data?.gender || '');
+  const [height, setHeight] = useState(profileQ.data?.height ? String(profileQ.data.height) : '');
+  const [weight, setWeight] = useState(profileQ.data?.weight ? String(profileQ.data.weight) : '');
+  const [activity, setActivity] = useState(profileQ.data?.activity_level || '');
   
   // New slides state
   const [selectedGoal, setSelectedGoal] = useState<GoalType | null>(null);
@@ -168,15 +168,14 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
       setStep(ORIGINAL_STEPS.length);
       return;
     }
-    if (!profile?.id) {
-      setSubmitError('Profile is not ready yet. Please re-login and try again.');
+    if (!user?.id) {
+      setSubmitError('User session not found. Please re-login and try again.');
       return;
     }
     setSaving(true);
     setSubmitError('');
     try {
-      // 1. Update profile with original data
-      await apiClient.updateProfile(profile.id, {
+      const profileData = {
         name: name.trim(),
         dob,
         age: ageFromDob(dob),
@@ -184,10 +183,20 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
         weight_kg: Number(weight),
         gender,
         activity_level: activity,
-      });
+      };
+
+      // 1. Create or update profile
+      if (profileQ.data?.id) {
+        // Profile exists - update it
+        await apiClient.updateProfile(profileQ.data.id, profileData);
+      } else {
+        // No profile yet - create it
+        await apiClient.createProfile({ user_id: user.id, ...profileData });
+      }
+
       // 2. Create initial goal
       await apiClient.createGoal({
-        user_id: user?.id,
+        user_id: user.id,
         goal_type: selectedGoal,
         target_value: 0,
         target_calories: 0,
