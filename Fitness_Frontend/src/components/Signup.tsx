@@ -11,6 +11,7 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const signup = useAuthStore((s) => s.signup);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -24,10 +25,18 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
       return;
     }
     setError('');
+    setNotice('');
     setLoading(true);
     try {
       await signup(email, password, name);
-      onSuccess();
+      // Email confirmation ON returns no session: stay here and say so
+      // instead of entering the app tokenless (which breaks onboarding).
+      if (useAuthStore.getState().accessToken) {
+        onSuccess();
+      } else {
+        setNotice('Account created — check your email to confirm it, then log in.');
+        setLoading(false);
+      }
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : null) || 'Network error');
       setLoading(false);
@@ -95,6 +104,7 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
       {error && <div className="text-red-400 text-sm font-medium">{error}</div>}
+      {notice && <div className="text-brand-300 text-sm font-medium">{notice}</div>}
       <button
         type="submit"
         disabled={loading}
