@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { supabase, getUserClient } from './config/supabase.js';
+import { supabase, supabaseAdmin, getUserClient } from './config/supabase.js';
 import { calculateBMR, calculateTDEE, calculateCalorieTarget, calculateProteinTarget, calculateFatTarget, calculateMacros } from './utils/calculator.js';
 
 const app = express();
@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined'));
 
 // Health check
@@ -43,6 +44,24 @@ app.post('/api/auth/signup', async (req, res) => {
       access_token: data.session?.access_token || null,
       refresh_token: data.session?.refresh_token || null,
     });
+
+    // Auto-create profile
+    try {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        name: name ? String(name) : String(email).split('@')[0],
+        age: null,
+        height_cm: null,
+        weight_kg: null,
+        gender: null,
+        activity_level: 'moderately_active',
+        bmr: null,
+        tdee: null,
+        calorie_goal: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).select().single().catch(() => {});
+    } catch {}
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -141,6 +160,24 @@ app.get('/api/profiles', async (req, res) => {
   }
 });
 
+// Get profile by ID (public or with auth)
+app.get('/api/profiles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Profile not found' });
+    res.json(data);
+  } catch (err) {
+    console.error('Profile fetch by ID error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Create profile (admin only in real app)
 app.post('/api/profiles', async (req, res) => {
   try {
@@ -148,7 +185,7 @@ app.post('/api/profiles', async (req, res) => {
     if (!name || !age || !height_cm || !weight_kg || !gender || !activity_level) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    const profile = await supabase.from('profiles').insert({
+    const { data, error } = await supabase.from('profiles').insert({
       name,
       age: Number(age),
       height_cm: Number(height_cm),
@@ -160,8 +197,9 @@ app.post('/api/profiles', async (req, res) => {
       calorie_goal: null,
       created_at: new Date(),
       updated_at: new Date(),
-    }).then(() => profile);
-    res.status(201).json(profile);
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Profile creation error:', err);
     res.status(500).json({ error: 'Failed to create profile' });
@@ -176,7 +214,7 @@ app.put('/api/profiles/:id', async (req, res) => {
     if (!name || !age || !height_cm || !weight_kg || !gender || !activity_level) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    const profile = await supabase.from('profiles').update({
+    const { data, error } = await supabase.from('profiles').update({
       name,
       age: Number(age),
       height_cm: Number(height_cm),
@@ -188,8 +226,9 @@ app.put('/api/profiles/:id', async (req, res) => {
       calorie_goal: null,
       created_at: new Date(),
       updated_at: new Date(),
-    }).where({ id }).then(() => profile);
-    res.json(profile);
+    }).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
     console.error('Profile update error:', err);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -199,7 +238,9 @@ app.put('/api/profiles/:id', async (req, res) => {
 // Delete profile
 app.delete('/api/profiles/:id', async (req, res) => {
   try {
-    await supabase.from('profiles').delete().where({ id: req.params.id }).then(() => res.json({ success: true }));
+    const { error } = await supabase.from('profiles').delete().where({ id: req.params.id });
+    if (error) throw error;
+    res.json({ success: true });
   } catch (err) {
     console.error('Profile delete error:', err);
     res.status(500).json({ error: 'Failed to delete profile' });
@@ -257,23 +298,23 @@ app.post('/api/calorie-target', async (req, res) => {
 
 app.post('/api/foods', async (req, res) => {
   try {
-    const { name, serving_size, serving_unit, calories, protein, carbohydrates, fat, fiber } = req.body;
+    const { user_id, name, serving_size, serving_unit, calories, protein, carbohydrates, fat, fiber } = req.body;
     if (!name || !serving_size || !serving_unit) {
-      return res.status(400).json({ error: 'name and serving_size are required' });
+      return res.status(400).json({ error: 'name, serving_size and serving_unit are required' });
     }
-    const food = await supabase.from('foods').insert({
-      name,
+    const { data, error } = await supabase.from('foods').insert({
+      user_id: user_id ? String(user_id) : null,
+      name: String(name),
       serving_size: Number(serving_size),
       serving_unit: String(serving_unit),
-      calories: Number(calories),
-      protein: Number(protein),
-      carbohydrates: Number(carboTrates),
-      fat: Number(fat),
-      fiber: Number(fiber),
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).then(() => food);
-    res.status(201).json(food);
+      calories: Number(calories) || 0,
+      protein: Number(protein) || 0,
+      carbohydrates: Number(carbohydrates) || 0,
+      fat: Number(fat) || 0,
+      fiber: Number(fiber) || 0,
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Food creation error:', err);
     res.status(500).json({ error: 'Failed to create food' });
@@ -282,16 +323,58 @@ app.post('/api/foods', async (req, res) => {
 
 app.get('/api/foods', async (req, res) => {
   try {
-    const { category } = req.query;
-    let query = 'SELECT * FROM foods WHERE 1=1';
-    if (category) query += ' AND category = ?';
-    query += '';
-    const params = category ? [category] : [];
-    const foods = await supabase.from('foods').select('*').where(query, params).order('id ASC').then(() => foods);
-    res.json(foods);
+    const userId = req.query.userId;
+    let q = supabase.from('foods').select('*').order('name', { ascending: true });
+    if (userId) q = q.eq('user_id', userId);
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Foods fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch foods' });
+  }
+});
+
+// ==================== DAILY FOODS ====================
+
+app.post('/api/daily-foods', async (req, res) => {
+  try {
+    const { user_id, daily_record_id, food_id, meal_type, quantity, calories, protein, carbohydrates, fat } = req.body;
+    if (!user_id || !food_id) {
+      return res.status(400).json({ error: 'user_id and food_id are required' });
+    }
+    const { data, error } = await supabase.from('daily_foods').insert({
+      user_id: String(user_id),
+      daily_record_id: daily_record_id ? String(daily_record_id) : null,
+      food_id: String(food_id),
+      meal_type: meal_type ? String(meal_type) : 'Snack',
+      quantity: Number(quantity) || 1,
+      calories: Number(calories) || 0,
+      protein: Number(protein) || 0,
+      carbohydrates: Number(carbohydrates) || 0,
+      fat: Number(fat) || 0,
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    console.error('Daily food creation error:', err);
+    res.status(500).json({ error: 'Failed to create daily food record' });
+  }
+});
+
+app.get('/api/daily-foods', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    const dailyRecordId = req.query.dailyRecordId;
+    if (!userId) return res.status(400).json({ error: 'userId query param required' });
+    let q = supabase.from('daily_foods').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (dailyRecordId) q = q.eq('daily_record_id', dailyRecordId);
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('Daily foods fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch daily foods' });
   }
 });
 
@@ -303,18 +386,17 @@ app.post('/api/daily-records', async (req, res) => {
     if (!user_id || !record_date) {
       return res.status(400).json({ error: 'user_id and record_date are required' });
     }
-    const dailyRecord = await supabase.from('daily_records').insert({
+    const { data, error } = await supabase.from('daily_records').upsert({
       user_id: String(user_id),
       record_date: String(record_date),
       calories_consumed: Number(calories_consumed) || 0,
       calories_burned: Number(calories_burned) || 0,
       water_ml: Number(water_ml) || 0,
       steps: Number(steps) || 0,
-      notes: String(notes) || '',
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).then(() => dailyRecord);
-    res.status(201).json(dailyRecord);
+      notes: notes ? String(notes) : '',
+    }, { onConflict: 'user_id,record_date' }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Daily record error:', err);
     res.status(500).json({ error: 'Failed to create daily record' });
@@ -327,11 +409,11 @@ app.get('/api/daily-records', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const records = await supabase.from('daily_records').select('*')
-      .where('user_id', userId)
-      .order('record_date DESC')
-      .then(() => records);
-    res.json(records);
+    const { data, error } = await supabase.from('daily_records').select('*')
+      .eq('user_id', String(userId))
+      .order('record_date', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Daily records fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch daily records' });
@@ -346,16 +428,15 @@ app.post('/api/exercises', async (req, res) => {
     if (!user_id || !name) {
       return res.status(400).json({ error: 'user_id and name are required' });
     }
-    const exercise = await supabase.from('exercises').insert({
+    const { data, error } = await supabase.from('exercises').insert({
       user_id: String(user_id),
-      name,
-      exercise_type: String(exercise_type),
-      description: String(description) || '',
-      image_url: String(image_url) || '',
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).then(() => exercise);
-    res.status(201).json(exercise);
+      name: String(name),
+      exercise_type: exercise_type ? String(exercise_type) : 'Strength',
+      description: description ? String(description) : '',
+      image_url: image_url ? String(image_url) : '',
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Exercise creation error:', err);
     res.status(500).json({ error: 'Failed to create exercise' });
@@ -368,14 +449,55 @@ app.get('/api/exercises', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const exercises = await supabase.from('exercises').select('*')
-      .where('user_id', userId)
-      .order('name ASC')
-      .then(() => exercises);
-    res.json(exercises);
+    const { data, error } = await supabase.from('exercises').select('*')
+      .eq('user_id', String(userId))
+      .order('name', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Exercise fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch exercises' });
+  }
+});
+
+// ==================== DAILY EXERCISES ====================
+
+app.post('/api/daily-exercises', async (req, res) => {
+  try {
+    const { user_id, daily_record_id, exercise_id, sets, reps, duration_minutes, calories_burned, distance_km } = req.body;
+    if (!user_id || !exercise_id) {
+      return res.status(400).json({ error: 'user_id and exercise_id are required' });
+    }
+    const { data, error } = await supabase.from('daily_exercises').insert({
+      user_id: String(user_id),
+      daily_record_id: daily_record_id ? String(daily_record_id) : null,
+      exercise_id: String(exercise_id),
+      sets: Number(sets) || 0,
+      reps: Number(reps) || 0,
+      duration_minutes: Number(duration_minutes) || 0,
+      calories_burned: Number(calories_burned) || 0,
+      distance_km: Number(distance_km) || 0,
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    console.error('Daily exercise creation error:', err);
+    res.status(500).json({ error: 'Failed to create daily exercise record' });
+  }
+});
+
+app.get('/api/daily-exercises', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) return res.status(400).json({ error: 'userId query param required' });
+    const { data, error } = await supabase.from('daily_exercises').select('*')
+      .eq('user_id', String(userId))
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('Daily exercises fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch daily exercises' });
   }
 });
 
@@ -383,25 +505,25 @@ app.get('/api/exercises', async (req, res) => {
 
 app.post('/api/goals', async (req, res) => {
   try {
-    const { user_id, goal_type, target_value, start_date, target_date, status } = req.body;
+    const { user_id, goal_type, target_value, target_calories, protein_target, fat_target, carb_target, start_date, target_date, status } = req.body;
     if (!user_id || !goal_type) {
       return res.status(400).json({ error: 'user_id and goal_type are required' });
     }
-    const goal = await supabase.from('goals').insert({
+    const val = Number(target_value ?? target_calories) || 0;
+    const { data, error } = await supabase.from('goals').insert({
       user_id: String(user_id),
       goal_type: String(goal_type),
-      target_value: Number(target_value),
+      target_value: val,
       current_value: 0,
-      start_date: String(start_date) || null,
-      target_date: String(target_date) || null,
-      status: String(status) || 'active',
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).then(() => goal);
-    res.status(201).json(goal);
+      start_date: start_date ? String(start_date) : null,
+      target_date: target_date ? String(target_date) : null,
+      status: status ? String(status) : 'active',
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Goal creation error:', err);
-    res.status(500).json({ error: 'Failed to create goal' });
+    res.status(500).json({ error: 'Failed to create goal: ' + err.message });
   }
 });
 
@@ -411,14 +533,78 @@ app.get('/api/goals', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const goals = await supabase.from('goals').select('*')
-      .where('user_id', userId)
-      .order('goal_type ASC')
-      .then(() => goals);
-    res.json(goals);
+    const { data, error } = await supabase.from('goals').select('*')
+      .eq('user_id', String(userId))
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Goal fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch goals' });
+  }
+});
+
+// ==================== CHANGE PASSWORD ====================
+
+app.post('/api/auth/change-password', async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) return res.status(401).json({ error: 'Invalid token' });
+
+    // Update password via Supabase
+    const { error } = await supabase.auth.updateUser({ password: new_password });
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true, message: 'Password updated' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+// ==================== WEIGHT HISTORY ====================
+
+app.post('/api/weight-history', async (req, res) => {
+  try {
+    const { user_id, weight, body_fat } = req.body;
+    if (!user_id || !weight) {
+      return res.status(400).json({ error: 'user_id and weight are required' });
+    }
+    const { data, error } = await supabase.from('weight_history').insert({
+      user_id: String(user_id),
+      weight: Number(weight),
+      body_fat: body_fat ? Number(body_fat) : null,
+      recorded_at: new Date(),
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    console.error('Weight history creation error:', err);
+    res.status(500).json({ error: 'Failed to log weight' });
+  }
+});
+
+// ==================== USER BADGES ====================
+
+app.get('/api/user-badges', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) {
+      return res.status(400).json({ error: 'user_id query param required' });
+    }
+    const { data, error } = await supabase.from('user_badges').select('*')
+      .eq('user_id', String(userId))
+      .order('earned_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('User badges fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch user badges' });
   }
 });
 
@@ -430,10 +616,13 @@ app.post('/api/badges', async (req, res) => {
     if (!user_id || !badge_id) {
       return res.status(400).json({ error: 'user_id and badge_id are required' });
     }
-    const badge = await supabase.from('badges').select('*')
-      .where('id', badge_id)
-      .then(() => badge);
-    res.json(badge);
+    const { data, error } = await supabase.from('user_badges').insert({
+      user_id: String(user_id),
+      badge_id: String(badge_id),
+      earned_at: new Date(),
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Badge creation error:', err);
     res.status(500).json({ error: 'Failed to create badge' });
@@ -442,15 +631,29 @@ app.post('/api/badges', async (req, res) => {
 
 app.get('/api/badges', async (req, res) => {
   try {
+    // Return all available badges (global list)
+    const { data, error } = await supabase.from('badges').select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    // If userId provided, also mark which ones the user has earned
     const userId = req.query.userId;
-    if (!userId) {
-      return res.status(400).json({ error: 'user_id query param required' });
+    let userBadgeIds = [];
+    let userBadges = [];
+    if (userId) {
+      const { data: ub } = await supabase.from('user_badges').select('badge_id, earned_at').eq('user_id', String(userId));
+      userBadges = ub || [];
+      userBadgeIds = userBadges.map((ub) => ub.badge_id);
     }
-    const badges = await supabase.from('badges').select('*')
-      .where('user_id', userId)
-      .order('created_at DESC')
-      .then(() => badges);
-    res.json(badges);
+    const badgesWithStatus = (data || []).map((badge) => {
+      const earned = userBadgeIds.includes(badge.id);
+      let earned_at = null;
+      if (earned) {
+        const ub = userBadges.find((u) => u.badge_id === badge.id);
+        if (ub) earned_at = ub.earned_at;
+      }
+      return { ...badge, earned, earned_at };
+    });
+    res.json(badgesWithStatus);
   } catch (err) {
     console.error('Badge fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch badges' });
@@ -465,11 +668,11 @@ app.get('/api/weight-history', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const history = await supabase.from('weight_history').select('*')
-      .where('user_id', userId)
-      .order('record_date DESC')
-      .then(() => history);
-    res.json(history);
+    const { data, error } = await supabase.from('weight_history').select('*')
+      .eq('user_id', userId)
+      .order('recorded_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Weight history error:', err);
     res.status(500).json({ error: 'Failed to fetch weight history' });
@@ -484,14 +687,15 @@ app.post('/api/water-intake', async (req, res) => {
     if (!user_id || !amount_ml) {
       return res.status(400).json({ error: 'user_id and amount_ml are required' });
     }
-    const water = await supabase.from('water_intake').insert({
+    const { data, error } = await supabase.from('water_intake').insert({
       user_id: String(user_id),
       amount_ml: Number(amount_ml),
       recorded_at: new Date(),
       created_at: new Date(),
       updated_at: new Date(),
-    }).then(() => water);
-    res.status(201).json(water);
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     console.error('Water intake error:', err);
     res.status(500).json({ error: 'Failed to create water intake entry' });
@@ -504,11 +708,11 @@ app.get('/api/water-intake', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const intake = await supabase.from('water_intake').select('*')
-      .where('user_id', userId)
-      .order('recorded_at DESC')
-      .then(() => intake);
-    res.json(intake);
+    const { data, error } = await supabase.from('water_intake').select('*')
+      .eq('user_id', userId)
+      .order('recorded_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Water intake fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch water intake' });
@@ -519,19 +723,55 @@ app.get('/api/water-intake', async (req, res) => {
 
 app.post('/api/body-progress-images', async (req, res) => {
   try {
-    const { user_id, daily_record_id, image_url, image_type } = req.body;
-    if (!user_id || !daily_record_id) {
-      return res.status(400).json({ error: 'user_id and daily_record_id are required' });
+    const { user_id, image_url, image_type, daily_record_id } = req.body;
+    if (!user_id || !image_url) {
+      return res.status(400).json({ error: 'user_id and image_url are required' });
     }
-    const image = await supabase.from('body_progress_images').insert({
+
+    // If no daily_record_id provided, find or create today's daily record
+    let finalDailyRecordId = daily_record_id ? String(daily_record_id) : null;
+    if (!finalDailyRecordId) {
+      const today = new Date().toISOString().slice(0, 10);
+      // Try to find existing record
+      let { data: existingRecord } = await supabaseAdmin
+        .from('daily_records')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('record_date', today)
+        .maybeSingle();
+      
+      if (!existingRecord) {
+        // Create new daily record
+        const { data: newRecord, error: createError } = await supabaseAdmin
+          .from('daily_records')
+          .insert({
+            user_id: String(user_id),
+            record_date: today,
+            calories_consumed: 0,
+            calories_burned: 0,
+            water_ml: 0,
+            steps: 0,
+            notes: '',
+          })
+          .select()
+          .single();
+        if (createError) throw createError;
+        finalDailyRecordId = newRecord.id;
+      } else {
+        finalDailyRecordId = existingRecord.id;
+      }
+    }
+
+    const insertData = {
       user_id: String(user_id),
-      daily_record_id: String(daily_record_id),
       image_url: String(image_url),
       image_type: String(image_type) || 'front',
+      daily_record_id: finalDailyRecordId,
       created_at: new Date(),
-      updated_at: new Date(),
-    }).then(() => image);
-    res.status(201).json(image);
+    };
+    const image = await supabaseAdmin.from('body_progress_images').insert(insertData).select().single();
+    if (image.error) throw image.error;
+    res.status(201).json(image.data);
   } catch (err) {
     console.error('Image upload error:', err);
     res.status(500).json({ error: 'Failed to upload body progress image' });
@@ -544,14 +784,33 @@ app.get('/api/body-progress-images', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const images = await supabase.from('body_progress_images').select('*')
-      .where('user_id', userId)
-      .order('image_type ASC')
-      .then(() => images);
-    res.json(images);
+    const { data, error } = await supabaseAdmin.from('body_progress_images').select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     console.error('Body progress fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch body progress images' });
+  }
+});
+
+// ==================== STORAGE ====================
+
+app.post('/api/storage/:bucket', async (req, res) => {
+  try {
+    const { bucket } = req.params;
+    const { fileName, file } = req.body;
+    if (!fileName || !file) {
+      return res.status(400).json({ error: 'fileName and file are required' });
+    }
+    // In a full implementation, this would upload to Supabase Storage
+    // For now, return the storage path
+    const filePath = `${bucket}/${fileName}`;
+    res.json({ path: filePath, bucket, fileName });
+  } catch (err) {
+    console.error('Storage error:', err);
+    res.status(500).json({ error: 'Storage upload failed' });
   }
 });
 
@@ -563,40 +822,41 @@ app.get('/api/health-summary', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const profileResult = await supabase.from('profiles').select('*')
-      .where('id', userId)
-      .order('updated_at DESC')
-      .then(res => res.data[0]);
+    const { data: profileData, error: profileError } = await supabase.from('profiles').select('*')
+      .eq('id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if (profileError) throw profileError;
+    const profileResult = profileData?.[0];
+    if (!profileResult) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
 
-if (!profileResult) {
-  return res.status(404).json({ error: 'Profile not found' });
-}
+    const [dailyRecordsResult, foodsResult, exercisesResult] = await Promise.all([
+      supabase.from('daily_records').select('*').eq('user_id', userId).order('record_date', { ascending: false }),
+      supabase.from('foods').select('*').eq('user_id', userId),
+      supabase.from('exercises').select('*').eq('user_id', userId),
+    ]);
 
-const [dailyRecordsResult, foodsResult, exercisesResult] = await Promise.all([
-  supabase.from('daily_records').select('*').where('user_id', userId).order('record_date DESC'),
-  supabase.from('foods').select('*').where('user_id', userId),
-  supabase.from('exercises').select('*').where('user_id', userId),
-]);
+    const summary = {
+      profile: {
+        id: profileResult.id,
+        name: profileResult.name,
+        age: profileResult.age,
+        height_cm: profileResult.height_cm,
+        weight_kg: profileResult.weight_kg,
+        gender: profileResult.gender,
+        activity_level: profileResult.activity_level,
+        bmr: profileResult.bmr,
+        tdee: profileResult.tdee,
+        calorie_goal: profileResult.calorie_goal,
+      },
+      daily_records: dailyRecordsResult.data,
+      food_count: foodsResult.data.length,
+      exercise_count: exercisesResult.data.length,
+    };
 
-const summary = {
-  profile: {
-    id: profileResult.id,
-    name: profileResult.name,
-    age: profileResult.age,
-    height_cm: profileResult.height_cm,
-    weight_kg: profileResult.weight_kg,
-    gender: profileResult.gender,
-    activity_level: profileResult.activity_level,
-    bmr: profileResult.bmr,
-    tdee: profileResult.tdee,
-    calorie_goal: profileResult.calorie_goal,
-  },
-  daily_records: dailyRecordsResult.data,
-  food_count: foodsResult.data.length,
-  exercise_count: exercisesResult.data.length,
-};
-
-res.json(summary);
+    res.json(summary);
   } catch (err) {
     console.error('Health summary error:', err);
     res.status(500).json({ error: 'Failed to fetch health summary' });
