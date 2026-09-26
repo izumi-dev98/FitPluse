@@ -21,24 +21,12 @@ Fitness_Backend/
 │   │   └── supabase.js        # Supabase client initialization
 │   ├── utils/
 │   │   └── calculator.js      # BMR, TDEE, macro calculations
-│   ├── controllers/
-│   │   ├── profileController.js
-│   │   ├── calculationController.js
-│   │   ├── foodController.js
-│   │   ├── exerciseController.js
-│   │   ├── goalController.js
-│   │   ├── badgeController.js
-│   │   ├── weightHistoryController.js
-│   │   └── waterIntakeController.js
 │   └── routes/
-│       ├── profileRoutes.js
-│       ├── calculationRoutes.js
-│       ├── foodRoutes.js
-│       ├── exerciseRoutes.js
-│       ├── goalRoutes.js
-│       ├── badgeRoutes.js
-│       ├── weightHistoryRoutes.js
-│       └── waterRoutes.js
+│       ├── authRoutes.js          # Authentication and password endpoints
+│       ├── profileRoutes.js       # Profile CRUD endpoints
+│       ├── calculationRoutes.js   # BMR, TDEE, and calorie targets
+│       ├── resourceRoutes.js      # Foods, exercises, goals, and daily records
+│       └── trackingRoutes.js      # Badges, progress images, and summaries
 ├── supabase/
 │   └── migrations/
 │       └── 001_initial_schema.sql   # Supabase DDL
@@ -70,10 +58,10 @@ Fitness_Backend/
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Health check |
-| `GET` | `/api/auth/signup` | Create User Account |
-| `GET` | `/api/auth/login` | Login User Account |
+| `POST` | `/api/auth/signup` | Create User Account |
+| `POST` | `/api/auth/login` | Login User Account |
 | `GET` | `/api/auth/me` | Find Account |
-| `GET` | `/api/auth/refresh` | Auto refresh token |
+| `POST` | `/api/auth/refresh` | Auto refresh token |
 
 | `POST` | `/api/bmr` | Calculate BMR from gender, weight, height, age |
 | `POST` | `/api/tdee` | Calculate TDEE from BMR + activity level |

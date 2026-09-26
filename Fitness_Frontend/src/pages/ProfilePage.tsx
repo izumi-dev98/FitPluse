@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { User, Lock, Save, Loader2, Camera, Check, Upload, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { User, Lock, Save, Loader2, Camera, Check, Upload, Image as ImageIcon, Award } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 import Swal from 'sweetalert2';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { useQueryClient } from '@tanstack/react-query';
-import { qk, useBodyImages, useGoals, useProfile } from '../lib/queries';
+import { qk, useBadges, useBodyImages, useGoals, useProfile, useUserBadges } from '../lib/queries';
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -16,9 +16,20 @@ export default function ProfilePage() {
   const profileQ = useProfile();
   const goalsQ = useGoals(uid);
   const bodyImagesQ = useBodyImages(uid);
+  const badgesQ = useBadges(uid);
+  const userBadgesQ = useUserBadges(uid);
   const profile = profileQ.data ?? null;
   const goals = goalsQ.data ?? [];
   const bodyImages = bodyImagesQ.data ?? [];
+  const badges = badgesQ.data ?? [];
+  const userBadges = userBadgesQ.data ?? [];
+  const earnedBadges = useMemo(() => {
+    const earnedDates = new Map(userBadges.map((badge: any) => [String(badge.badge_id), badge.earned_at]));
+    return badges.filter((badge: any) => badge.earned).map((badge: any) => ({
+      ...badge,
+      earned_at: badge.earned_at || earnedDates.get(String(badge.id)),
+    }));
+  }, [badges, userBadges]);
   const loading = profileQ.isLoading || goalsQ.isLoading || bodyImagesQ.isLoading;
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -351,6 +362,31 @@ export default function ProfilePage() {
           </div>
         ) : (
           <p className="text-slate-500 text-sm">No body progress images yet.</p>
+        )}
+      </div>
+
+      {/* Earned Badges */}
+      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8 mb-6">
+        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Award size={20} className="text-yellow-400" /> Earned Badges
+        </h3>
+        {earnedBadges.length === 0 ? (
+          <p className="text-slate-500 text-sm">No badges earned yet. Keep logging your goals and daily progress.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {earnedBadges.map((badge: any) => (
+              <div key={badge.id} className="flex items-center gap-3 bg-slate-950/60 border border-yellow-500/20 rounded-xl px-4 py-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                  <Award size={20} className="text-yellow-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-white font-bold truncate">{badge.name}</div>
+                  <div className="text-xs text-slate-500 truncate">{badge.description || 'Achievement unlocked'}</div>
+                  {badge.earned_at && <div className="text-[11px] text-brand-400 mt-1">Earned {new Date(badge.earned_at).toLocaleDateString()}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

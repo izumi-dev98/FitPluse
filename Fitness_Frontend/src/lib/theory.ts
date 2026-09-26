@@ -27,7 +27,24 @@ export const GOAL_LABELS: Record<keyof typeof GOAL_MULTIPLIERS, string> = {
   weight_loss: 'Weight Loss',
 };
 
+export const GOAL_GUIDANCE: Record<GoalType, { summary: string; calories: string; protein: string; plan: string[] }> = {
+  skinny_to_fit: { summary: 'Build body weight and strength with a controlled surplus.', calories: 'Start at 10-20% above TDEE.', protein: '1.6-2.2 g/kg', plan: ['Train full body 3 days per week with progressive weights.', 'Add one calorie-dense meal or shake if weight does not rise.', 'Review average weight every 2 weeks with a trainer or coach.'] },
+  muscle_gain: { summary: 'Prioritize lean mass with a small, controlled surplus.', calories: 'Start at 10-15% above TDEE.', protein: '1.6-2.2 g/kg', plan: ['Use a structured strength plan 3-5 days per week.', 'Track sets, reps, and progressive overload in the Daily page.', 'Increase calories only after 2 weeks without strength or weight progress.'] },
+  weight_gain: { summary: 'Increase body weight gradually while monitoring progress.', calories: 'Start at 10-20% above TDEE.', protein: '1.6-2.0 g/kg', plan: ['Use strength training 3 days per week to support healthy gain.', 'Build meals around protein, whole grains, and healthy fats.', 'Ask a registered dietitian or trainer to review stalled progress.'] },
+  maintain: { summary: 'Keep body weight stable while supporting training.', calories: 'Start close to TDEE.', protein: '1.6-2.0 g/kg', plan: ['Keep a consistent 3-4 day weekly activity routine.', 'Use weekly weight averages instead of reacting to one day.', 'Adjust calories by a small amount if the trend changes for 2-3 weeks.'] },
+  fat_loss: { summary: 'Reduce body fat with a moderate deficit and high protein.', calories: 'Start at 10-20% below TDEE.', protein: '1.6-2.2 g/kg', plan: ['Combine resistance training 2-4 days with regular walking or cardio.', 'Keep protein high and log meals consistently.', 'Avoid aggressive cuts; review the 2-week weight trend before adjusting.'] },
+  weight_loss: { summary: 'Reduce body weight gradually without an aggressive deficit.', calories: 'Start at 10-20% below TDEE.', protein: '1.6-2.2 g/kg', plan: ['Aim for regular walking plus 2-3 strength sessions weekly.', 'Use repeatable meals and track portions in the Daily page.', 'Consult a qualified trainer or dietitian if energy or adherence drops.'] },
+};
+
 export type GoalType = keyof typeof GOAL_MULTIPLIERS;
+
+export function recommendGoal(weight_kg: number, height_cm: number): GoalType {
+  const heightM = height_cm / 100;
+  const bmi = heightM > 0 ? weight_kg / (heightM * heightM) : 22;
+  if (bmi < 18.5) return 'skinny_to_fit';
+  if (bmi >= 25) return 'fat_loss';
+  return 'maintain';
+}
 
 export function calcBMR(gender: string, weight_kg: number, height_cm: number, age: number) {
   if (gender === 'male') return 10 * weight_kg + 6.25 * height_cm - 5 * age + 5;

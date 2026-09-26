@@ -78,53 +78,53 @@ goalTypes.forEach(goalType => {
     xpReward: 50,
   });
 
-  // Level 2: Momentum - 25% progress or 7-day streak
+  // Level 2: Momentum - 14-day streak
   BADGE_DEFINITIONS.push({
     id: `${goalType}_momentum`,
     goalType,
     level: 2,
     name: `${goalLabel} Momentum`,
-    description: `Reach 25% progress OR maintain a 7-day logging streak`,
+    description: `Maintain a 14-day logging streak`,
     icon: ICONS.momentum,
     color: colors.primary,
     requirement: {
       type: 'goal_progress',
       target: 25,
-      description: 'Achieve 25% progress toward your goal OR 7-day logging streak',
+      description: 'Maintain a 14-day logging streak',
     },
     xpReward: 100,
   });
 
-  // Level 3: Dedicated - 50% progress or 30-day streak
+  // Level 3: Dedicated - 30-day streak
   BADGE_DEFINITIONS.push({
     id: `${goalType}_dedicated`,
     goalType,
     level: 3,
     name: `${goalLabel} Dedicated`,
-    description: `Reach 50% progress OR maintain a 30-day logging streak`,
+    description: `Maintain a 30-day logging streak`,
     icon: ICONS.dedicated,
     color: colors.primary,
     requirement: {
       type: 'goal_progress',
       target: 50,
-      description: 'Achieve 50% progress toward your goal OR 30-day logging streak',
+      description: 'Maintain a 30-day logging streak',
     },
     xpReward: 200,
   });
 
-  // Level 4: Master - 75% progress or 90% adherence for 60 days
+  // Level 4: Master - 90% adherence across at least 30 logged days
   BADGE_DEFINITIONS.push({
     id: `${goalType}_master`,
     goalType,
     level: 4,
     name: `${goalLabel} Master`,
-    description: `Reach 75% progress OR maintain 90% target adherence for 60 days`,
+    description: `Maintain 90% target adherence across at least 30 logged days`,
     icon: ICONS.master,
     color: colors.primary,
     requirement: {
       type: 'adherence',
       target: 90,
-      description: 'Achieve 75% progress toward your goal OR 90% adherence for 60 days',
+      description: 'Maintain 90% target adherence across at least 30 logged days',
     },
     xpReward: 400,
   });
@@ -200,6 +200,7 @@ export interface ProgressInputs {
   currentStreak: number;
   // Adherence rate (0-100%) over last 60 days
   adherenceRate: number;
+  adherenceDays: number;
   // Total days logged
   totalDaysLogged: number;
   // Whether this goal type is currently active
@@ -215,6 +216,7 @@ export interface ProgressInputs {
   currentStreak: number;
   // Adherence rate (0-100%) over last 60 days
   adherenceRate: number;
+  adherenceDays: number;
   // Total days logged
   totalDaysLogged: number;
   // Whether this goal type is currently active
@@ -229,7 +231,7 @@ export function calculateBadgeProgress(
   badge: BadgeDefinition,
   inputs: ProgressInputs
 ): { progress: number; currentValue: number; targetValue: number; earned: boolean } {
-  const { goalProgress, currentStreak, adherenceRate, totalDaysLogged, isActiveGoal } = inputs;
+  const { goalProgress, currentStreak, adherenceRate, adherenceDays, totalDaysLogged, isActiveGoal } = inputs;
   
   let progress = 0;
   let currentValue = 0;
@@ -262,7 +264,7 @@ export function calculateBadgeProgress(
       // Level 4: Adherence rate over period
       currentValue = Math.round(adherenceRate);
       progress = Math.min((adherenceRate / badge.requirement.target) * 100, 100);
-      earned = adherenceRate >= badge.requirement.target;
+      earned = adherenceDays >= 30 && adherenceRate >= badge.requirement.target;
       break;
 
     case 'special':
@@ -275,7 +277,7 @@ export function calculateBadgeProgress(
 
   // For hybrid badges (goal_progress OR streak), check both
   if (badge.level === 2 || badge.level === 3) {
-    const streakTarget = badge.level === 2 ? 7 : 30;
+    const streakTarget = badge.level === 2 ? 14 : 30;
     const streakProgress = Math.min((currentStreak / streakTarget) * 100, 100);
     const streakEarned = currentStreak >= streakTarget;
     
@@ -297,7 +299,7 @@ export function calculateBadgeProgress(
       progress = adherenceProgress;
       currentValue = Math.round(adherenceRate);
       targetValue = 90;
-      earned = adherenceRate >= 90;
+      earned = adherenceDays >= 30 && adherenceRate >= 90;
     } else {
       progress = goalProgressValue;
       currentValue = Math.round(goalProgress);

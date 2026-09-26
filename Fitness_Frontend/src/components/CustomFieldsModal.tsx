@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { Modal } from './ui';
 
@@ -21,6 +21,7 @@ interface CustomFieldsModalProps {
   baseFields?: CustomField[]; // fields that always show (non-removable)
   submitLabel?: string;
   suggestions?: Omit<CustomField, 'id' | 'value'>[]; // quick-add suggestions
+  allowCustomFields?: boolean;
 }
 
 export function CustomFieldsModal({
@@ -33,13 +34,29 @@ export function CustomFieldsModal({
   baseFields = [],
   submitLabel = 'Save',
   suggestions = [],
+  allowCustomFields = true,
 }: CustomFieldsModalProps) {
   const [fields, setFields] = useState<CustomField[]>(initialFields);
   const [baseFieldValues, setBaseFieldValues] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!open) return;
+    setFields(initialFields);
+    setBaseFieldValues(Object.fromEntries(baseFields.map((field) => [field.id, field.value || ''])));
+  }, [open, initialFields, baseFields]);
+
   // Initialize base field values
   const handleBaseFieldChange = (fieldId: string, value: string) => {
-    setBaseFieldValues(prev => ({ ...prev, [fieldId]: value }));
+    setBaseFieldValues(prev => {
+      const next = { ...prev, [fieldId]: value };
+      const protein = Number(next.protein) || 0;
+      const carbohydrates = Number(next.carbohydrates) || 0;
+      const fat = Number(next.fat) || 0;
+      if (['protein', 'carbohydrates', 'fat'].includes(fieldId) && baseFields.some((field) => field.id === 'calories')) {
+        next.calories = String(Math.round(protein * 4 + carbohydrates * 4 + fat * 9));
+      }
+      return next;
+    });
   };
 
   const handleCustomFieldChange = (fieldId: string, value: string) => {
@@ -100,7 +117,7 @@ export function CustomFieldsModal({
           onChange={(e: ChangeEvent<HTMLInputElement>) => 
             handleCustomFieldChange(field.id, e.target.value)
           }
-          placeholder="Field label (e.g. Sodium, Fiber, Tempo)"
+          placeholder="Field label (e.g. Sodium, Tempo)"
           className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
         />
         <select
@@ -212,8 +229,7 @@ export function CustomFieldsModal({
           </div>
         ))}
 
-        {/* Custom fields (user can add/remove) */}
-        <div className="space-y-3">
+        {allowCustomFields && <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-bold text-white flex items-center gap-2">
               <GripVertical size={16} className="text-slate-500" />
@@ -262,7 +278,7 @@ export function CustomFieldsModal({
               No custom fields yet. Click "Add Field" to create custom labels.
             </p>
           )}
-        </div>
+        </div>}
 
         <button
           type="submit"
@@ -285,7 +301,6 @@ export const FOOD_BASE_FIELDS: CustomField[] = [
   { id: 'protein', label: 'Protein (g)', value: '0', type: 'number' },
   { id: 'carbohydrates', label: 'Carbs (g)', value: '0', type: 'number' },
   { id: 'fat', label: 'Fat (g)', value: '0', type: 'number' },
-  { id: 'fiber', label: 'Fiber (g)', value: '0', type: 'number' },
 ];
 
 export const EXERCISE_BASE_FIELDS: CustomField[] = [

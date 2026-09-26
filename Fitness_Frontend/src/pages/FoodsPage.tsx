@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Apple, Plus, Search } from 'lucide-react';
+import { Apple, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-import { qk, useInvalidateDaily } from '../lib/queries';
+import { qk } from '../lib/queries';
 import { PageHeader, Card, PaginationBar, EmptyState } from '../components/ui';
-import { CustomFieldsModal, FOOD_BASE_FIELDS, FOOD_CUSTOM_FIELD_SUGGESTIONS } from '../components/CustomFieldsModal';
+import { CustomFieldsModal, FOOD_BASE_FIELDS } from '../components/CustomFieldsModal';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = 8;
 
 function formatDate(value?: string) {
-  if (!value) return '—';
-  return String(value).slice(0, 10);
+  return value ? String(value).slice(0, 10) : '—';
 }
 
 export default function FoodsPage() {
@@ -21,15 +19,11 @@ export default function FoodsPage() {
   const [foods, setFoods] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [date, setDate] = useState(todayStr());
-  const [meal, setMeal] = useState('Breakfast');
-  const [qty, setQty] = useState(1);
-  const [selectedId, setSelectedId] = useState('');
-  const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
+  const [editFood, setEditFood] = useState<any>(null);
   
   // Custom fields modal state - start empty, user adds fields
   const [customFields] = useState<import('../components/CustomFieldsModal').CustomField[]>([]);
@@ -42,15 +36,13 @@ export default function FoodsPage() {
   }
   async function loadLogs(uid: string) {
     try {
-      const d = await apiClient.getDailyFoods(uid);
-      setLogs(Array.isArray(d) ? d : []);
+      const data = await apiClient.getDailyFoods(uid);
+      setLogs(Array.isArray(data) ? data : []);
     } catch { setLogs([]); }
   }
-
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
-  const invalidateDaily = useInvalidateDaily();
 
   useEffect(() => {
     if (!accessToken || !user?.id) return;
@@ -74,39 +66,32 @@ export default function FoodsPage() {
     setCreating(false);
   }
 
-  async function handleLogFood() {
-    const food = foods.find(f => String(f.id) === String(selectedId));
-    if (!food || !userId) return;
-    setSaving(true);
+  async function handleUpdateFood(data: Record<string, any>) {
+    if (!editFood || !data.name) return;
+    setCreating(true);
     try {
-      const rec = await apiClient.createDailyRecord({ user_id: userId, record_date: date });
-      const recordId = rec?.id;
-      const q = Number(qty) || 1;
-      await apiClient.createDailyFood({
-        user_id: userId,
-        daily_record_id: recordId || null,
-        food_id: food.id,
-        meal_type: meal,
-        quantity: q,
-        calories: (Number(food.calories) || 0) * q,
-        protein: (Number(food.protein) || 0) * q,
-        carbohydrates: (Number(food.carbohydrates) || 0) * q,
-        fat: (Number(food.fat) || 0) * q,
-      });
-      await loadLogs(userId);
-      invalidateDaily(userId);
-      Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
+      await apiClient.updateFood(editFood.id, { user_id: userId, ...data });
+      setEditFood(null);
+      await loadFoods(userId);
+      qc.invalidateQueries({ queryKey: qk.foods(userId) });
+      Swal.fire({ icon: 'success', title: 'Food updated', timer: 1400, showConfirmButton: false });
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Log failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Update failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
-    setSaving(false);
+    setCreating(false);
   }
 
-  const foodNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    foods.forEach((f) => map.set(String(f.id), f.name));
-    return map;
-  }, [foods]);
+  async function handleDeleteFood(food: any) {
+    const result = await Swal.fire({ title: `Delete ${food.name}?`, text: 'This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' });
+    if (!result.isConfirmed) return;
+    try {
+      await apiClient.deleteFood(food.id);
+      await loadFoods(userId);
+      qc.invalidateQueries({ queryKey: qk.foods(userId) });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Delete failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+    }
+  }
 
   const filtered = useMemo(
     () => foods.filter((f) => f.name?.toLowerCase().includes(search.toLowerCase())),
@@ -115,28 +100,19 @@ export default function FoodsPage() {
 
   const libPageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pagedFoods = filtered.slice((libPage - 1) * PAGE_SIZE, libPage * PAGE_SIZE);
-
-  const sortedLogs = useMemo(
-    () => [...logs].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))),
-    [logs],
-  );
+  const sortedLogs = useMemo(() => [...logs].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))), [logs]);
   const logPageCount = Math.max(1, Math.ceil(sortedLogs.length / PAGE_SIZE));
   const pagedLogs = sortedLogs.slice((logPage - 1) * PAGE_SIZE, logPage * PAGE_SIZE);
-  const dayTotal = logs
-    .filter((l) => !date || String(l.created_at || '').slice(0, 10) === date)
-    .reduce((s, l) => s + (Number(l.calories) || 0), 0);
 
   useEffect(() => { setLibPage(1); }, [search]);
   useEffect(() => { if (libPage > libPageCount) setLibPage(libPageCount); }, [libPage, libPageCount]);
   useEffect(() => { if (logPage > logPageCount) setLogPage(logPageCount); }, [logPage, logPageCount]);
 
-  const selectedFood = foods.find((f) => String(f.id) === String(selectedId));
-
   return (
     <div>
       <PageHeader
         title="Foods"
-        subtitle="Keep your food library, then log meals. Create items in a popup with custom fields."
+        subtitle="Keep your personal food library. Create items with custom fields."
         icon={Apple}
         action={
           <button
@@ -149,11 +125,11 @@ export default function FoodsPage() {
         }
       />
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div>
         <Card className="overflow-hidden p-0">
           <div className="p-5 pb-3">
             <h2 className="text-lg font-bold text-white mb-1">My foods</h2>
-            <p className="text-slate-400 text-sm mb-4">Select a row, then log it on the right.</p>
+            <p className="text-slate-400 text-sm mb-4">Browse your saved foods or add a new item.</p>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
@@ -175,22 +151,25 @@ export default function FoodsPage() {
                     <th className="px-3 py-2.5 font-semibold">Serving</th>
                     <th className="px-3 py-2.5 font-semibold">kcal</th>
                     <th className="px-3 py-2.5 font-semibold">Macros</th>
+                    <th className="px-3 py-2.5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedFoods.map((f) => {
-                    const active = String(selectedId) === String(f.id);
                     return (
                       <tr
                         key={f.id}
-                        onClick={() => setSelectedId(String(f.id))}
-                        className={`border-b border-slate-800/70 cursor-pointer ${active ? 'bg-brand-900/20' : 'hover:bg-slate-900/50'}`}
+                        className="border-b border-slate-800/70 hover:bg-slate-900/50"
                       >
                         <td className="px-4 py-3 font-bold text-white">{f.name}</td>
                         <td className="px-3 py-3 text-slate-400">{f.serving_size}{f.serving_unit}</td>
                         <td className="px-3 py-3 text-brand-400 font-semibold">{f.calories}</td>
                         <td className="px-3 py-3 text-slate-400 text-xs">
                           P {f.protein}g · C {f.carbohydrates}g · F {f.fat}g
+                        </td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <button type="button" onClick={() => setEditFood(f)} className="p-1.5 text-slate-400 hover:text-brand-400" aria-label="Edit food"><Pencil size={15} /></button>
+                          <button type="button" onClick={() => handleDeleteFood(f)} className="p-1.5 text-slate-400 hover:text-red-400" aria-label="Delete food"><Trash2 size={15} /></button>
                         </td>
                       </tr>
                     );
@@ -202,68 +181,11 @@ export default function FoodsPage() {
           )}
         </Card>
 
-        <Card>
-          <h2 className="text-lg font-bold text-white mb-1">Log food</h2>
-          <p className="text-slate-400 text-sm mb-4">
-            {date}: <b className="text-brand-400">{Math.round(dayTotal)} kcal</b>
-            {selectedFood && <span className="ml-2 text-slate-500">· {selectedFood.name}</span>}
-          </p>
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <select value={meal} onChange={(e) => setMeal(e.target.value)} className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm">
-                <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <input type="number" min={0.25} step={0.25} value={qty} onChange={(e) => setQty(Number(e.target.value))} className="w-24 p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <button onClick={handleLogFood} disabled={!selectedId || saving} className="flex-1 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
-                <Plus size={16} /> {saving ? 'Logging...' : 'Add to Daily'}
-              </button>
-            </div>
-            {!selectedId && <p className="text-xs text-slate-500">Select a food in the list first.</p>}
-          </div>
-        </Card>
       </div>
 
       <Card className="mt-6 overflow-hidden p-0">
-        <div className="p-5 pb-3">
-          <h2 className="text-lg font-bold text-white">Food log</h2>
-          <p className="text-slate-400 text-sm">All logged meals, newest first.</p>
-        </div>
-        {sortedLogs.length === 0 ? (
-          <EmptyState title="No logs yet" hint="Select a food and add it to daily." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
-                  <th className="px-4 py-2.5 font-semibold">Date</th>
-                  <th className="px-3 py-2.5 font-semibold">Food</th>
-                  <th className="px-3 py-2.5 font-semibold">Meal</th>
-                  <th className="px-3 py-2.5 font-semibold">Qty</th>
-                  <th className="px-3 py-2.5 font-semibold">kcal</th>
-                  <th className="px-3 py-2.5 font-semibold">Macros</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedLogs.map((l) => (
-                  <tr key={l.id} className="border-b border-slate-800/70">
-                    <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{formatDate(l.created_at)}</td>
-                    <td className="px-3 py-3 text-white font-medium">{l.foods?.name || l.food_name || foodNameById.get(String(l.food_id)) || '—'}</td>
-                    <td className="px-3 py-3 text-slate-300">{l.meal_type}</td>
-                    <td className="px-3 py-3 text-slate-400">×{l.quantity}</td>
-                    <td className="px-3 py-3 text-brand-400 font-semibold">{l.calories}</td>
-                    <td className="px-3 py-3 text-slate-400 text-xs">
-                      P {l.protein ?? 0}g · C {l.carbohydrates ?? 0}g · F {l.fat ?? 0}g
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} />
-          </div>
-        )}
+        <div className="p-5 pb-3"><h2 className="text-lg font-bold text-white">Food log</h2><p className="text-slate-400 text-sm">Logged meals, newest first.</p></div>
+        {sortedLogs.length === 0 ? <EmptyState title="No food logs yet" hint="Log meals from the Daily page." /> : <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]"><thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800"><th className="px-4 py-2.5">Date</th><th className="px-3 py-2.5">Food</th><th className="px-3 py-2.5">Meal</th><th className="px-3 py-2.5">Qty</th><th className="px-3 py-2.5">kcal</th></tr></thead><tbody>{pagedLogs.map((log) => <tr key={log.id} className="border-b border-slate-800/70"><td className="px-4 py-3 text-slate-400">{formatDate(log.created_at)}</td><td className="px-3 py-3 text-white">{log.foods?.name || log.food_name || foods.find((food) => String(food.id) === String(log.food_id))?.name || '—'}</td><td className="px-3 py-3 text-slate-300">{log.meal_type}</td><td className="px-3 py-3 text-slate-400">×{log.quantity}</td><td className="px-3 py-3 text-brand-400 font-semibold">{log.calories}</td></tr>)}</tbody></table><PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} /></div>}
       </Card>
 
       <CustomFieldsModal
@@ -275,8 +197,9 @@ export default function FoodsPage() {
         initialFields={customFields}
         baseFields={FOOD_BASE_FIELDS}
         submitLabel="Save food"
-        suggestions={FOOD_CUSTOM_FIELD_SUGGESTIONS}
+        allowCustomFields={false}
       />
+      {editFood && <CustomFieldsModal open={Boolean(editFood)} title="Edit food" onClose={() => setEditFood(null)} onSubmit={handleUpdateFood} submitting={creating} initialFields={[]} baseFields={FOOD_BASE_FIELDS.map((field) => ({ ...field, value: String(editFood[field.id] ?? field.value ?? '') }))} submitLabel="Update food" allowCustomFields={false} />}
     </div>
   );
 }

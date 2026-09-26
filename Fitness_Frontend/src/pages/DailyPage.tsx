@@ -148,21 +148,25 @@ export default function DailyPage() {
   async function handleUploadImage() {
     if (!imageFile || !uid) return;
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target?.result as string;
-        await apiClient.createBodyProgressImage?.({
-          user_id: uid,
-          image_url: base64,
-          image_type: imageType,
-        });
-        setImageFile(null);
-        setImagePreview(null);
-        invalidateDaily(uid);
-        Swal.fire({ icon: 'success', title: 'Photo saved', timer: 1200, showConfirmButton: false });
-      };
-      reader.readAsDataURL(imageFile);
-    } catch {}
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Could not read image'));
+        reader.readAsDataURL(imageFile);
+      });
+      if (!apiClient.createBodyProgressImage) throw new Error('Image upload is unavailable');
+      await apiClient.createBodyProgressImage({
+        user_id: uid,
+        image_url: base64,
+        image_type: imageType,
+      });
+      setImageFile(null);
+      setImagePreview(null);
+      invalidateDaily(uid);
+      Swal.fire({ icon: 'success', title: 'Photo saved', text: 'Your progress image was added.', timer: 1400, showConfirmButton: false });
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Could not save photo', text: 'Please try again.', confirmButtonColor: '#65a30d' });
+    }
   }
 
   async function addWater(ml: number) {
@@ -171,6 +175,7 @@ export default function DailyPage() {
       await apiClient.createWaterIntake({ user_id: uid, amount_ml: ml });
       await persistRecord({ water_ml: water + ml });
       invalidateDaily(uid);
+      Swal.fire({ icon: 'success', title: 'Water added', text: `${ml} ml added to today.`, timer: 1200, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not log water', confirmButtonColor: '#65a30d' });
     }
@@ -184,6 +189,7 @@ export default function DailyPage() {
       await persistRecord({ steps: n });
       setStepInput('');
       invalidateDaily(uid);
+      Swal.fire({ icon: 'success', title: 'Steps saved', text: `${n.toLocaleString()} steps saved for today.`, timer: 1200, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not save steps', confirmButtonColor: '#65a30d' });
     }

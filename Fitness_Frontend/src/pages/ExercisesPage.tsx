@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dumbbell, Plus, Search } from 'lucide-react';
+import { Dumbbell, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-import { qk, useInvalidateDaily } from '../lib/queries';
+import { qk } from '../lib/queries';
 import { PageHeader, Card, PaginationBar, EmptyState } from '../components/ui';
-import { CustomFieldsModal, EXERCISE_BASE_FIELDS, EXERCISE_CUSTOM_FIELD_SUGGESTIONS } from '../components/CustomFieldsModal';
+import { CustomFieldsModal, EXERCISE_BASE_FIELDS } from '../components/CustomFieldsModal';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = 8;
 
 function formatDate(value?: string) {
-  if (!value) return '—';
-  return String(value).slice(0, 10);
+  return value ? String(value).slice(0, 10) : '—';
 }
 
 export default function ExercisesPage() {
@@ -21,14 +19,11 @@ export default function ExercisesPage() {
   const [items, setItems] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [date, setDate] = useState(todayStr());
-  const [selectedId, setSelectedId] = useState('');
-  const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [log, setLog] = useState({ sets: 3, reps: 10, duration_minutes: 30, calories_burned: 200, distance_km: 0 });
+  const [editExercise, setEditExercise] = useState<any>(null);
   
   // Custom fields modal state - start empty, user adds fields
   const [customFields] = useState<import('../components/CustomFieldsModal').CustomField[]>([]);
@@ -39,15 +34,14 @@ export default function ExercisesPage() {
       setItems(Array.isArray(d) ? d : []);
     } catch { setItems([]); }
     try {
-      const l = await apiClient.getDailyExercises(uid);
-      setLogs(Array.isArray(l) ? l : []);
+      const d = await apiClient.getDailyExercises(uid);
+      setLogs(Array.isArray(d) ? d : []);
     } catch { setLogs([]); }
   }
 
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
-  const invalidateDaily = useInvalidateDaily();
 
   useEffect(() => {
     if (!accessToken || !user?.id) return;
@@ -70,31 +64,32 @@ export default function ExercisesPage() {
     setCreating(false);
   }
 
-  async function handleLog() {
-    if (!selectedId || !userId) return;
-    setSaving(true);
+  async function handleUpdateExercise(data: Record<string, any>) {
+    if (!editExercise || !data.name) return;
+    setCreating(true);
     try {
-      const rec = await apiClient.createDailyRecord({ user_id: userId, record_date: date });
-      await apiClient.createDailyExercise({
-        user_id: userId,
-        daily_record_id: rec?.id || null,
-        exercise_id: selectedId,
-        ...log,
-      });
+      await apiClient.updateExercise(editExercise.id, { user_id: userId, ...data });
+      setEditExercise(null);
       await load(userId);
-      invalidateDaily(userId);
-      Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
-    } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Log failed. Check backend daily-exercises + daily-records.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+      qc.invalidateQueries({ queryKey: qk.exercises(userId) });
+      Swal.fire({ icon: 'success', title: 'Exercise updated', timer: 1400, showConfirmButton: false });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Update failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
-    setSaving(false);
+    setCreating(false);
   }
 
-  const nameById = useMemo(() => {
-    const map = new Map<string, string>();
-    items.forEach((x) => map.set(String(x.id), x.name));
-    return map;
-  }, [items]);
+  async function handleDeleteExercise(item: any) {
+    const result = await Swal.fire({ title: `Delete ${item.name}?`, text: 'This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' });
+    if (!result.isConfirmed) return;
+    try {
+      await apiClient.deleteExercise(item.id);
+      await load(userId);
+      qc.invalidateQueries({ queryKey: qk.exercises(userId) });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Delete failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
+    }
+  }
 
   const filtered = useMemo(
     () => items.filter((i) => i.name?.toLowerCase().includes(search.toLowerCase())),
@@ -102,28 +97,19 @@ export default function ExercisesPage() {
   );
   const libPageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pagedItems = filtered.slice((libPage - 1) * PAGE_SIZE, libPage * PAGE_SIZE);
-
-  const sortedLogs = useMemo(
-    () => [...logs].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))),
-    [logs],
-  );
+  const sortedLogs = useMemo(() => [...logs].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))), [logs]);
   const logPageCount = Math.max(1, Math.ceil(sortedLogs.length / PAGE_SIZE));
   const pagedLogs = sortedLogs.slice((logPage - 1) * PAGE_SIZE, logPage * PAGE_SIZE);
-  const dayTotal = logs
-    .filter((l) => !date || String(l.created_at || '').slice(0, 10) === date)
-    .reduce((s, l) => s + (Number(l.calories_burned) || 0), 0);
 
   useEffect(() => { setLibPage(1); }, [search]);
   useEffect(() => { if (libPage > libPageCount) setLibPage(libPageCount); }, [libPage, libPageCount]);
   useEffect(() => { if (logPage > logPageCount) setLogPage(logPageCount); }, [logPage, logPageCount]);
 
-  const selected = items.find((x) => String(x.id) === String(selectedId));
-
   return (
     <div>
       <PageHeader
         title="Workouts"
-        subtitle="Save exercises, then log sets and calories burned. Create items with custom fields."
+        subtitle="Keep your personal exercise library. Create items with custom fields."
         icon={Dumbbell}
         action={
           <button
@@ -136,11 +122,11 @@ export default function ExercisesPage() {
         }
       />
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div>
         <Card className="overflow-hidden p-0">
           <div className="p-5 pb-3">
             <h2 className="text-lg font-bold text-white mb-1">My exercises</h2>
-            <p className="text-slate-400 text-sm mb-4">Select a row, then log it on the right.</p>
+            <p className="text-slate-400 text-sm mb-4">Browse your saved exercises or add a new item.</p>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
@@ -161,20 +147,23 @@ export default function ExercisesPage() {
                     <th className="px-4 py-2.5 font-semibold">Name</th>
                     <th className="px-3 py-2.5 font-semibold">Type</th>
                     <th className="px-3 py-2.5 font-semibold">Description</th>
+                    <th className="px-3 py-2.5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedItems.map((x) => {
-                    const active = String(selectedId) === String(x.id);
                     return (
                       <tr
                         key={x.id}
-                        onClick={() => setSelectedId(String(x.id))}
-                        className={`border-b border-slate-800/70 cursor-pointer ${active ? 'bg-brand-900/20' : 'hover:bg-slate-900/50'}`}
+                        className="border-b border-slate-800/70 hover:bg-slate-900/50"
                       >
                         <td className="px-4 py-3 font-bold text-white">{x.name}</td>
                         <td className="px-3 py-3 text-slate-400">{x.exercise_type}</td>
                         <td className="px-3 py-3 text-slate-500 text-xs">{x.description || '—'}</td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <button type="button" onClick={() => setEditExercise(x)} className="p-1.5 text-slate-400 hover:text-brand-400" aria-label="Edit exercise"><Pencil size={15} /></button>
+                          <button type="button" onClick={() => handleDeleteExercise(x)} className="p-1.5 text-slate-400 hover:text-red-400" aria-label="Delete exercise"><Trash2 size={15} /></button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -185,62 +174,11 @@ export default function ExercisesPage() {
           )}
         </Card>
 
-        <Card>
-          <h2 className="text-lg font-bold text-white mb-1">Log exercise</h2>
-          <p className="text-slate-400 text-sm mb-4">
-            Burned {date}: <b className="text-brand-400">{Math.round(dayTotal)} kcal</b>
-            {selected && <span className="ml-2 text-slate-500">· {selected.name}</span>}
-          </p>
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" value={log.sets} onChange={(e) => setLog({ ...log, sets: Number(e.target.value) })} placeholder="Sets" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <input type="number" value={log.reps} onChange={(e) => setLog({ ...log, reps: Number(e.target.value) })} placeholder="Reps" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <input type="number" value={log.duration_minutes} onChange={(e) => setLog({ ...log, duration_minutes: Number(e.target.value) })} placeholder="Minutes" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <input type="number" value={log.calories_burned} onChange={(e) => setLog({ ...log, calories_burned: Number(e.target.value) })} placeholder="kcal burned" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-            </div>
-            <button onClick={handleLog} disabled={!selectedId || saving} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
-              <Plus size={16} /> {saving ? 'Logging...' : 'Add to Daily'}
-            </button>
-            {!selectedId && <p className="text-xs text-slate-500">Select an exercise in the list first.</p>}
-          </div>
-        </Card>
       </div>
 
       <Card className="mt-6 overflow-hidden p-0">
-        <div className="p-5 pb-3">
-          <h2 className="text-lg font-bold text-white">Exercise log</h2>
-          <p className="text-slate-400 text-sm">All logged workouts, newest first.</p>
-        </div>
-        {sortedLogs.length === 0 ? (
-          <EmptyState title="No logs yet" hint="Select an exercise and add it to daily." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
-                  <th className="px-4 py-2.5 font-semibold">Date</th>
-                  <th className="px-3 py-2.5 font-semibold">Exercise</th>
-                  <th className="px-3 py-2.5 font-semibold">Sets × reps</th>
-                  <th className="px-3 py-2.5 font-semibold">Minutes</th>
-                  <th className="px-3 py-2.5 font-semibold">kcal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedLogs.map((l) => (
-                  <tr key={l.id} className="border-b border-slate-800/70">
-                    <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{formatDate(l.created_at)}</td>
-                    <td className="px-3 py-3 text-white font-medium">{l.exercises?.name || l.exercise_name || nameById.get(String(l.exercise_id)) || '—'}</td>
-                    <td className="px-3 py-3 text-slate-300">{l.sets}×{l.reps}</td>
-                    <td className="px-3 py-3 text-slate-400">{l.duration_minutes}</td>
-                    <td className="px-3 py-3 text-brand-400 font-semibold">{l.calories_burned}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} />
-          </div>
-        )}
+        <div className="p-5 pb-3"><h2 className="text-lg font-bold text-white">Exercise log</h2><p className="text-slate-400 text-sm">Logged workouts, newest first.</p></div>
+        {sortedLogs.length === 0 ? <EmptyState title="No exercise logs yet" hint="Log workouts from the Daily page." /> : <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]"><thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800"><th className="px-4 py-2.5">Date</th><th className="px-3 py-2.5">Exercise</th><th className="px-3 py-2.5">Sets × reps</th><th className="px-3 py-2.5">Minutes</th><th className="px-3 py-2.5">kcal</th></tr></thead><tbody>{pagedLogs.map((log) => <tr key={log.id} className="border-b border-slate-800/70"><td className="px-4 py-3 text-slate-400">{formatDate(log.created_at)}</td><td className="px-3 py-3 text-white">{log.exercises?.name || log.exercise_name || items.find((item) => String(item.id) === String(log.exercise_id))?.name || '—'}</td><td className="px-3 py-3 text-slate-300">{log.sets}×{log.reps}</td><td className="px-3 py-3 text-slate-400">{log.duration_minutes}</td><td className="px-3 py-3 text-brand-400 font-semibold">{log.calories_burned}</td></tr>)}</tbody></table><PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} /></div>}
       </Card>
 
       <CustomFieldsModal
@@ -252,8 +190,9 @@ export default function ExercisesPage() {
         initialFields={customFields}
         baseFields={EXERCISE_BASE_FIELDS}
         submitLabel="Save exercise"
-        suggestions={EXERCISE_CUSTOM_FIELD_SUGGESTIONS}
+        allowCustomFields={false}
       />
+      {editExercise && <CustomFieldsModal open={Boolean(editExercise)} title="Edit exercise" onClose={() => setEditExercise(null)} onSubmit={handleUpdateExercise} submitting={creating} initialFields={[]} baseFields={EXERCISE_BASE_FIELDS.map((field) => ({ ...field, value: String(editExercise[field.id] ?? field.value ?? '') }))} submitLabel="Update exercise" allowCustomFields={false} />}
     </div>
   );
 }

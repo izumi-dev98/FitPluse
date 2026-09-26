@@ -6,12 +6,11 @@ import DailyRecordModal from '../components/DailyRecordModal';
 import Swal from 'sweetalert2';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
-import { calcBMR, calcTDEE, calcTarget, calcMacros, GOAL_LABELS, type GoalType } from '../lib/theory';
+import { calcBMR, calcTDEE, calcTarget, calcMacros, GOAL_GUIDANCE, GOAL_LABELS, recommendGoal, type GoalType } from '../lib/theory';
 import {
   enrichDailyRecords, formatDay, todayKey, verdictClass, type DailyRow,
 } from '../lib/dailyHistory';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PAGE_SIZE = 7;
 
 type HistoryTab = 'goals' | 'daily';
@@ -51,6 +50,8 @@ export default function GoalsPage() {
   const tdee = Math.round(calcTDEE(bmr, form.activity_level));
   const target = Math.round(calcTarget(tdee, form.goal_type));
   const macros = calcMacros(target, Number(form.weight_kg) || 0);
+  const recommendedGoal = recommendGoal(Number(form.weight_kg) || 0, Number(form.height_cm) || 0);
+  const guidance = GOAL_GUIDANCE[form.goal_type];
 
   async function loadGoals(uid: string) {
     try {
@@ -126,6 +127,18 @@ export default function GoalsPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
+      if (activeGoal) {
+        const confirmation = await Swal.fire({
+          icon: 'question',
+          title: 'Change active goal?',
+          text: 'Your current goal will be marked completed and kept in Goal History. A new active goal will be created.',
+          showCancelButton: true,
+          confirmButtonText: 'Complete and start new',
+          cancelButtonText: 'Keep current goal',
+          confirmButtonColor: '#65a30d',
+        });
+        if (!confirmation.isConfirmed) return;
+      }
       // 1. Verify with backend calculators
       const bmrRes = await apiClient.calcBMR({
         gender: form.gender, weight_kg: Number(form.weight_kg),
@@ -134,19 +147,11 @@ export default function GoalsPage() {
       const tdeeRes = await apiClient.calcTDEE({ bmr: bmrRes.bmr, activity_level: form.activity_level });
       const targetRes = await apiClient.calcCalorieTarget({ tdee: tdeeRes.tdee, goal_type: form.goal_type });
       const finalTarget = Math.round(targetRes.targetCalories ?? target);
+      const finalMacros = calcMacros(finalTarget, Number(form.weight_kg) || 0);
 
-      // 2. If there's an active goal, deactivate it first
+      // 2. Complete the existing row so history preserves the actual goal.
       if (activeGoal) {
-        await apiClient.createGoal({
-          user_id: user.id,
-          goal_type: activeGoal.goal_type,
-          target_value: activeGoal.target_value,
-          target_calories: activeGoal.target_calories,
-          protein_target: activeGoal.protein_target,
-          fat_target: activeGoal.fat_target,
-          carb_target: activeGoal.carb_target,
-          status: 'completed', // Mark old goal as completed
-        });
+        await apiClient.updateGoal(activeGoal.id, { status: 'completed' });
       }
 
       // 3. Create new active goal
@@ -155,9 +160,9 @@ export default function GoalsPage() {
         goal_type: form.goal_type,
         target_value: finalTarget,
         target_calories: finalTarget,
-        protein_target: macros.protein,
-        fat_target: macros.fat,
-        carb_target: macros.carbs,
+        protein_target: finalMacros.protein,
+        fat_target: finalMacros.fat,
+        carb_target: finalMacros.carbs,
         status: 'active',
       });
       
@@ -208,7 +213,7 @@ export default function GoalsPage() {
 
     try {
       // We'll use a delete endpoint if available, otherwise mark as deleted
-      await fetch(`${API}/api/goals/${goalId}`, { method: 'DELETE' });
+      await apiClient.deleteGoal(goalId);
       await loadGoals(user!.id);
       Swal.fire({ icon: 'success', title: 'Deleted', timer: 1500, timerProgressBar: true });
     } catch {
@@ -311,6 +316,19 @@ export default function GoalsPage() {
             <Link to="/daily" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700">
               <ArrowRight size={16} /> Go to Daily Tracker
             </Link>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="flex items-center gap-2 text-brand-300 font-bold text-sm mb-2">
+              <Sparkles size={16} /> Recommended plan for your selected goal
+            </div>
+            <p className="text-sm text-slate-400 mb-3">{GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.summary}</p>
+            <div className="grid md:grid-cols-3 gap-3">
+              {(GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.plan || []).map((step) => (
+                <div key={step} className="rounded-xl bg-slate-950/40 border border-white/10 p-3 text-xs text-slate-300">{step}</div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-3">These are practical starting suggestions, not medical advice. A qualified trainer or registered dietitian can personalize them.</p>
           </div>
         </div>
       )}
@@ -657,6 +675,17 @@ export default function GoalsPage() {
               {/* Goal Type Selector */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-3">What's your goal?</label>
+                <div className="mb-3 rounded-xl border border-brand-600/30 bg-brand-900/15 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-brand-300 font-bold">Suggested starting goal: {GOAL_LABELS[recommendedGoal]}</div>
+                      <p className="text-slate-400 text-xs mt-1">Based on BMI from your current height and weight. It is a starting point, not a diagnosis.</p>
+                    </div>
+                    {form.goal_type !== recommendedGoal && (
+                      <button type="button" onClick={() => setForm({ ...form, goal_type: recommendedGoal })} className="shrink-0 px-3 py-1.5 rounded-lg bg-brand-400 text-slate-950 text-xs font-bold">Use suggestion</button>
+                    )}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {(Object.keys(GOAL_LABELS) as GoalType[]).map(gt => (
                     <button
@@ -679,6 +708,15 @@ export default function GoalsPage() {
                       )}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="text-sm font-bold text-white">{GOAL_LABELS[form.goal_type]}</div>
+                <p className="text-xs text-slate-400 mt-1">{guidance.summary}</p>
+                <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                  <span className="text-slate-500">Calorie strategy <b className="text-slate-200 block mt-0.5">{guidance.calories}</b></span>
+                  <span className="text-slate-500">Protein range <b className="text-slate-200 block mt-0.5">{guidance.protein}</b></span>
                 </div>
               </div>
 

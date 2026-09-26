@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, ProgressBar } from '../components/ui';
 import { useAuthStore } from '../store/auth';
-import { useBadges, useUserBadges } from '../lib/queries';
+import { useBadges, useDailyRecords, useGoals, useUserBadges } from '../lib/queries';
 import {
   BADGE_DEFINITIONS,
   getBadgesByGoalType,
@@ -40,7 +40,11 @@ export default function BadgesPage() {
   // Shared cached queries — revisits render instantly with no refetch.
   const badgesQ = useBadges(uid);
   const userBadgesQ = useUserBadges(uid);
+  const goalsQ = useGoals(uid);
+  const recordsQ = useDailyRecords(uid);
   const badges: any[] = badgesQ.data ?? [];
+  const goals: any[] = goalsQ.data ?? [];
+  const records: any[] = recordsQ.data ?? [];
   const userBadges: UserBadgeProgress[] = useMemo(
     () =>
       (userBadgesQ.data ?? []).map((ub: any) => ({
@@ -53,7 +57,7 @@ export default function BadgesPage() {
       })),
     [userBadgesQ.data],
   );
-  const loading = badgesQ.isLoading || userBadgesQ.isLoading;
+  const loading = badgesQ.isLoading || userBadgesQ.isLoading || goalsQ.isLoading || recordsQ.isLoading;
   const [expandedGoals, setExpandedGoals] = useState<Record<GoalType, boolean>>({
     skinny_to_fit: true,
     muscle_gain: false,
@@ -67,33 +71,33 @@ export default function BadgesPage() {
 
   // Calculate progress for all badges
   const progressInputs = useMemo((): ProgressInputs => {
-    // Get active goal type from user profile or goals
-    const activeGoalType = user?.goal_type as GoalType || 'muscle_gain';
-    
-    // Calculate goal progress based on user's active goal
-    // This would ideally come from the backend - for now using a reasonable estimate
-    let goalProgress = 0;
-    if (user?.weight_kg && user?.height_cm && user?.age && user?.gender && user?.activity_level) {
-      // In a real app, this would be calculated from weight history vs goal target
-      goalProgress = Math.min(Math.random() * 80, 80); // Placeholder 0-80%
+    const activeGoal = goals.find((goal) => goal.status === 'active');
+    const activeGoalType = activeGoal?.goal_type as GoalType || user?.goal_type as GoalType || 'muscle_gain';
+    const loggedDates = new Set(records.filter((record) => Number(record.calories_consumed) > 0 || Number(record.calories_burned) > 0 || Number(record.water_ml) > 0 || Number(record.steps) > 0).map((record) => record.record_date));
+    let currentStreak = 0;
+    const cursor = new Date();
+    for (let index = 0; index < 365; index += 1) {
+      if (!loggedDates.has(cursor.toISOString().slice(0, 10))) break;
+      currentStreak += 1;
+      cursor.setDate(cursor.getDate() - 1);
     }
-
-    // Calculate streak from daily records (would come from backend ideally)
-    const currentStreak = 0; // Placeholder - would calculate from daily_records
-    
-    // Calculate adherence rate
-    const adherenceRate = 0; // Placeholder
+    const targetCalories = Number(activeGoal?.target_calories ?? activeGoal?.target_value) || 0;
+    const scoredRecords = targetCalories > 0 ? records.filter((record) => Number(record.calories_consumed) > 0) : [];
+    const adherenceRate = scoredRecords.length
+      ? (scoredRecords.filter((record) => Math.abs(Number(record.calories_consumed) - targetCalories) / targetCalories <= 0.1).length / scoredRecords.length) * 100
+      : 0;
 
     return {
-      goalProgress,
+      goalProgress: goals.some((goal) => goal.goal_type === activeGoalType && goal.status === 'completed') ? 100 : 0,
       currentStreak,
       adherenceRate,
-      totalDaysLogged: 0,
-      isActiveGoal: false, // Will be set per badge
-      goalStartDate: undefined,
+      adherenceDays: scoredRecords.length,
+      totalDaysLogged: loggedDates.size,
+      isActiveGoal: Boolean(activeGoal),
+      goalStartDate: activeGoal?.created_at,
       activeGoalType,
     };
-  }, [user]);
+  }, [goals, records, user]);
 
   // Merge badge definitions with user progress
   const badgeSections = useMemo(() => {
@@ -106,13 +110,17 @@ export default function BadgesPage() {
       
       const badgesWithProgress = definitions.map(def => {
         // Check if user has earned this badge from backend data
-        const backendBadge = badges.find((b: any) => b.id === def.id || b.name === def.name);
+        const normalizeBadgeName = (value: string) => value.replace('→', '->');
+        const backendBadge = badges.find((b: any) => b.id === def.id || normalizeBadgeName(String(b.name)) === normalizeBadgeName(def.name));
         const userBadge = userBadges.find(ub => ub.badgeId === def.id);
         const isEarnedFromBackend = backendBadge?.earned === true;
         const earnedAt = backendBadge?.earned_at || userBadge?.earnedAt;
+        const hasCompletedGoal = goals.some((goal) => goal.goal_type === goalType && goal.status === 'completed');
+        const isEligibleGoal = isActiveGoal || (hasCompletedGoal && def.level === 5);
         
         const inputs = {
           ...progressInputs,
+          goalProgress: goals.some((goal) => goal.goal_type === goalType && goal.status === 'completed') ? 100 : progressInputs.goalProgress,
           isActiveGoal: isActiveGoal && def.level === 1,
         };
         
@@ -121,7 +129,7 @@ export default function BadgesPage() {
           inputs.isActiveGoal = isActiveGoal;
         }
         
-        const calculated = calculateBadgeProgress(def, inputs);
+        const calculated = isEligibleGoal ? calculateBadgeProgress(def, inputs) : { progress: 0, currentValue: 0, targetValue: def.requirement.target, earned: false };
         
         return {
           ...def,
