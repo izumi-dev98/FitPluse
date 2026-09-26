@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import { PageHeader } from '../components/ui';
+import { fmtInt } from '../lib/format';
 import DailyRecordModal from '../components/DailyRecordModal';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
@@ -231,8 +232,8 @@ export default function CalendarPage() {
                   </div>
                   {row && (row.consumed > 0 || row.target > 0) && (
                     <div className="hidden sm:block text-[10px] leading-tight opacity-80">
-                      {row.consumed}
-                      {row.target ? `/${row.target}` : ''}
+                      {fmtInt(row.consumed)}
+                      {row.target ? `/${fmtInt(row.target)}` : ''}
                     </div>
                   )}
                 </button>

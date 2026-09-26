@@ -4,6 +4,7 @@ import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Utensils, X 
 import { apiClient } from '../lib/api';
 import { formatDay, todayKey, verdictClass, type DailyRow } from '../lib/dailyHistory';
 import { Ring } from './ui';
+import { fmtInt } from '../lib/format';
 
 export default function DailyRecordModal({
   row,
@@ -88,18 +89,18 @@ export default function DailyRecordModal({
           <div className="flex items-center gap-5">
             <Ring percent={pct} size={120}>
               <div className="text-[10px] text-slate-500 uppercase">Intake</div>
-              <div className="text-lg font-extrabold text-white leading-tight">{row.consumed}</div>
-              <div className="text-[11px] text-slate-500">{row.target ? `/ ${row.target}` : 'kcal'}</div>
+              <div className="text-lg font-extrabold text-white leading-tight">{fmtInt(row.consumed)}</div>
+              <div className="text-[11px] text-slate-500">{row.target ? `/ ${fmtInt(row.target)}` : 'kcal'}</div>
             </Ring>
             <div className="flex-1 space-y-2">
               <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${verdictClass[row.verdict.tone]}`}>
                 {hasLog ? row.verdict.label : 'Not logged'}
               </span>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <Stat icon={Utensils} label="Intake" value={`${row.consumed} kcal`} className="text-brand-300" />
-                <Stat icon={Flame} label="Burned" value={`${row.burned} kcal`} className="text-orange-300" />
-                <Stat icon={Target} label="Net" value={`${row.net} kcal`} className="text-white" />
-                <Stat icon={Droplets} label="Water" value={`${row.water} ml`} className="text-sky-300" />
+                <Stat icon={Utensils} label="Intake" value={`${fmtInt(row.consumed)} kcal`} className="text-brand-300" />
+                <Stat icon={Flame} label="Burned" value={`${fmtInt(row.burned)} kcal`} className="text-orange-300" />
+                <Stat icon={Target} label="Net" value={`${fmtInt(row.net)} kcal`} className="text-white" />
+                <Stat icon={Droplets} label="Water" value={`${fmtInt(row.water)} ml`} className="text-sky-300" />
               </div>
               <div className="text-sm text-violet-300 flex items-center gap-1.5">
                 <Footprints size={14} /> {row.steps.toLocaleString()} steps
@@ -124,7 +125,7 @@ export default function DailyRecordModal({
                 {foods.map((f: any) => (
                   <li key={f.id} className="flex justify-between text-sm bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2">
                     <span className="text-slate-200">{f.foods?.name || f.name || f.meal_type || 'Food'}</span>
-                    <span className="text-brand-300 font-semibold">{Math.round(Number(f.calories) || 0)} kcal</span>
+                    <span className="text-brand-300 font-semibold">{fmtInt(f.calories)} kcal</span>
                   </li>
                 ))}
               </ul>
@@ -144,7 +145,7 @@ export default function DailyRecordModal({
                 {exercises.map((e: any) => (
                   <li key={e.id} className="flex justify-between text-sm bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2">
                     <span className="text-slate-200">{e.exercises?.name || e.name || 'Workout'}</span>
-                    <span className="text-orange-300 font-semibold">{Math.round(Number(e.calories_burned) || 0)} kcal</span>
+                    <span className="text-orange-300 font-semibold">{fmtInt(e.calories_burned)} kcal</span>
                   </li>
                 ))}
               </ul>
