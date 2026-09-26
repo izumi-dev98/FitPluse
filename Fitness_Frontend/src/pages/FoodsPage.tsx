@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { qk } from "../lib/queries";
+import type { DailyFoodRow, Food } from "../lib/database";
 import { PageHeader, Card, PaginationBar, EmptyState } from "../components/ui";
 import { fmtInt } from "../lib/format";
 import {
@@ -20,14 +21,14 @@ function formatDate(value?: string) {
 
 export default function FoodsPage() {
   const [userId, setUserId] = useState("");
-  const [foods, setFoods] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [logs, setLogs] = useState<DailyFoodRow[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [libPage, setLibPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [editFood, setEditFood] = useState<any>(null);
+  const [editFood, setEditFood] = useState<Food | null>(null);
 
   // Custom fields modal state - start empty, user adds fields
   const [customFields] = useState<
@@ -61,7 +62,7 @@ export default function FoodsPage() {
     loadLogs(user.id);
   }, [accessToken, user?.id]);
 
-  async function handleCreateFood(data: Record<string, any>) {
+  async function handleCreateFood(data: Record<string, unknown>) {
     if (!data.name) return;
     setCreating(true);
     try {
@@ -75,11 +76,11 @@ export default function FoodsPage() {
         timer: 1400,
         showConfirmButton: false,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Add food failed.",
+        text: (err instanceof Error ? err.message : null) || "Add food failed.",
         confirmButtonText: "OK",
         confirmButtonColor: "#65a30d",
       });
@@ -87,7 +88,7 @@ export default function FoodsPage() {
     setCreating(false);
   }
 
-  async function handleUpdateFood(data: Record<string, any>) {
+  async function handleUpdateFood(data: Record<string, unknown>) {
     if (!editFood || !data.name) return;
     setCreating(true);
     try {
@@ -101,11 +102,11 @@ export default function FoodsPage() {
         timer: 1400,
         showConfirmButton: false,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Update failed.",
+        text: (err instanceof Error ? err.message : null) || "Update failed.",
         confirmButtonText: "OK",
         confirmButtonColor: "#65a30d",
       });
@@ -113,7 +114,7 @@ export default function FoodsPage() {
     setCreating(false);
   }
 
-  async function handleDeleteFood(food: any) {
+  async function handleDeleteFood(food: Food) {
     const result = await Swal.fire({
       title: `Delete ${food.name}?`,
       text: "This cannot be undone.",
@@ -127,11 +128,11 @@ export default function FoodsPage() {
       await apiClient.deleteFood(food.id);
       await loadFoods(userId);
       qc.invalidateQueries({ queryKey: qk.foods(userId) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Delete failed.",
+        text: (err instanceof Error ? err.message : null) || "Delete failed.",
         confirmButtonText: "OK",
         confirmButtonColor: "#65a30d",
       });
@@ -364,7 +365,7 @@ export default function FoodsPage() {
           initialFields={[]}
           baseFields={FOOD_BASE_FIELDS.map((field) => ({
             ...field,
-            value: String(editFood[field.id] ?? field.value ?? ""),
+            value: String((editFood as unknown as Record<string, unknown>)[field.id] ?? field.value ?? ""),
           }))}
           submitLabel="Update food"
           allowCustomFields={false}

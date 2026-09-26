@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { 
-  Award, Trophy, Lock, ChevronDown, Target, Zap, Crown, Star, Flag, 
-  TrendingUp, Medal, Sparkles, BarChart2, HelpCircle
+import {
+  Award, Trophy, Lock, ChevronDown, Target, Zap, Crown, Star, Flag,
+  TrendingUp, Medal, Sparkles, BarChart2, HelpCircle, type LucideIcon,
 } from 'lucide-react';
 import { PageHeader, ProgressBar } from '../components/ui';
 import { useAuthStore } from '../store/auth';
 import { useBadges, useDailyRecords, useGoals, useUserBadges } from '../lib/queries';
+import type { Badge } from '../lib/database';
 import {
   BADGE_DEFINITIONS,
   getBadgesByGoalType,
@@ -29,7 +30,7 @@ type ExtendedBadge = BadgeDefinition & {
   earnedAt?: string 
 };
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Flag, Zap, Target, Crown, Star,
 };
 
@@ -42,12 +43,13 @@ export default function BadgesPage() {
   const userBadgesQ = useUserBadges(uid);
   const goalsQ = useGoals(uid);
   const recordsQ = useDailyRecords(uid);
-  const badges: any[] = badgesQ.data ?? [];
-  const goals: any[] = goalsQ.data ?? [];
-  const records: any[] = recordsQ.data ?? [];
+  // GET /api/badges returns catalog rows plus computed earned flags.
+  type CatalogBadge = Badge & { earned?: boolean; earned_at?: string | null };
+  const badges: CatalogBadge[] = badgesQ.data ?? [];
+  const goals = goalsQ.data ?? [];
   const userBadges: UserBadgeProgress[] = useMemo(
     () =>
-      (userBadgesQ.data ?? []).map((ub: any) => ({
+      (userBadgesQ.data ?? []).map((ub) => ({
         badgeId: ub.badge_id,
         earned: true,
         earnedAt: ub.earned_at,
@@ -71,6 +73,9 @@ export default function BadgesPage() {
 
   // Calculate progress for all badges
   const progressInputs = useMemo((): ProgressInputs => {
+    // Depend on the stable query data refs, not the per-render `?? []` fallbacks.
+    const goals = goalsQ.data ?? [];
+    const records = recordsQ.data ?? [];
     const activeGoal = goals.find((goal) => goal.status === 'active');
     const activeGoalType = activeGoal?.goal_type as GoalType || user?.goal_type as GoalType || 'muscle_gain';
     const loggedDates = new Set(records.filter((record) => Number(record.calories_consumed) > 0 || Number(record.calories_burned) > 0 || Number(record.water_ml) > 0 || Number(record.steps) > 0).map((record) => record.record_date));
@@ -97,7 +102,7 @@ export default function BadgesPage() {
       goalStartDate: activeGoal?.created_at,
       activeGoalType,
     };
-  }, [goals, records, user]);
+  }, [goalsQ.data, recordsQ.data, user]);
 
   // Merge badge definitions with user progress
   const badgeSections = useMemo(() => {
@@ -111,7 +116,7 @@ export default function BadgesPage() {
       const badgesWithProgress = definitions.map(def => {
         // Check if user has earned this badge from backend data
         const normalizeBadgeName = (value: string) => value.replace('→', '->');
-        const backendBadge = badges.find((b: any) => b.id === def.id || normalizeBadgeName(String(b.name)) === normalizeBadgeName(def.name));
+        const backendBadge = badges.find((b) => b.id === def.id || normalizeBadgeName(String(b.name)) === normalizeBadgeName(def.name));
         const userBadge = userBadges.find(ub => ub.badgeId === def.id);
         const isEarnedFromBackend = backendBadge?.earned === true;
         const earnedAt = backendBadge?.earned_at || userBadge?.earnedAt;

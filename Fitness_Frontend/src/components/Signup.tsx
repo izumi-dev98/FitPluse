@@ -28,8 +28,8 @@ export default function Signup({ onSuccess }: { onSuccess: () => void }) {
     try {
       await signup(email, password, name);
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : null) || 'Network error');
       setLoading(false);
     }
   }

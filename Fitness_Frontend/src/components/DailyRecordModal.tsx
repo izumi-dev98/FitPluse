@@ -5,6 +5,7 @@ import { apiClient } from '../lib/api';
 import { formatDay, todayKey, verdictClass, type DailyRow } from '../lib/dailyHistory';
 import { Ring } from './ui';
 import { fmtInt } from '../lib/format';
+import type { DailyExerciseRow, DailyFoodRow } from '../lib/database';
 
 export default function DailyRecordModal({
   row,
@@ -15,8 +16,8 @@ export default function DailyRecordModal({
   userId?: string;
   onClose: () => void;
 }) {
-  const [foods, setFoods] = useState<any[]>([]);
-  const [exercises, setExercises] = useState<any[]>([]);
+  const [foods, setFoods] = useState<DailyFoodRow[]>([]);
+  const [exercises, setExercises] = useState<DailyExerciseRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,17 +35,17 @@ export default function DailyRecordModal({
           apiClient.getDailyExercises(userId).catch(() => []),
         ]);
         if (cancelled) return;
-        const foodList = Array.isArray(foodData) ? foodData : [];
+        const foodList: DailyFoodRow[] = Array.isArray(foodData) ? foodData : [];
         setFoods(
           row.id
-            ? foodList.filter((f: any) => f.daily_record_id === row.id || dateOf(f) === row.date)
-            : foodList.filter((f: any) => dateOf(f) === row.date),
+            ? foodList.filter((f) => f.daily_record_id === row.id || dateOf(f) === row.date)
+            : foodList.filter((f) => dateOf(f) === row.date),
         );
-        const exList = Array.isArray(exData) ? exData : [];
+        const exList: DailyExerciseRow[] = Array.isArray(exData) ? exData : [];
         setExercises(
           row.id
-            ? exList.filter((e: any) => e.daily_record_id === row.id || dateOf(e) === row.date)
-            : exList.filter((e: any) => dateOf(e) === row.date),
+            ? exList.filter((e) => e.daily_record_id === row.id || dateOf(e) === row.date)
+            : exList.filter((e) => dateOf(e) === row.date),
         );
       } catch {
         if (!cancelled) {
@@ -122,7 +123,7 @@ export default function DailyRecordModal({
               <p className="text-xs text-slate-500">No meals logged this day.</p>
             ) : (
               <ul className="space-y-1.5">
-                {foods.map((f: any) => (
+                {foods.map((f) => (
                   <li key={f.id} className="flex justify-between text-sm bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2">
                     <span className="text-slate-200">{f.foods?.name || f.name || f.meal_type || 'Food'}</span>
                     <span className="text-brand-300 font-semibold">{fmtInt(f.calories)} kcal</span>
@@ -142,7 +143,7 @@ export default function DailyRecordModal({
               <p className="text-xs text-slate-500">No workouts logged this day.</p>
             ) : (
               <ul className="space-y-1.5">
-                {exercises.map((e: any) => (
+                {exercises.map((e) => (
                   <li key={e.id} className="flex justify-between text-sm bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2">
                     <span className="text-slate-200">{e.exercises?.name || e.name || 'Workout'}</span>
                     <span className="text-orange-300 font-semibold">{fmtInt(e.calories_burned)} kcal</span>
@@ -164,7 +165,7 @@ export default function DailyRecordModal({
   );
 }
 
-function dateOf(item: any) {
+function dateOf(item: DailyFoodRow | DailyExerciseRow) {
   return String(item.record_date || item.created_at || '').slice(0, 10);
 }
 

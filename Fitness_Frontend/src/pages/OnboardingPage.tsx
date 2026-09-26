@@ -17,23 +17,6 @@ import { useAuthStore } from '../store/auth';
 import { qk, useProfile } from '../lib/queries';
 import { ageFromDob, todayISO } from '../lib/format';
 
-// A profile counts as onboarded once the fields the app depends on
-// (targets, BMR/TDEE, dashboard stats) are all filled. Age may come from
-// dob (preferred) or the legacy age column.
-export const isProfileComplete = (p: any) => {
-  const hasAge =
-    (p?.dob && ageFromDob(p.dob) !== null) ||
-    (p?.age !== null && p?.age !== undefined && p?.age !== '');
-  return (
-    !!p &&
-    hasAge &&
-    p.height !== null && p.height !== undefined && p.height !== '' &&
-    p.weight !== null && p.weight !== undefined && p.weight !== '' &&
-    !!p.gender &&
-    !!p.activity_level
-  );
-};
-
 const ACTIVITY_OPTIONS: { value: string; label: string; hint: string; icon: LucideIcon }[] = [
   { value: 'sedentary', label: 'Sedentary', hint: 'Desk job, little exercise', icon: Armchair },
   { value: 'lightly_active', label: 'Lightly active', hint: 'Light walks 1–3 days/week', icon: Footprints },
@@ -108,8 +91,8 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
       });
       await qc.invalidateQueries({ queryKey: qk.profile() });
       onDone();
-    } catch (err: any) {
-      setSubmitError(err.message || 'Could not save. Please try again.');
+    } catch (err: unknown) {
+      setSubmitError((err instanceof Error ? err.message : null) || 'Could not save. Please try again.');
     }
     setSaving(false);
   }

@@ -11,11 +11,14 @@ export interface CustomField {
   required?: boolean;
 }
 
+// Form values are strings from inputs, numbers after number-field conversion.
+export type FieldValue = string | number;
+
 interface CustomFieldsModalProps {
   open: boolean;
   title: string;
   onClose: () => void;
-  onSubmit: (data: Record<string, any>) => Promise<void>;
+  onSubmit: (data: Record<string, FieldValue>) => Promise<void>;
   submitting?: boolean;
   initialFields?: CustomField[];
   baseFields?: CustomField[]; // fields that always show (non-removable)
@@ -82,11 +85,11 @@ export function CustomFieldsModal({
     e.preventDefault();
     
     // Collect all field values
-    const data: Record<string, any> = { ...baseFieldValues };
-    
+    const data: Record<string, FieldValue> = { ...baseFieldValues };
+
     fields.forEach(field => {
       if (field.label.trim()) {
-        let value: any = field.value;
+        let value: FieldValue = field.value;
         if (field.type === 'number') {
           value = value ? Number(value) : 0;
         }
