@@ -17,27 +17,17 @@ router.post('/signup', async (req, res) => {
     });
     if (error) return res.status(400).json({ error: error.message });
 
-    res.status(201).json({
+    // The handle_new_user trigger creates the profile row automatically —
+    // do NOT insert here (a previous fire-and-forget insert crashed the
+    // request: PostgREST builders have .then but no .catch, and it also
+    // used wrong column names, so the 201 was followed by a headers-sent
+    // crash). Respond exactly once.
+    return res.status(201).json({
       user: data.user,
       session: data.session,
       access_token: data.session?.access_token || null,
       refresh_token: data.session?.refresh_token || null,
     });
-
-    await supabase.from('profiles').insert({
-      id: data.user.id,
-      name: displayName,
-      age: null,
-      height_cm: null,
-      weight_kg: null,
-      gender: null,
-      activity_level: 'moderately_active',
-      bmr: null,
-      tdee: null,
-      calorie_goal: null,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).select().single().catch(() => {});
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Internal server error' });
