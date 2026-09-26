@@ -153,7 +153,7 @@ export default function DailyRecordModal({
 
           <Link
             to="/daily"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold"
           >
             <ArrowRight size={16} /> {isToday ? 'Log more today' : 'Open Daily Tracker'}
           </Link>

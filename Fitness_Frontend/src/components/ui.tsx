@@ -16,7 +16,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+        <h1 className="text-2xl md:text-3xl font-display font-semibold uppercase tracking-wide text-white flex items-center gap-2.5">
           {Icon && (
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/15 border border-brand-500/20">
               <Icon className="text-brand-400" size={20} />
@@ -113,7 +113,7 @@ export function Ring({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={p > 100 ? '#fbbf24' : '#22c55e'}
+          stroke={p > 100 ? '#fbbf24' : '#a3e635'}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c}`}
@@ -215,7 +215,7 @@ export function PaginationBar({
                 type="button"
                 onClick={() => onPage(n)}
                 className={`min-w-8 h-8 rounded-lg text-xs font-bold ${
-                  n === page ? 'bg-brand-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+                  n === page ? 'bg-brand-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
                 }`}
               >
                 {n}

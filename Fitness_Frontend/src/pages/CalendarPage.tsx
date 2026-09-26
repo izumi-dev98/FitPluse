@@ -191,6 +191,7 @@ export default function CalendarPage() {
               if (!cell.date) {
                 return <div key={`pad-${i}`} className="min-h-[72px] md:min-h-[96px] border-b border-r border-slate-800/60 bg-slate-950/20" />;
               }
+              const date: string = cell.date;
               const row = byDate.get(cell.date);
               const tone = cellTone(row);
               const isToday = cell.date === today;
@@ -200,7 +201,7 @@ export default function CalendarPage() {
                   key={cell.date}
                   type="button"
                   disabled={isFuture}
-                  onClick={() => setSelected(row || emptyDayRow(cell.date, goals))}
+                  onClick={() => setSelected(row || emptyDayRow(date, goals))}
                   className={`min-h-[72px] md:min-h-[96px] p-1.5 md:p-2 text-left border-b border-r border-slate-800/60 transition ${tone.wrap} ${
                     isToday ? 'ring-2 ring-brand-400 ring-inset' : ''
                   } ${isFuture ? 'opacity-40 cursor-default' : ''}`}

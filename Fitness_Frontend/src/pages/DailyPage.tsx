@@ -181,7 +181,7 @@ export default function DailyPage() {
       await loadLoggedFoods(userId);
       Swal.fire({ icon: 'success', title: 'Food logged', timer: 1200, showConfirmButton: false });
     } catch {
-      Swal.fire({ icon: 'error', title: 'Could not log food', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Could not log food', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -198,7 +198,7 @@ export default function DailyPage() {
       await loadLoggedExercises(userId);
       Swal.fire({ icon: 'success', title: 'Workout logged', timer: 1200, showConfirmButton: false });
     } catch {
-      Swal.fire({ icon: 'error', title: 'Could not log exercise', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Could not log exercise', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -229,7 +229,7 @@ export default function DailyPage() {
       await persistRecord(userId, { water_ml: water + ml });
       await loadWaterAndSteps(userId);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Could not log water', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Could not log water', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -242,7 +242,7 @@ export default function DailyPage() {
       setStepInput('');
       await loadWaterAndSteps(userId);
     } catch {
-      Swal.fire({ icon: 'error', title: 'Could not save steps', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Could not save steps', confirmButtonColor: '#65a30d' });
     }
   }
 
@@ -277,7 +277,7 @@ export default function DailyPage() {
         icon={CalendarDays}
         action={
           <button onClick={() => openLog('food')}
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold shadow-lg shadow-brand-600/20 flex items-center gap-2">
+            className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold shadow-lg shadow-brand-400/20 flex items-center gap-2">
             <Plus size={18} /> Add log
           </button>
         }
@@ -348,7 +348,7 @@ export default function DailyPage() {
             <div className="flex gap-2">
               <input type="number" min={0} placeholder="Steps today" value={stepInput} onChange={(e) => setStepInput(e.target.value)}
                 className="flex-1 p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
-              <button onClick={saveSteps} className="px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold">Save</button>
+              <button onClick={saveSteps} className="px-3 rounded-lg bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold">Save</button>
             </div>
           </Card>
         </div>
@@ -362,7 +362,7 @@ export default function DailyPage() {
           </div>
           {loggedFoods.length === 0 ? (
             <EmptyState title="No food yet" hint="Log breakfast, lunch, dinner, or a snack." action={
-              <button onClick={() => openLog('food')} className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold">Log food</button>
+              <button onClick={() => openLog('food')} className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold">Log food</button>
             } />
           ) : (
             <div className="space-y-4">
@@ -401,7 +401,7 @@ export default function DailyPage() {
           </div>
           {loggedExercises.length === 0 ? (
             <EmptyState title="No workout yet" hint="Log sets, reps, or cardio minutes." action={
-              <button onClick={() => openLog('exercise')} className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold">Log workout</button>
+              <button onClick={() => openLog('exercise')} className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold">Log workout</button>
             } />
           ) : (
             <div className="space-y-1.5">
@@ -459,7 +459,7 @@ export default function DailyPage() {
               {tabs.map((t) => (
                 <button key={t.key} onClick={() => setActiveTab(t.key)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap ${
-                    activeTab === t.key ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-400'
+                    activeTab === t.key ? 'bg-brand-400 text-slate-950' : 'bg-slate-800 text-slate-400'
                   }`}>
                   <t.icon size={16} /> {t.label}
                 </button>
@@ -498,7 +498,7 @@ export default function DailyPage() {
                             className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
                         </div>
                       </div>
-                      <button onClick={handleLogFood} className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm">
+                      <button onClick={handleLogFood} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm">
                         Add to log
                       </button>
                     </div>
@@ -543,7 +543,7 @@ export default function DailyPage() {
                           <input type="number" value={exLog.calories_burned} onChange={(e) => setExLog({ ...exLog, calories_burned: Number(e.target.value) })} className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
                         </div>
                       </div>
-                      <button onClick={handleLogExercise} className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm">Add to log</button>
+                      <button onClick={handleLogExercise} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm">Add to log</button>
                     </div>
                   )}
                 </div>
@@ -560,7 +560,7 @@ export default function DailyPage() {
                   <p className="text-sm text-white">Today: <b className="text-sky-400">{water} ml</b></p>
                   <div className="flex gap-2">
                     <input type="number" placeholder="Steps" value={stepInput} onChange={(e) => setStepInput(e.target.value)} className="flex-1 p-3 rounded-xl bg-ink border border-slate-700 text-white text-sm" />
-                    <button onClick={saveSteps} className="px-4 rounded-xl bg-brand-600 text-white font-bold">Save</button>
+                    <button onClick={saveSteps} className="px-4 rounded-xl bg-brand-400 text-slate-950 font-bold">Save</button>
                   </div>
                 </div>
               )}
@@ -570,7 +570,7 @@ export default function DailyPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {(['front', 'side', 'back'] as const).map((t) => (
                       <button key={t} onClick={() => setImageType(t)}
-                        className={`py-2 rounded-xl text-sm font-bold capitalize ${imageType === t ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                        className={`py-2 rounded-xl text-sm font-bold capitalize ${imageType === t ? 'bg-brand-400 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
                         {t}
                       </button>
                     ))}
@@ -583,7 +583,7 @@ export default function DailyPage() {
                   </button>
                   {imagePreview && <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-xl" />}
                   {imageFile && (
-                    <button onClick={handleUploadImage} className="w-full py-2.5 rounded-xl bg-brand-600 text-white font-bold">Upload photo</button>
+                    <button onClick={handleUploadImage} className="w-full py-2.5 rounded-xl bg-brand-400 text-slate-950 font-bold">Upload photo</button>
                   )}
                 </div>
               )}

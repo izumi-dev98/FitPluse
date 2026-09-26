@@ -60,7 +60,7 @@ export default function ExercisesPage() {
       await load(userId);
       Swal.fire({ icon: 'success', title: 'Exercise added', timer: 1400, showConfirmButton: false });
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Add exercise failed.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Add exercise failed.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setCreating(false);
   }
@@ -79,7 +79,7 @@ export default function ExercisesPage() {
       await load(userId);
       Swal.fire({ icon: 'success', title: 'Logged', timer: 1200, showConfirmButton: false });
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Log failed. Check backend daily-exercises + daily-records.', confirmButtonText: 'OK', confirmButtonColor: '#22c55e' });
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Log failed. Check backend daily-exercises + daily-records.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }
     setSaving(false);
   }
@@ -123,7 +123,7 @@ export default function ExercisesPage() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold"
           >
             <Plus size={16} /> My Exercise
           </button>
@@ -193,7 +193,7 @@ export default function ExercisesPage() {
               <input type="number" value={log.duration_minutes} onChange={(e) => setLog({ ...log, duration_minutes: Number(e.target.value) })} placeholder="Minutes" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
               <input type="number" value={log.calories_burned} onChange={(e) => setLog({ ...log, calories_burned: Number(e.target.value) })} placeholder="kcal burned" className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm" />
             </div>
-            <button onClick={handleLog} disabled={!selectedId || saving} className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
+            <button onClick={handleLog} disabled={!selectedId || saving} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
               <Plus size={16} /> {saving ? 'Logging...' : 'Add to Daily'}
             </button>
             {!selectedId && <p className="text-xs text-slate-500">Select an exercise in the list first.</p>}
@@ -261,7 +261,7 @@ export default function ExercisesPage() {
               className="p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
             />
           </div>
-          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold disabled:opacity-50">
+          <button disabled={creating} className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50">
             {creating ? 'Saving...' : 'Save exercise'}
           </button>
         </form>
