@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TrendingUp, Scale, Calculator, Info, RefreshCw, Target } from 'lucide-react';
 import { PageHeader, Card } from '../components/ui';
+import { fmtInt } from '../lib/format';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -74,19 +75,19 @@ export default function ProgressPage() {
   if (last7.length >= 7 && activeGoal && targetCalories) {
     if (goalType === 'weight_gain' || goalType === 'skinny_to_fit') {
       if (weightDiff && weightDiff <= 0) {
-        adjustment = `📈 Weight not increasing! Increase calories by +10% → target: ${Math.round(targetCalories * 1.1)} kcal`;
+        adjustment = `📈 Weight not increasing! Increase calories by +10% → target: ${fmtInt(targetCalories * 1.1)} kcal`;
       } else if (weightDiff && weightDiff > 0.5) {
-        adjustment = `⚡ Weight increasing too fast! Reduce surplus → target: ${Math.round(targetCalories * 0.95)} kcal`;
+        adjustment = `⚡ Weight increasing too fast! Reduce surplus → target: ${fmtInt(targetCalories * 0.95)} kcal`;
       } else {
-        adjustment = `✅ On track! Keep current target: ${targetCalories} kcal`;
+        adjustment = `✅ On track! Keep current target: ${fmtInt(targetCalories)} kcal`;
       }
     } else if (goalType === 'weight_loss' || goalType === 'fat_loss') {
       if (weightDiff && weightDiff >= 0) {
-        adjustment = `📉 Weight not decreasing! Increase deficit → target: ${Math.round(targetCalories * 0.9)} kcal`;
+        adjustment = `📉 Weight not decreasing! Increase deficit → target: ${fmtInt(targetCalories * 0.9)} kcal`;
       } else if (weightDiff && weightDiff < -1) {
-        adjustment = `⚡ Losing too fast! Increase calories → target: ${Math.round(targetCalories * 1.05)} kcal`;
+        adjustment = `⚡ Losing too fast! Increase calories → target: ${fmtInt(targetCalories * 1.05)} kcal`;
       } else {
-        adjustment = `✅ On track! Keep current target: ${targetCalories} kcal`;
+        adjustment = `✅ On track! Keep current target: ${fmtInt(targetCalories)} kcal`;
       }
     } else {
       adjustment = `ℹ️ Maintain goal — current weight trend: ${weightDiff !== null ? (weightDiff > 0 ? '+' : '') + weightDiff + ' kg' : 'stable'}`;

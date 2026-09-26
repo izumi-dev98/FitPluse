@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AuthPage from './components/AuthPage';
 import AppShell from './components/AppShell';
+import OnboardingPage, { isProfileComplete } from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
 import GoalsPage from './pages/GoalsPage';
 import DailyPage from './pages/DailyPage';
@@ -12,10 +13,13 @@ import BadgesPage from './pages/BadgesPage';
 import ProgressPage from './pages/ProgressPage';
 import CalendarPage from './pages/CalendarPage';
 import { useAuthStore } from './store/auth';
+import { useProfile } from './lib/queries';
 
 export default function App() {
   const { accessToken, user } = useAuthStore();
   const [isAuth, setIsAuth] = useState(!!accessToken || !!user);
+  const [skippedOnboarding, setSkippedOnboarding] = useState(false);
+  const profileQ = useProfile();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,11 +29,37 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    setSkippedOnboarding(false);
+  }, [user?.id]);
+
   if (!isAuth) {
     return (
       <div className="min-h-screen bg-ink text-slate-100 font-sans selection:bg-brand-500/30">
         <AuthPage onAuth={() => setIsAuth(true)} />
       </div>
+    );
+  }
+
+  // Authenticated but profile still resolving — splash avoids flashing
+  // onboarding at complete users on every login.
+  if (profileQ.isLoading) {
+    return (
+      <div className="min-h-screen bg-ink flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Loading your profile…</p>
+      </div>
+    );
+  }
+
+  // Onboarding AFTER auth: signup auto-creates a bare profile (name only),
+  // so new users always land here; returning users with a complete profile
+  // go straight to the dashboard. Skip is session-scoped.
+  if (!skippedOnboarding && !isProfileComplete(profileQ.data)) {
+    return (
+      <OnboardingPage
+        onDone={() => setSkippedOnboarding(true)}
+        onSkip={() => setSkippedOnboarding(true)}
+      />
     );
   }
 
