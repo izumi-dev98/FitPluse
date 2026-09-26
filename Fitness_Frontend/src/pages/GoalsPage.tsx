@@ -25,6 +25,19 @@ type CalcInputs = {
   activity_level: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active';
 };
 
+function RecommendationList({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
+  return (
+    <div className={`rounded-xl bg-slate-950/40 border border-white/10 ${compact ? 'p-3' : 'p-4'}`}>
+      <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">{title}</div>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item} className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-brand-500/50">{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function GoalsPage() {
   const { user } = useAuthStore();
   const [goals, setGoals] = useState<any[]>([]);
@@ -327,6 +340,10 @@ export default function GoalsPage() {
               {(GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.plan || []).map((step) => (
                 <div key={step} className="rounded-xl bg-slate-950/40 border border-white/10 p-3 text-xs text-slate-300">{step}</div>
               ))}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <RecommendationList title="Recommended food and nutrition" items={GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.food || []} />
+              <RecommendationList title="Recommended exercise routine" items={GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.exercise || []} />
             </div>
             <p className="text-[11px] text-slate-500 mt-3">These are practical starting suggestions, not medical advice. A qualified trainer or registered dietitian can personalize them.</p>
           </div>
@@ -717,6 +734,10 @@ export default function GoalsPage() {
                 <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
                   <span className="text-slate-500">Calorie strategy <b className="text-slate-200 block mt-0.5">{guidance.calories}</b></span>
                   <span className="text-slate-500">Protein range <b className="text-slate-200 block mt-0.5">{guidance.protein}</b></span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-3 mt-3">
+                  <RecommendationList title="Food" items={guidance.food} compact />
+                  <RecommendationList title="Exercise" items={guidance.exercise} compact />
                 </div>
               </div>
 

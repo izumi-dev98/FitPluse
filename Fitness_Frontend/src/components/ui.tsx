@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useLanguage } from '../lib/i18n';
 
 export function PageHeader({
   title,
@@ -13,6 +14,7 @@ export function PageHeader({
   icon?: LucideIcon;
   action?: ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
       <div>
@@ -22,9 +24,9 @@ export function PageHeader({
               <Icon className="text-brand-400" size={20} />
             </span>
           )}
-          {title}
+          {t(title)}
         </h1>
-        {subtitle && <p className="text-slate-400 text-sm mt-1.5 max-w-xl">{subtitle}</p>}
+        {subtitle && <p className="text-slate-400 text-sm mt-1.5 max-w-xl">{t(subtitle)}</p>}
       </div>
       {action}
     </div>
@@ -136,10 +138,11 @@ export function EmptyState({
   hint?: string;
   action?: ReactNode;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="text-center py-8 px-4">
-      <p className="text-slate-300 font-medium">{title}</p>
-      {hint && <p className="text-slate-500 text-sm mt-1">{hint}</p>}
+      <p className="text-slate-300 font-medium">{t(title)}</p>
+      {hint && <p className="text-slate-500 text-sm mt-1">{t(hint)}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -158,6 +161,7 @@ export function Modal({
   children: ReactNode;
   maxWidth?: string;
 }) {
+  const { t } = useLanguage();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
@@ -166,7 +170,7 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b border-slate-800 sticky top-0 bg-panel rounded-t-3xl z-10">
-          <h3 className="text-lg font-bold text-white">{title}</h3>
+          <h3 className="text-lg font-bold text-white">{t(title)}</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1" aria-label="Close">
             <X size={22} />
           </button>
