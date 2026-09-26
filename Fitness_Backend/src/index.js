@@ -591,14 +591,28 @@ app.post('/api/weight-history', async (req, res) => {
 
 // ==================== USER BADGES ====================
 
+// Earned badges for the caller — requires Authorization: Bearer <access_token>.
+// userId must match the token owner (mirrors the user_badges RLS policy).
 app.get('/api/user-badges', async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization: Bearer <access_token>' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
     const userId = req.query.userId;
     if (!userId) {
       return res.status(400).json({ error: 'user_id query param required' });
     }
-    const { data, error } = await supabase.from('user_badges').select('*')
-      .eq('user_id', String(userId))
+    if (String(userId) !== user.id) {
+      return res.status(403).json({ error: 'Can only view your own badges' });
+    }
+    const { data, error } = await userClient.from('user_badges').select('*')
+      .eq('user_id', user.id)
       .order('earned_at', { ascending: false });
     if (error) throw error;
     res.json(data || []);
@@ -610,46 +624,85 @@ app.get('/api/user-badges', async (req, res) => {
 
 // ==================== BADGES ====================
 
-app.post('/api/badges', async (req, res) => {
+// Award a badge to the caller — idempotent via UNIQUE(user_id, badge_id).
+// Correct route is POST /api/user-badges; POST /api/badges kept as deprecated alias.
+async function awardBadge(req, res) {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization: Bearer <access_token>' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
     const { user_id, badge_id } = req.body;
     if (!user_id || !badge_id) {
       return res.status(400).json({ error: 'user_id and badge_id are required' });
     }
-    const { data, error } = await supabase.from('user_badges').insert({
-      user_id: String(user_id),
+    if (String(user_id) !== user.id) {
+      return res.status(403).json({ error: 'Can only award badges to yourself' });
+    }
+    const { data, error } = await userClient.from('user_badges').upsert({
+      user_id: user.id,
       badge_id: String(badge_id),
-      earned_at: new Date(),
-    }).select().single();
-    if (error) throw error;
-    res.status(201).json(data);
+      earned_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,badge_id', ignoreDuplicates: true }).select();
+    if (error) {
+      if (error.code === '23503') {
+        return res.status(400).json({ error: 'Badge does not exist' });
+      }
+      throw error;
+    }
+    if (data?.[0]) return res.status(201).json(data[0]);
+    // Already earned — return the existing row.
+    const { data: existing, error: fetchError } = await userClient.from('user_badges')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('badge_id', String(badge_id))
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    res.status(200).json({ ...existing, already_earned: true });
   } catch (err) {
-    console.error('Badge creation error:', err);
-    res.status(500).json({ error: 'Failed to create badge' });
+    console.error('Badge award error:', err);
+    res.status(500).json({ error: 'Failed to award badge' });
   }
-});
+}
+
+app.post('/api/user-badges', awardBadge);
+app.post('/api/badges', awardBadge); // deprecated alias
 
 app.get('/api/badges', async (req, res) => {
   try {
+    // Badge catalog is global, but RLS needs an authenticated caller.
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization: Bearer <access_token>' });
+    }
+    const userClient = getUserClient(req);
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
     // Return all available badges (global list)
-    const { data, error } = await supabase.from('badges').select('*')
+    const { data, error } = await userClient.from('badges').select('*')
       .order('created_at', { ascending: true });
     if (error) throw error;
-    // If userId provided, also mark which ones the user has earned
-    const userId = req.query.userId;
-    let userBadgeIds = [];
-    let userBadges = [];
-    if (userId) {
-      const { data: ub } = await supabase.from('user_badges').select('badge_id, earned_at').eq('user_id', String(userId));
-      userBadges = ub || [];
-      userBadgeIds = userBadges.map((ub) => ub.badge_id);
+    // Mark which ones the caller has earned (userId param accepted only if it matches the token owner)
+    const userId = req.query.userId ? String(req.query.userId) : user.id;
+    if (userId !== user.id) {
+      return res.status(403).json({ error: 'Can only view your own badges' });
     }
+    const { data: ub } = await userClient.from('user_badges').select('badge_id, earned_at').eq('user_id', user.id);
+    const userBadges = ub || [];
+    const userBadgeIds = userBadges.map((b) => b.badge_id);
     const badgesWithStatus = (data || []).map((badge) => {
       const earned = userBadgeIds.includes(badge.id);
       let earned_at = null;
       if (earned) {
-        const ub = userBadges.find((u) => u.badge_id === badge.id);
-        if (ub) earned_at = ub.earned_at;
+        const found = userBadges.find((u) => u.badge_id === badge.id);
+        if (found) earned_at = found.earned_at;
       }
       return { ...badge, earned, earned_at };
     });
