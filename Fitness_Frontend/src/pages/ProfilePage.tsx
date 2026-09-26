@@ -1,22 +1,31 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User, Lock, Save, Loader2, Camera, Check, Upload, Image as ImageIcon } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 import Swal from 'sweetalert2';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { qk, useBodyImages, useGoals, useProfile } from '../lib/queries';
 
 export default function ProfilePage() {
-  const [userId, setUserId] = useState('');
-  const [profile, setProfile] = useState<any>(null);
-  const [goals, setGoals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore((s) => s.user);
+  const uid = user?.id;
+  const qc = useQueryClient();
+
+  // Shared cached queries — revisits render instantly with no refetch.
+  const profileQ = useProfile();
+  const goalsQ = useGoals(uid);
+  const bodyImagesQ = useBodyImages(uid);
+  const profile = profileQ.data ?? null;
+  const goals = goalsQ.data ?? [];
+  const bodyImages = bodyImagesQ.data ?? [];
+  const loading = profileQ.isLoading || goalsQ.isLoading || bodyImagesQ.isLoading;
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // Body progress images
-  const [bodyImages, setBodyImages] = useState<any[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [imageType, setImageType] = useState<'front' | 'side' | 'back'>('front');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -39,49 +48,29 @@ export default function ProfilePage() {
   const [pwError, setPwError] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
 
-  async function loadProfile(uid: string) {
-    try {
-      const data = await apiClient.getProfile();
-      setProfile(data);
-      const p = Array.isArray(data) ? data[0] : data;
-      setEditName(p.name || '');
-      setEditAge(p.age || '');
-      setEditHeight(p.height_cm || '');
-      setEditWeight(p.weight_kg || '');
-      setEditGender(p.gender || '');
-      setEditActivity(p.activity_level || '');
-      if (p.avatar_url) setAvatarPreview(p.avatar_url);
-
-      const goalsData = await apiClient.getGoals(uid);
-      setGoals(Array.isArray(goalsData) ? goalsData : []);
-
-      // Load body progress images
-      try {
-        const images = await apiClient.getBodyProgressImages?.(uid);
-        setBodyImages(Array.isArray(images) ? images : []);
-      } catch {}
-    } catch {
-      // Profile might not exist yet
-    }
-    setLoading(false);
-  }
-
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const user = useAuthStore((s) => s.user);
-
+  // Seed the form once per profile from the cached data — never re-sync the
+  // same profile, so a background refetch can't clobber in-progress typing.
+  const syncedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!accessToken || !user?.id) return;
-    setUserId(user.id);
-    loadProfile(user.id);
-  }, [accessToken, user?.id]);
+    if (!profile || syncedRef.current === profile.id) return;
+    syncedRef.current = profile.id;
+    setEditName(profile.name || '');
+    setEditAge(profile.age || '');
+    setEditHeight(profile.height_cm || '');
+    setEditWeight(profile.weight_kg || '');
+    setEditGender(profile.gender || '');
+    setEditActivity(profile.activity_level || '');
+    if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
+  }, [profile]);
 
   async function handleAvatarUpload(e: React.FormEvent) {
     e.preventDefault();
-    if (!avatarFile || !userId) return;
+    if (!avatarFile || !uid) return;
     setSaving(true);
     try {
-      const avatarUrl = `avatars/${userId}/${Date.now()}_${avatarFile.name}`;
+      const avatarUrl = `avatars/${uid}/${Date.now()}_${avatarFile.name}`;
       await apiClient.updateProfile(profile.id, { avatar_url: avatarUrl });
+      qc.invalidateQueries({ queryKey: qk.profile() });
       setAvatarPreview(URL.createObjectURL(avatarFile));
       setAvatarFile(null);
       setSuccessMsg('Avatar updated!');
@@ -94,16 +83,16 @@ export default function ProfilePage() {
 
   async function handleBodyImageUpload(e: React.FormEvent) {
     e.preventDefault();
-    if (!imageFile || !userId) return;
+    if (!imageFile || !uid) return;
     try {
-      const fileName = `${userId}/body-progress/${Date.now()}_${imageType}.jpg`;
+      const fileName = `${uid}/body-progress/${Date.now()}_${imageType}.jpg`;
       const imageUrl = fileName;
       await apiClient.createBodyProgressImage?.({
-        user_id: userId,
+        user_id: uid,
         image_url: imageUrl,
         image_type: imageType,
       });
-      setBodyImages(prev => [...prev, { image_url: imageUrl, image_type: imageType, recorded_at: new Date().toISOString() }]);
+      qc.invalidateQueries({ queryKey: qk.bodyImages(uid) });
       setShowImageUpload(false);
       setImageFile(null);
       setImagePreview(null);
@@ -116,7 +105,7 @@ export default function ProfilePage() {
 
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!profile?.id || !userId) return;
+    if (!profile?.id || !uid) return;
     setSaving(true);
     setSuccessMsg('');
     try {
@@ -130,7 +119,7 @@ export default function ProfilePage() {
       });
       setSuccessMsg('Profile updated!');
       setTimeout(() => setSuccessMsg(''), 3000);
-      await loadProfile(userId);
+      qc.invalidateQueries({ queryKey: qk.profile() });
     } catch {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update profile.', confirmButtonText: 'OK', confirmButtonColor: '#65a30d' });
     }

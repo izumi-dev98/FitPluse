@@ -1,9 +1,22 @@
-import { useEffect, useState, useRef, type ElementType } from 'react';
+import { useState, useRef, type ElementType } from 'react';
 import { CalendarDays, Plus, X, Utensils, Dumbbell, Image as ImageIcon, Target, Droplets, Footprints } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Card, EmptyState, MacroRow, PageHeader, Ring } from '../components/ui';
+import {
+  ensureTodayRecord,
+  useBodyImages,
+  useDailyExercises,
+  useDailyFoods,
+  useDailyRecords,
+  useExercises,
+  useFoods,
+  useGoals,
+  useInvalidateDaily,
+  useWaterIntake,
+} from '../lib/queries';
 
 type TabType = 'food' | 'exercise' | 'water' | 'body';
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
@@ -15,161 +28,91 @@ function todayStr() {
 }
 
 export default function DailyPage() {
-  const [userId, setUserId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('food');
 
-  const [goalCalories, setGoalCalories] = useState<number | null>(null);
-  const [proteinTarget, setProteinTarget] = useState(0);
-  const [fatTarget, setFatTarget] = useState(0);
-  const [carbTarget, setCarbTarget] = useState(0);
-
-  const [foods, setFoods] = useState<any[]>([]);
   const [foodSearch, setFoodSearch] = useState('');
   const [selectedFood, setSelectedFood] = useState<any>(null);
   const [foodQty, setFoodQty] = useState(1);
   const [foodMeal, setFoodMeal] = useState('Breakfast');
-  const [loggedFoods, setLoggedFoods] = useState<any[]>([]);
 
-  const [exercises, setExercises] = useState<any[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
   const [exLog, setExLog] = useState({ sets: 3, reps: 10, duration_minutes: 30, calories_burned: 200 });
-  const [loggedExercises, setLoggedExercises] = useState<any[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageType, setImageType] = useState<'front' | 'side' | 'back'>('front');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [bodyImages, setBodyImages] = useState<any[]>([]);
 
-  const [water, setWater] = useState(0);
-  const [steps, setSteps] = useState(0);
   const [stepInput, setStepInput] = useState('');
 
-  const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const uid = user?.id;
+  const qc = useQueryClient();
+  const invalidateDaily = useInvalidateDaily();
 
-  useEffect(() => {
-    if (!accessToken || !user?.id) return;
-    setUserId(user.id);
-    loadAll(user.id);
-  }, [accessToken, user?.id]);
+  // Shared cached queries (same keys as Dashboard) — revisits render instantly.
+  const goalsQ = useGoals(uid);
+  const recordsQ = useDailyRecords(uid);
+  const foodsQ = useFoods(uid);
+  const exercisesQ = useExercises(uid);
+  const bodyImagesQ = useBodyImages(uid);
+  const waterQ = useWaterIntake(uid);
+  const dailyExercisesQ = useDailyExercises(uid);
 
-  async function loadAll(uid: string) {
-    await Promise.all([
-      loadGoal(uid),
-      loadFoods(uid),
-      loadExercises(uid),
-      loadBodyImages(uid),
-      loadLoggedFoods(uid),
-      loadLoggedExercises(uid),
-      loadWaterAndSteps(uid),
-    ]);
-  }
+  const goals = goalsQ.data ?? [];
+  const records = recordsQ.data ?? [];
+  const foods = foodsQ.data ?? [];
+  const exercises = exercisesQ.data ?? [];
+  const bodyImages = bodyImagesQ.data ?? [];
+  const waters = waterQ.data ?? [];
+  const allLoggedExercises = dailyExercisesQ.data ?? [];
 
-  async function loadGoal(uid: string) {
-    try {
-      const goalsData = await apiClient.getGoals(uid);
-      const goals = Array.isArray(goalsData) ? goalsData : [];
-      const active = goals.find((g: any) => g.status === 'active');
-      if (active) {
-        setGoalCalories(Number(active.target_calories ?? active.target_value) || null);
-        setProteinTarget(Number(active.protein_target) || 0);
-        setFatTarget(Number(active.fat_target) || 0);
-        setCarbTarget(Number(active.carb_target) || 0);
-      }
-    } catch {}
-  }
+  const today = todayStr();
+  const rec = records.find((r: any) => r.record_date === today);
+  const dailyFoodsQ = useDailyFoods(uid, rec?.id);
+  const loggedFoods = dailyFoodsQ.data ?? [];
 
-  async function loadFoods(uid: string) {
-    try {
-      const d = await apiClient.getFoods(uid);
-      setFoods(Array.isArray(d) ? d : []);
-    } catch { setFoods([]); }
-  }
+  const active = goals.find((g: any) => g.status === 'active');
+  const goalCalories = active ? Number(active.target_calories ?? active.target_value) || null : null;
+  const proteinTarget = active ? Number(active.protein_target) || 0 : 0;
+  const fatTarget = active ? Number(active.fat_target) || 0 : 0;
+  const carbTarget = active ? Number(active.carb_target) || 0 : 0;
 
-  async function loadExercises(uid: string) {
-    try {
-      const d = await apiClient.getExercises(uid);
-      setExercises(Array.isArray(d) ? d : []);
-    } catch { setExercises([]); }
-  }
+  const loggedExercises = rec?.id
+    ? allLoggedExercises.filter((e: any) => e.daily_record_id === rec.id)
+    : [];
+  const steps = Number(rec?.steps) || 0;
+  const todayWater = waters.filter(
+    (w: any) => String(w.recorded_at || w.created_at || '').slice(0, 10) === today,
+  );
+  const water =
+    todayWater.reduce((s: number, w: any) => s + (Number(w.amount_ml) || 0), 0) ||
+    Number(rec?.water_ml) ||
+    0;
 
-  async function loadBodyImages(uid: string) {
-    try {
-      const d = await apiClient.getBodyProgressImages?.(uid);
-      setBodyImages(Array.isArray(d) ? d : []);
-    } catch { setBodyImages([]); }
-  }
-
-  async function ensureTodayRecord(uid: string) {
-    const today = todayStr();
-    const records = await apiClient.getDailyRecords(uid);
-    const rec = (Array.isArray(records) ? records : []).find((r: any) => r.record_date === today);
-    if (rec?.id) return rec;
-    return apiClient.createDailyRecord({
-      user_id: uid, record_date: today, calories_consumed: 0, calories_burned: 0, water_ml: 0, steps: 0,
-    });
-  }
-
-  async function loadLoggedFoods(uid: string) {
-    try {
-      const rec = await ensureTodayRecord(uid);
-      if (rec?.id) {
-        const d = await apiClient.getDailyFoods(uid, rec.id);
-        setLoggedFoods(Array.isArray(d) ? d : []);
-      }
-    } catch { setLoggedFoods([]); }
-  }
-
-  async function loadLoggedExercises(uid: string) {
-    try {
-      const d = await apiClient.getDailyExercises(uid);
-      const records = await apiClient.getDailyRecords(uid);
-      const rec = (Array.isArray(records) ? records : []).find((r: any) => r.record_date === todayStr());
-      if (rec?.id) {
-        setLoggedExercises((Array.isArray(d) ? d : []).filter((e: any) => e.daily_record_id === rec.id));
-      }
-    } catch { setLoggedExercises([]); }
-  }
-
-  async function loadWaterAndSteps(uid: string) {
-    try {
-      const [waters, records] = await Promise.all([
-        apiClient.getWaterIntake(uid).catch(() => []),
-        apiClient.getDailyRecords(uid).catch(() => []),
-      ]);
-      const today = todayStr();
-      const rec = (Array.isArray(records) ? records : []).find((r: any) => r.record_date === today);
-      setSteps(Number(rec?.steps) || 0);
-      const todayWater = (Array.isArray(waters) ? waters : []).filter(
-        (w: any) => String(w.recorded_at || w.created_at || '').slice(0, 10) === today,
-      );
-      const sum = todayWater.reduce((s: number, w: any) => s + (Number(w.amount_ml) || 0), 0);
-      setWater(sum || Number(rec?.water_ml) || 0);
-    } catch {}
-  }
-
-  async function persistRecord(uid: string, patch: { water_ml?: number; steps?: number; calories_consumed?: number; calories_burned?: number }) {
-    const rec = await ensureTodayRecord(uid);
+  async function persistRecord(patch: { water_ml?: number; steps?: number; calories_consumed?: number; calories_burned?: number }) {
+    if (!uid) return;
+    const todayRec = await ensureTodayRecord(qc, uid);
     await apiClient.createDailyRecord({
       user_id: uid,
       record_date: todayStr(),
-      calories_consumed: patch.calories_consumed ?? rec?.calories_consumed ?? 0,
-      calories_burned: patch.calories_burned ?? rec?.calories_burned ?? 0,
-      water_ml: patch.water_ml ?? rec?.water_ml ?? 0,
-      steps: patch.steps ?? rec?.steps ?? 0,
+      calories_consumed: patch.calories_consumed ?? todayRec?.calories_consumed ?? 0,
+      calories_burned: patch.calories_burned ?? todayRec?.calories_burned ?? 0,
+      water_ml: patch.water_ml ?? todayRec?.water_ml ?? 0,
+      steps: patch.steps ?? todayRec?.steps ?? 0,
     });
+    invalidateDaily(uid);
   }
 
   async function handleLogFood() {
-    if (!selectedFood || !userId) return;
+    if (!selectedFood || !uid) return;
     try {
-      const rec = await ensureTodayRecord(userId);
+      const rec = await ensureTodayRecord(qc, uid);
       const q = Number(foodQty) || 1;
       await apiClient.createDailyFood({
-        user_id: userId, daily_record_id: rec.id, food_id: selectedFood.id,
+        user_id: uid, daily_record_id: rec.id, food_id: selectedFood.id,
         meal_type: foodMeal, quantity: q,
         calories: (Number(selectedFood.calories) || 0) * q,
         protein: (Number(selectedFood.protein) || 0) * q,
@@ -178,7 +121,7 @@ export default function DailyPage() {
       });
       setSelectedFood(null);
       setFoodQty(1);
-      await loadLoggedFoods(userId);
+      invalidateDaily(uid);
       Swal.fire({ icon: 'success', title: 'Food logged', timer: 1200, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not log food', confirmButtonColor: '#65a30d' });
@@ -186,16 +129,16 @@ export default function DailyPage() {
   }
 
   async function handleLogExercise() {
-    if (!selectedExercise || !userId) return;
+    if (!selectedExercise || !uid) return;
     try {
-      const rec = await ensureTodayRecord(userId);
+      const rec = await ensureTodayRecord(qc, uid);
       await apiClient.createDailyExercise({
-        user_id: userId, daily_record_id: rec.id, exercise_id: selectedExercise.id,
+        user_id: uid, daily_record_id: rec.id, exercise_id: selectedExercise.id,
         ...exLog,
       });
       setSelectedExercise(null);
       setExLog({ sets: 3, reps: 10, duration_minutes: 30, calories_burned: 200 });
-      await loadLoggedExercises(userId);
+      invalidateDaily(uid);
       Swal.fire({ icon: 'success', title: 'Workout logged', timer: 1200, showConfirmButton: false });
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not log exercise', confirmButtonColor: '#65a30d' });
@@ -203,19 +146,19 @@ export default function DailyPage() {
   }
 
   async function handleUploadImage() {
-    if (!imageFile || !userId) return;
+    if (!imageFile || !uid) return;
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         await apiClient.createBodyProgressImage?.({
-          user_id: userId,
+          user_id: uid,
           image_url: base64,
           image_type: imageType,
         });
         setImageFile(null);
         setImagePreview(null);
-        await loadBodyImages(userId);
+        invalidateDaily(uid);
         Swal.fire({ icon: 'success', title: 'Photo saved', timer: 1200, showConfirmButton: false });
       };
       reader.readAsDataURL(imageFile);
@@ -223,24 +166,24 @@ export default function DailyPage() {
   }
 
   async function addWater(ml: number) {
-    if (!userId) return;
+    if (!uid) return;
     try {
-      await apiClient.createWaterIntake({ user_id: userId, amount_ml: ml });
-      await persistRecord(userId, { water_ml: water + ml });
-      await loadWaterAndSteps(userId);
+      await apiClient.createWaterIntake({ user_id: uid, amount_ml: ml });
+      await persistRecord({ water_ml: water + ml });
+      invalidateDaily(uid);
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not log water', confirmButtonColor: '#65a30d' });
     }
   }
 
   async function saveSteps() {
-    if (!userId) return;
+    if (!uid) return;
     const n = Number(stepInput);
     if (!n && n !== 0) return;
     try {
-      await persistRecord(userId, { steps: n });
+      await persistRecord({ steps: n });
       setStepInput('');
-      await loadWaterAndSteps(userId);
+      invalidateDaily(uid);
     } catch {
       Swal.fire({ icon: 'error', title: 'Could not save steps', confirmButtonColor: '#65a30d' });
     }

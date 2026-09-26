@@ -1,61 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TrendingUp, Scale, Calculator, Info, RefreshCw, Target } from 'lucide-react';
 import { PageHeader, Card } from '../components/ui';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { qk, useGoals, useProfile, useWeightHistory } from '../lib/queries';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 
 export default function ProgressPage() {
-  const [userId, setUserId] = useState('');
-  const [weightHistory, setWeightHistory] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>(null);
-  const [goals, setGoals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore((s) => s.user);
+  const uid = user?.id;
+  const qc = useQueryClient();
+
+  // Shared cached queries — revisits render instantly with no refetch.
+  const weightsQ = useWeightHistory(uid);
+  const profileQ = useProfile();
+  const goalsQ = useGoals(uid);
+  const goals = goalsQ.data ?? [];
+  const profile = profileQ.data ?? null;
+  const loading = weightsQ.isLoading || profileQ.isLoading || goalsQ.isLoading;
+
+  const weightHistory = useMemo(
+    () =>
+      [...(weightsQ.data ?? [])].sort(
+        (a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
+      ),
+    [weightsQ.data],
+  );
+
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  async function loadData(uid: string) {
-    try {
-      const [wData, pData, gData] = await Promise.all([
-        apiClient.getWeightHistory(uid),
-        apiClient.getProfile(),
-        apiClient.getGoals(uid),
-      ]);
-      setWeightHistory(Array.isArray(wData) ? wData.sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()) : []);
-      const p = Array.isArray(pData) ? pData[0] : pData;
-      setProfile(p);
-      setGoals(Array.isArray(gData) ? gData : []);
-    } catch {
-      setWeightHistory([]);
-    }
-    setLoading(false);
-  }
-
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const user = useAuthStore((s) => s.user);
-
-  useEffect(() => {
-    if (!accessToken || !user?.id) return;
-    setUserId(user.id);
-    loadData(user.id);
-  }, [accessToken, user?.id]);
-
   async function handleLogWeight(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId) return;
+    if (!uid) return;
     setSaving(true);
     setError('');
     try {
       await apiClient.createWeightHistory?.({
-        user_id: userId,
+        user_id: uid,
         weight: Number(weight),
         body_fat: Number(bodyFat) || null,
       });
-      await loadData(userId);
+      qc.invalidateQueries({ queryKey: qk.weights(uid) });
       setWeight('');
       setBodyFat('');
     } catch (err: any) {
