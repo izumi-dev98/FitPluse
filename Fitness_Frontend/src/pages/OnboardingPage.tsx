@@ -20,7 +20,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
-import { type GoalType } from '../lib/theory';
+import { type GoalType, calcBMR, calcTDEE, calcTarget, calcMacros, ACTIVITY_MULTIPLIERS } from '../lib/theory';
 import { useAuthStore } from '../store/auth';
 import { apiClient } from '../lib/api';
 import { useQueryClient } from '@tanstack/react-query';
@@ -194,15 +194,21 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
         await apiClient.createProfile({ user_id: user.id, ...profileData });
       }
 
-      // 2. Create initial goal
+      // 2. Calculate proper goal values using theory functions
+      const bmr = calcBMR(gender, Number(weight), Number(height), ageFromDob(dob) || 30);
+      const tdee = calcTDEE(bmr, activity as keyof typeof ACTIVITY_MULTIPLIERS);
+      const targetCalories = Math.round(calcTarget(tdee, selectedGoal));
+      const macros = calcMacros(targetCalories, Number(weight));
+
+      // 3. Create initial goal with calculated values
       await apiClient.createGoal({
         user_id: user.id,
         goal_type: selectedGoal,
-        target_value: 0,
-        target_calories: 0,
-        protein_target: 0,
-        fat_target: 0,
-        carb_target: 0,
+        target_value: targetCalories,
+        target_calories: targetCalories,
+        protein_target: macros.protein,
+        fat_target: macros.fat,
+        carb_target: macros.carbs,
         status: 'active',
       });
       await qc.invalidateQueries({ queryKey: qk.profile() });

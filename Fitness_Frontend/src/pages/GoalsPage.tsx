@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Target,
   X,
@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Plus,
 } from "lucide-react";
 import { PageHeader, EmptyState } from "../components/ui";
 import DailyRecordModal from "../components/DailyRecordModal";
@@ -105,6 +106,7 @@ function RecommendationList({
 
 export default function GoalsPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -482,8 +484,8 @@ export default function GoalsPage() {
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-2xl md:text-3xl font-extrabold text-white capitalize">
-                    {String(activeGoal.goal_type).replace(/_/g, " ")}
+                  <span className="text-2xl md:text-3xl font-extrabold text-white">
+                    {GOAL_LABELS[activeGoal.goal_type as GoalType] || String(activeGoal.goal_type).replace(/_/g, " ")}
                   </span>
                   <span className="px-3 py-1 rounded-full bg-brand-600/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
                     Active
@@ -537,6 +539,12 @@ export default function GoalsPage() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => navigate('/daily')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition border border-white/20"
+            >
+              <Plus size={16} /> Add Log
+            </button>
             <button
               onClick={handleChangeGoal}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20"
@@ -933,9 +941,9 @@ export default function GoalsPage() {
                       <td className="px-4 md:px-5 py-3">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`font-bold capitalize ${isActive ? "text-brand-400" : "text-white"}`}
+                            className={`font-bold ${isActive ? "text-brand-400" : "text-white"}`}
                           >
-                            {String(g.goal_type).replace(/_/g, " ")}
+                            {GOAL_LABELS[g.goal_type as GoalType] || String(g.goal_type).replace(/_/g, " ")}
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
