@@ -224,7 +224,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink px-4 py-12">
-      <div className="w-full max-w-6xl">
+      <div className={`w-full transition-all duration-300 ${isFeaturesStep ? 'max-w-6xl' : 'max-w-md'}`}>
         {/* Header */}
         <div className="text-center mb-6">
           <p className="text-brand-400 text-sm font-semibold mb-1">Welcome to FitPulse</p>
