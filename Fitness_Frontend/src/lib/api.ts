@@ -103,6 +103,7 @@ export const apiClient = {
   createWeightHistory: (body: ApiBody) => api('/api/weight-history', { method: 'POST', body }),
   getWaterIntake: (userId: string) => api(`/api/water-intake?userId=${userId}`),
   createWaterIntake: (body: ApiBody) => api('/api/water-intake', { method: 'POST', body }),
+  updateDailyRecord: (id: string, body: ApiBody) => api(`/api/daily-records/${id}`, { method: 'PUT', body }),
   getBadges: (userId?: string) => api(`/api/badges${userId ? `?userId=${userId}` : ''}`),
   getUserBadges: (userId: string) => api(`/api/user-badges?userId=${userId}`),
   changePassword: (body: ApiBody) => api('/api/auth/change-password', { method: 'POST', body }),

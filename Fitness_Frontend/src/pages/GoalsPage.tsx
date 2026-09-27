@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Target,
   X,
@@ -18,8 +18,14 @@ import {
   ChevronRight,
   Eye,
   Plus,
+  Dumbbell,
+  GlassWater,
+  Sandwich,
+  Clock,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
-import { PageHeader, EmptyState } from "../components/ui";
+import { PageHeader, EmptyState, Ring } from "../components/ui";
 import DailyRecordModal from "../components/DailyRecordModal";
 import Swal from "sweetalert2";
 import { apiClient } from "../lib/api";
@@ -84,9 +90,7 @@ function RecommendationList({
   compact?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl bg-slate-950/40 border border-white/10 ${compact ? "p-3" : "p-4"}`}
-    >
+    <div className={`rounded-xl bg-slate-950/40 border border-white/10 ${compact ? "p-3" : "p-4"}`}>
       <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
         {title}
       </div>
@@ -104,9 +108,31 @@ function RecommendationList({
   );
 }
 
+function MacroRing({ label, value, target, unit = "g" }: { 
+  label: string; 
+  value: number; 
+  target: number; 
+  unit?: string; 
+}) {
+  const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Ring percent={pct} size={80}>
+        <div className="text-center">
+          <div className="text-white font-bold text-lg">{Math.round(value)}</div>
+          <div className="text-slate-500 text-xs">{unit}</div>
+        </div>
+      </Ring>
+      <div className="text-center">
+        <div className="text-slate-400 text-xs uppercase tracking-wide">{label}</div>
+        <div className="text-white font-medium text-sm">{pct}% of {Math.round(target)}{unit}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function GoalsPage() {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,10 +152,8 @@ export default function GoalsPage() {
     age: user?.age || 30,
     activity_level: toActivityLevel(user?.activity_level, "moderately_active"),
   });
+  const [todayMacros, setTodayMacros] = useState({ protein: 0, fat: 0, carbs: 0 });
 
-  // Prefill the calculator from the user's profile (not the auth user object,
-  // which carries none of these fields). Once per profile, and never while
-  // the modal is open editing.
   const profileQ = useProfile();
   const prefilledRef = useRef<string | null>(null);
   useEffect(() => {
@@ -176,6 +200,10 @@ export default function GoalsPage() {
       );
       const foodTotals = new Map<string, number>();
       const exerciseTotals = new Map<string, number>();
+      const proteinTotals = new Map<string, number>();
+      const fatTotals = new Map<string, number>();
+      const carbTotals = new Map<string, number>();
+      
       (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: DailyFoodRow) => {
         const date = String(
           recordsById.get(String(food.daily_record_id)) ||
@@ -183,11 +211,24 @@ export default function GoalsPage() {
             food.created_at ||
             "",
         ).slice(0, 10);
-        if (date)
+        if (date) {
           foodTotals.set(
             date,
             (foodTotals.get(date) || 0) + (Number(food.calories) || 0),
           );
+          proteinTotals.set(
+            date,
+            (proteinTotals.get(date) || 0) + (Number(food.protein) || 0),
+          );
+          fatTotals.set(
+            date,
+            (fatTotals.get(date) || 0) + (Number(food.fat) || 0),
+          );
+          carbTotals.set(
+            date,
+            (carbTotals.get(date) || 0) + (Number(food.carbohydrates) || 0),
+          );
+        }
       });
       (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach(
         (exercise: DailyExerciseRow) => {
@@ -222,10 +263,19 @@ export default function GoalsPage() {
       setRecords(mergedRecords);
       const active = allGoals.find((g: Goal) => g.status === "active");
       setActiveGoal(active || null);
+      
+      // Find today's macros
+      const today = todayKey();
+      setTodayMacros({
+        protein: proteinTotals.get(today) || 0,
+        fat: fatTotals.get(today) || 0,
+        carbs: carbTotals.get(today) || 0,
+      });
     } catch {
       setGoals([]);
       setRecords([]);
       setActiveGoal(null);
+      setTodayMacros({ protein: 0, fat: 0, carbs: 0 });
     } finally {
       setLoading(false);
     }
@@ -374,8 +424,6 @@ export default function GoalsPage() {
   }
 
   async function handleChangeGoal() {
-    // Pre-fill form with current active goal data for editing,
-    // refreshing stats from the profile at the same time.
     const p = profileQ.data;
     if (activeGoal) {
       setForm((prev) => ({
@@ -411,7 +459,6 @@ export default function GoalsPage() {
     if (!result.isConfirmed) return;
 
     try {
-      // We'll use a delete endpoint if available, otherwise mark as deleted
       await apiClient.deleteGoal(goalId);
       await loadGoals(user!.id);
       Swal.fire({
@@ -433,10 +480,7 @@ export default function GoalsPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center py-12">
-          <Target
-            className="text-brand-400 animate-spin mx-auto mb-4"
-            size={40}
-          />
+          <Target className="text-brand-400 animate-spin mx-auto mb-4" size={40} />
           <p className="text-slate-400">Loading your goals...</p>
         </div>
       </div>
@@ -444,22 +488,36 @@ export default function GoalsPage() {
   }
 
   const isNewUser = !activeGoal && goals.length === 0;
+  const guidance = activeGoal ? GOAL_GUIDANCE[activeGoal.goal_type as GoalType] : null;
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
       <PageHeader
         title="Goals"
-        subtitle={
-          isNewUser
-            ? "Set your first goal to get calorie and macro targets."
-            : "One active goal at a time. History stays below."
-        }
+        subtitle={isNewUser ? "Set your first goal to get calorie and macro targets." : "One active goal at a time. History stays below."}
         icon={Target}
+        action={activeGoal ? (
+          <button
+            onClick={handleChangeGoal}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
+          >
+            <RotateCcw size={16} /> Change Goal
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
+          >
+            <Target size={16} /> Create Goal
+          </button>
+        )}
       />
 
-      {/* Active Goal Card - Prominent */}
-      {activeGoal && (
-        <div className="relative bg-gradient-to-br from-brand-900/30 to-brand-900/10 border border-brand-600/30 rounded-3xl p-6 md:p-8 mb-8 shadow-xl shadow-brand-600/10 overflow-hidden">
+      {/* ===== ACTIVE GOAL CARD ===== */}
+      {activeGoal ? (
+        <div className="relative bg-gradient-to-br from-brand-900/30 to-brand-900/10 border border-brand-600/30 rounded-3xl p-6 md:p-8 shadow-xl shadow-brand-600/10 overflow-hidden">
+          {/* Top badges */}
           <div className="absolute top-4 right-4 flex gap-2">
             <button
               onClick={handleChangeGoal}
@@ -477,15 +535,16 @@ export default function GoalsPage() {
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          {/* Goal Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
             <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30">
-                <Flag className="text-brand-400" size={28} />
+              <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 text-brand-400">
+                <Flag size={28} />
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-2xl md:text-3xl font-extrabold text-white">
-                    {GOAL_LABELS[activeGoal.goal_type as GoalType] || String(activeGoal.goal_type).replace(/_/g, " ")}
+                  <span className="text-2xl md:text-3xl font-extrabold text-white capitalize">
+                    {String(activeGoal.goal_type).replace(/_/g, " ")}
                   </span>
                   <span className="px-3 py-1 rounded-full bg-brand-600/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
                     Active
@@ -498,53 +557,39 @@ export default function GoalsPage() {
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-4 gap-4 text-center md:grid-cols-4">
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">
-                  Daily Calories
-                </div>
-                <div className="text-2xl md:text-3xl font-extrabold text-brand-400">
-                  {fmtInt(activeGoal.target_calories) ??
-                    activeGoal.target_value ??
-                    "—"}
-                </div>
-                <div className="text-[12px] text-slate-600 mt-1">kcal</div>
+          {/* Macro Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Daily Calories</div>
+              <div className="text-2xl md:text-3xl font-extrabold text-brand-400">
+                {fmtInt(activeGoal.target_calories) ?? activeGoal.target_value ?? "—"}
               </div>
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">
-                  Protein
-                </div>
-                <div className="text-2xl md:text-3xl font-extrabold text-red-400">
-                  {fmtInt(activeGoal.protein_target) ?? 0}g
-                </div>
+              <div className="text-[12px] text-slate-600 mt-1">kcal</div>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Protein</div>
+              <div className="text-2xl md:text-3xl font-extrabold text-red-400">
+                {fmtInt(activeGoal.protein_target) ?? 0}g
               </div>
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">
-                  Fat
-                </div>
-                <div className="text-2xl md:text-3xl font-extrabold text-blue-400">
-                  {fmtInt(activeGoal.fat_target) ?? 0}g
-                </div>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Fat</div>
+              <div className="text-2xl md:text-3xl font-extrabold text-blue-400">
+                {fmtInt(activeGoal.fat_target) ?? 0}g
               </div>
-              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">
-                  Carbs
-                </div>
-                <div className="text-2xl md:text-3xl font-extrabold text-yellow-400">
-                  {fmtInt(activeGoal.carb_target) ?? 0}g
-                </div>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Carbs</div>
+              <div className="text-2xl md:text-3xl font-extrabold text-yellow-400">
+                {fmtInt(activeGoal.carb_target) ?? 0}g
               </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap gap-3 justify-center">
-            <button
-              onClick={() => navigate('/daily')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition border border-white/20"
-            >
-              <Plus size={16} /> Add Log
-            </button>
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3 mb-6">
             <button
               onClick={handleChangeGoal}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20"
@@ -559,56 +604,141 @@ export default function GoalsPage() {
             </Link>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <div className="flex items-center gap-2 text-brand-300 font-bold text-sm mb-2">
-              <Sparkles size={16} /> Recommended plan for your selected goal
+          {/* Today Section - Quick Log */}
+          <div className="border-t border-white/10 pt-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <CalendarDays size={20} className="text-brand-400" /> Today ({new Date().toLocaleDateString()})
+              </h3>
+              <Link
+                to="/daily"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
+              >
+                <Plus size={16} /> Add Log
+              </Link>
             </div>
-            <p className="text-sm text-slate-400 mb-3">
-              {GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.summary}
-            </p>
-            <div className="grid md:grid-cols-3 gap-3">
-              {(
-                GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.plan || []
-              ).map((step) => (
-                <div
-                  key={step}
-                  className="rounded-xl bg-slate-950/40 border border-white/10 p-3 text-xs text-slate-300"
-                >
-                  {step}
-                </div>
-              ))}
-            </div>
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <RecommendationList
-                title="Recommended food and nutrition"
-                items={
-                  GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.food || []
-                }
-              />
-              <RecommendationList
-                title="Recommended exercise routine"
-                items={
-                  GOAL_GUIDANCE[activeGoal.goal_type as GoalType]?.exercise ||
-                  []
-                }
-              />
-            </div>
-            <p className="text-[11px] text-slate-500 mt-3">
-              These are practical starting suggestions, not medical advice. A
-              qualified trainer or registered dietitian can personalize them.
-            </p>
-          </div>
-        </div>
-      )}
 
-      {/* Welcome / Empty State */}
-      {isNewUser && (
-        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 text-center mb-8 relative overflow-hidden">
+            {/* Today's Macro Progress Rings */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <MacroRing
+                label="Calories"
+                value={0}
+                target={activeGoal.target_calories || activeGoal.target_value || 0}
+                unit="kcal"
+              />
+              <MacroRing
+                label="Protein"
+                value={todayMacros.protein}
+                target={activeGoal.protein_target || 0}
+              />
+              <MacroRing
+                label="Fat"
+                value={todayMacros.fat}
+                target={activeGoal.fat_target || 0}
+              />
+              <MacroRing
+                label="Carbs"
+                value={todayMacros.carbs}
+                target={activeGoal.carb_target || 0}
+              />
+            </div>
+
+            {/* Quick Log Buttons - link to daily page */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Link
+                to="/daily?log=food"
+                className="flex items-center gap-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/20 hover:border-amber-500/50 transition-all hover:shadow-lg"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                  <Sandwich size={22} className="text-white" />
+                </span>
+                <div className="flex-1 text-left">
+                  <div className="text-white font-semibold">Food</div>
+                  <div className="text-slate-500 text-sm">Log meal</div>
+                </div>
+                <Plus size={20} className="text-slate-500" />
+              </Link>
+              <Link
+                to="/daily?log=exercise"
+                className="flex items-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-500/20 hover:border-red-500/50 transition-all hover:shadow-lg"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                  <Dumbbell size={22} className="text-white" />
+                </span>
+                <div className="flex-1 text-left">
+                  <div className="text-white font-semibold">Exercise</div>
+                  <div className="text-slate-500 text-sm">Log workout</div>
+                </div>
+                <Plus size={20} className="text-slate-500" />
+              </Link>
+              <Link
+                to="/daily?log=water"
+                className="flex items-center gap-3 p-4 rounded-2xl border border-sky-500/30 bg-sky-500/20 hover:border-sky-500/50 transition-all hover:shadow-lg"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                  <GlassWater size={22} className="text-white" />
+                </span>
+                <div className="flex-1 text-left">
+                  <div className="text-white font-semibold">Water</div>
+                  <div className="text-slate-500 text-sm">Add glasses</div>
+                </div>
+                <Plus size={20} className="text-slate-500" />
+              </Link>
+              <Link
+                to="/daily?log=weight"
+                className="flex items-center gap-3 p-4 rounded-2xl border border-violet-500/30 bg-violet-500/20 hover:border-violet-500/50 transition-all hover:shadow-lg"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                  <Clock size={22} className="text-white" />
+                </span>
+                <div className="flex-1 text-left">
+                  <div className="text-white font-semibold">Weight</div>
+                  <div className="text-slate-500 text-sm">Log weight</div>
+                </div>
+                <Plus size={20} className="text-slate-500" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Recommended Plan */}
+          {guidance && (
+            <div className="border-t border-white/10 pt-6">
+              <div className="flex items-center gap-2 text-brand-300 font-bold text-sm mb-2">
+                <Sparkles size={16} /> Recommended plan for your selected goal
+              </div>
+              <p className="text-sm text-slate-400 mb-3">{guidance.summary}</p>
+              <div className="grid md:grid-cols-3 gap-3 mb-4">
+                {(guidance.plan || []).map((step) => (
+                  <div key={step} className="rounded-xl bg-slate-950/40 border border-white/10 p-3 text-xs text-slate-300">
+                    {step}
+                  </div>
+                ))}
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <RecommendationList
+                  title="Recommended food and nutrition"
+                  items={guidance.food || []}
+                  compact
+                />
+                <RecommendationList
+                  title="Recommended exercise routine"
+                  items={guidance.exercise || []}
+                  compact
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-3">
+                These are practical starting suggestions, not medical advice. A
+                qualified trainer or registered dietitian can personalize them.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Empty State - No Goal Yet */
+        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-500 to-brand-400" />
           <Sparkles className="text-brand-400 mx-auto mb-4" size={48} />
-          <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-            Ready to Start?
-          </h3>
+          <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">Ready to Start?</h3>
           <p className="text-slate-400 text-lg mb-6 max-w-md mx-auto">
             We'll calculate your BMR, TDEE, and daily macro targets based on
             your profile. This takes less than a minute.
@@ -622,8 +752,8 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Combined Goal + Daily Record History */}
-      <div className="mb-8 bg-panel/80 border border-slate-800/80 rounded-2xl overflow-hidden">
+      {/* ===== HISTORY SECTION ===== */}
+      <div className="bg-panel/80 border border-slate-800/80 rounded-2xl overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 md:p-5 border-b border-slate-800">
           <div>
             <h3 className="text-lg font-bold text-white">History</h3>
@@ -666,41 +796,17 @@ export default function GoalsPage() {
         </div>
 
         {historyTab === "daily" ? (
-          <div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 md:p-5 border-b border-slate-800/80">
+          <div className="p-4 md:p-5">
+            {/* Daily Stats Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
               {[
-                {
-                  label: "Days logged",
-                  value: dailyStats.days,
-                  icon: CalendarDays,
-                },
-                {
-                  label: "Avg intake",
-                  value: dailyStats.days ? `${fmtInt(dailyStats.avgIn)}` : "—",
-                  icon: Utensils,
-                },
-                {
-                  label: "Avg burned",
-                  value: dailyStats.days
-                    ? `${fmtInt(dailyStats.avgBurn)}`
-                    : "—",
-                  icon: Flame,
-                },
-                {
-                  label: "Target hit rate",
-                  value: dailyStats.days ? `${dailyStats.hitRate}%` : "—",
-                  icon: Target,
-                },
-                {
-                  label: "Log streak",
-                  value: dailyStats.streak ? `${dailyStats.streak}d` : "0",
-                  icon: Flag,
-                },
+                { label: "Days logged", value: dailyStats.days, icon: CalendarDays },
+                { label: "Avg intake", value: dailyStats.days ? `${fmtInt(dailyStats.avgIn)}` : "—", icon: Utensils },
+                { label: "Avg burned", value: dailyStats.days ? `${fmtInt(dailyStats.avgBurn)}` : "—", icon: Flame },
+                { label: "Target hit rate", value: dailyStats.days ? `${dailyStats.hitRate}%` : "—", icon: Target },
+                { label: "Log streak", value: dailyStats.streak ? `${dailyStats.streak}d` : "0", icon: Flag },
               ].map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2.5"
-                >
+                <div key={s.label} className="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2.5">
                   <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-500 mb-1">
                     <s.icon size={12} className="text-brand-400" /> {s.label}
                   </div>
@@ -708,16 +814,15 @@ export default function GoalsPage() {
                     {s.value}
                     {(s.label === "Avg intake" || s.label === "Avg burned") &&
                       dailyStats.days > 0 && (
-                        <span className="text-xs text-slate-500 font-medium ml-1">
-                          kcal
-                        </span>
+                        <span className="text-xs text-slate-500 font-medium ml-1">kcal</span>
                       )}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-5 py-3">
+            {/* Range Selector */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex gap-1.5">
                 {([7, 14, 30, 0] as RangeKey[]).map((n) => (
                   <button
@@ -735,15 +840,15 @@ export default function GoalsPage() {
                 ))}
               </div>
               <p className="text-[11px] text-slate-500">
-                On target = intake within 10% of the goal that was active that
-                day.
+                On target = intake within 10% of the goal that was active that day.
               </p>
             </div>
 
+            {/* Daily Records Table */}
             {dailyRows.length === 0 ? (
               <EmptyState
                 title="No daily records yet"
-                hint="Log food, exercise, water, or steps on the Daily page. They’ll show up here against your calorie target."
+                hint="Log food, exercise, water, or steps using the quick log buttons above. They'll show up here against your calorie target."
                 action={
                   <Link
                     to="/daily"
@@ -758,9 +863,7 @@ export default function GoalsPage() {
                 <table className="w-full text-sm min-w-[720px]">
                   <thead>
                     <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
-                      <th className="px-4 md:px-5 py-2.5 font-semibold">
-                        Date
-                      </th>
+                      <th className="px-4 md:px-5 py-2.5 font-semibold">Date</th>
                       <th className="px-3 py-2.5 font-semibold">Intake</th>
                       <th className="px-3 py-2.5 font-semibold">Burned</th>
                       <th className="px-3 py-2.5 font-semibold">Net</th>
@@ -782,44 +885,29 @@ export default function GoalsPage() {
                         >
                           <td className="px-4 md:px-5 py-3 whitespace-nowrap">
                             <div className="text-white font-semibold">
-                              {formatDay(row.date, {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              })}
+                              {formatDay(row.date, { weekday: "short", month: "short", day: "numeric" })}
                             </div>
                             <div className="text-[11px] text-slate-500 capitalize">
-                              {isToday ? "Today · " : ""}
-                              {row.goalType}
+                              {isToday ? "Today · " : ""}{row.goalType}
                             </div>
                           </td>
                           <td className="px-3 py-3 text-brand-300 font-semibold">
                             {fmtInt(row.consumed)}
-                            <span className="text-slate-600 font-normal text-xs ml-0.5">
-                              kcal
-                            </span>
+                            <span className="text-slate-600 font-normal text-xs ml-0.5">kcal</span>
                           </td>
                           <td className="px-3 py-3 text-orange-300 font-semibold">
                             {fmtInt(row.burned)}
-                            <span className="text-slate-600 font-normal text-xs ml-0.5">
-                              kcal
-                            </span>
+                            <span className="text-slate-600 font-normal text-xs ml-0.5">kcal</span>
                           </td>
-                          <td className="px-3 py-3 text-white font-semibold">
-                            {fmtInt(row.net)}
-                          </td>
+                          <td className="px-3 py-3 text-white font-semibold">{fmtInt(row.net)}</td>
                           <td className="px-3 py-3">
                             {row.target ? (
                               <div>
-                                <div className="text-slate-200">
-                                  {fmtInt(row.consumed)} / {fmtInt(row.target)}
-                                </div>
+                                <div className="text-slate-200">{fmtInt(row.consumed)} / {fmtInt(row.target)}</div>
                                 <div className="h-1.5 w-24 rounded-full bg-slate-800 mt-1 overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${row.consumed > row.target ? "bg-amber-400" : "bg-brand-500"}`}
-                                    style={{
-                                      width: `${Math.min(100, Math.round((row.consumed / row.target) * 100))}%`,
-                                    }}
+                                    style={{ width: `${Math.min(100, Math.round((row.consumed / row.target) * 100))}%` }}
                                   />
                                 </div>
                               </div>
@@ -828,28 +916,18 @@ export default function GoalsPage() {
                             )}
                           </td>
                           <td className="px-3 py-3 text-sky-300">
-                            <span className="inline-flex items-center gap-1">
-                              <Droplets size={12} />
-                              {fmtInt(row.water)} ml
-                            </span>
+                            <span className="inline-flex items-center gap-1"><Droplets size={12} /> {fmtInt(row.water)} ml</span>
                           </td>
                           <td className="px-3 py-3 text-violet-300">
-                            <span className="inline-flex items-center gap-1">
-                              <Footprints size={12} />
-                              {row.steps.toLocaleString()}
-                            </span>
+                            <span className="inline-flex items-center gap-1"><Footprints size={12} /> {row.steps.toLocaleString()}</span>
                           </td>
                           <td className="px-3 py-3">
-                            <span
-                              className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold border ${verdictClass[row.verdict.tone]}`}
-                            >
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold border ${verdictClass[row.verdict.tone]}`}>
                               {row.verdict.label}
                             </span>
                           </td>
                           <td className="px-3 py-3">
-                            <span className="inline-flex items-center gap-1 text-xs text-brand-400 font-semibold">
-                              <Eye size={14} /> View
-                            </span>
+                            <span className="inline-flex items-center gap-1 text-xs text-brand-400 font-semibold"><Eye size={14} /> View</span>
                           </td>
                         </tr>
                       );
@@ -857,55 +935,20 @@ export default function GoalsPage() {
                   </tbody>
                 </table>
                 {dailyRows.length > PAGE_SIZE && (
-                  <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-t border-slate-800">
+                  <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-t border-slate-800 mt-4">
                     <p className="text-xs text-slate-500">
-                      {(page - 1) * PAGE_SIZE + 1}–
-                      {Math.min(page * PAGE_SIZE, dailyRows.length)} of{" "}
-                      {dailyRows.length}
+                      {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, dailyRows.length)} of {dailyRows.length}
                     </p>
                     <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800"
-                        aria-label="Previous page"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
+                      <button type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800" aria-label="Previous page"><ChevronLeft size={16} /></button>
                       {pageCount <= 8 ? (
-                        Array.from({ length: pageCount }, (_, i) => i + 1).map(
-                          (n) => (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => setPage(n)}
-                              className={`min-w-8 h-8 rounded-lg text-xs font-bold ${
-                                n === page
-                                  ? "bg-brand-400 text-slate-950"
-                                  : "text-slate-400 hover:bg-slate-800"
-                              }`}
-                            >
-                              {n}
-                            </button>
-                          ),
-                        )
+                        Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
+                          <button key={n} type="button" onClick={() => setPage(n)} className={`min-w-8 h-8 rounded-lg text-xs font-bold ${n === page ? "bg-brand-400 text-slate-950" : "text-slate-400 hover:bg-slate-800"}`}>{n}</button>
+                        ))
                       ) : (
-                        <span className="px-2 text-xs font-bold text-slate-300">
-                          {page} / {pageCount}
-                        </span>
+                        <span className="px-2 text-xs font-bold text-slate-300">{page} / {pageCount}</span>
                       )}
-                      <button
-                        type="button"
-                        disabled={page >= pageCount}
-                        onClick={() =>
-                          setPage((p) => Math.min(pageCount, p + 1))
-                        }
-                        className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800"
-                        aria-label="Next page"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
+                      <button type="button" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))} className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800" aria-label="Next page"><ChevronRight size={16} /></button>
                     </div>
                   </div>
                 )}
@@ -913,12 +956,9 @@ export default function GoalsPage() {
             )}
           </div>
         ) : goals.length === 0 ? (
-          <EmptyState
-            title="No goals yet"
-            hint="Create your first goal to get calorie and macro targets."
-          />
+          <EmptyState title="No goals yet" hint="Create your first goal to get calorie and macro targets." />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto p-4 md:p-5">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-800">
@@ -934,60 +974,18 @@ export default function GoalsPage() {
                   const isActive = g.status === "active";
                   const isCompleted = g.status === "completed";
                   return (
-                    <tr
-                      key={g.id}
-                      className={`border-b border-slate-800/70 ${isActive ? "bg-brand-900/10" : ""}`}
-                    >
+                    <tr key={g.id} className={`border-b border-slate-800/70 ${isActive ? "bg-brand-900/10" : ""}`}>
                       <td className="px-4 md:px-5 py-3">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`font-bold ${isActive ? "text-brand-400" : "text-white"}`}
-                          >
-                            {GOAL_LABELS[g.goal_type as GoalType] || String(g.goal_type).replace(/_/g, " ")}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              isActive
-                                ? "bg-brand-600/30 text-brand-300"
-                                : isCompleted
-                                  ? "bg-green-600/30 text-green-300"
-                                  : "bg-slate-700 text-slate-400"
-                            }`}
-                          >
-                            {g.status}
-                          </span>
+                          <span className={`font-bold capitalize ${isActive ? "text-brand-400" : "text-white"}`}>{String(g.goal_type).replace(/_/g, " ")}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isActive ? "bg-brand-600/30 text-brand-300" : isCompleted ? "bg-green-600/30 text-green-300" : "bg-slate-700 text-slate-400"}`}>{g.status}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-white font-semibold">
-                        {g.target_calories ?? g.target_value ?? "—"}{" "}
-                        <span className="text-slate-500 font-normal">kcal</span>
-                      </td>
-                      <td className="px-3 py-3 text-slate-400">
-                        <span className="text-red-400">
-                          P {g.protein_target ?? 0}g
-                        </span>
-                        {" · "}
-                        <span className="text-blue-400">
-                          F {g.fat_target ?? 0}g
-                        </span>
-                        {" · "}
-                        <span className="text-yellow-400">
-                          C {g.carb_target ?? 0}g
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-slate-400 whitespace-nowrap">
-                        {new Date(g.created_at).toLocaleDateString()}
-                      </td>
+                      <td className="px-3 py-3 text-white font-semibold">{g.target_calories ?? g.target_value ?? "—"} <span className="text-slate-500 font-normal">kcal</span></td>
+                      <td className="px-3 py-3 text-slate-400"><span className="text-red-400">P {g.protein_target ?? 0}g</span> · <span className="text-blue-400">F {g.fat_target ?? 0}g</span> · <span className="text-yellow-400">C {g.carb_target ?? 0}g</span></td>
+                      <td className="px-3 py-3 text-slate-400 whitespace-nowrap">{new Date(g.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
-                        {!isActive && (
-                          <button
-                            onClick={() => handleDeleteGoal(g.id)}
-                            className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
+                        {!isActive && <button onClick={() => handleDeleteGoal(g.id)} className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition" title="Delete"><Trash2 size={16} /></button>}
                       </td>
                     </tr>
                   );
@@ -1000,309 +998,76 @@ export default function GoalsPage() {
 
       {/* Theory Info Card */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
-        <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <Calculator size={20} className="text-brand-400" /> How It Works
-        </h4>
+        <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Calculator size={20} className="text-brand-400" /> How It Works</h4>
         <div className="grid md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">
-              1. BMR
-            </div>
-            <div className="text-white font-medium">Basal Metabolic Rate</div>
-            <p className="text-slate-500 text-[11px] mt-1">
-              Mifflin-St Jeor equation (weight, height, age, gender)
-            </p>
-          </div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">
-              2. TDEE
-            </div>
-            <div className="text-white font-medium">
-              Total Daily Energy Expenditure
-            </div>
-            <p className="text-slate-500 text-[11px] mt-1">
-              BMR × Activity Multiplier (1.2–1.9)
-            </p>
-          </div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">
-              3. Goal
-            </div>
-            <div className="text-white font-medium">Calorie Target</div>
-            <p className="text-slate-500 text-[11px] mt-1">
-              TDEE ± deficit/surplus based on goal type
-            </p>
-          </div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">
-              4. Macros
-            </div>
-            <div className="text-white font-medium">Protein / Fat / Carbs</div>
-            <p className="text-slate-500 text-[11px] mt-1">
-              Protein 1.6–2.2g/kg, Fat 25–30%, rest Carbs
-            </p>
-          </div>
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">1. BMR</div><div className="text-white font-medium">Basal Metabolic Rate</div><p className="text-slate-500 text-[11px] mt-1">Mifflin-St Jeor equation (weight, height, age, gender)</p></div>
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">2. TDEE</div><div className="text-white font-medium">Total Daily Energy Expenditure</div><p className="text-slate-500 text-[11px] mt-1">BMR × Activity Multiplier (1.2–1.9)</p></div>
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">3. Goal</div><div className="text-white font-medium">Calorie Target</div><p className="text-slate-500 text-[11px] mt-1">TDEE ± deficit/surplus based on goal type</p></div>
+          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">4. Macros</div><div className="text-white font-medium">Protein / Fat / Carbs</div><p className="text-slate-500 text-[11px] mt-1">Protein 1.6–2.2g/kg, Fat 25–30%, rest Carbs</p></div>
         </div>
       </div>
 
-      {/* Popup Modal */}
+      {/* Popup Modal for Goal Creation/Editing */}
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-slate-900 border border-brand-600/30 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-slate-900 border border-brand-600/30 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-slate-800 sticky top-0 bg-slate-900 rounded-t-3xl z-10">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Calculator size={20} className="text-brand-400" />{" "}
-                {activeGoal ? "Change Goal" : "Create Your Goal"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white p-1"
-                aria-label="Close"
-              >
-                <X size={22} />
-              </button>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2"><Calculator size={20} className="text-brand-400" /> {activeGoal ? "Change Goal" : "Create Your Goal"}</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white p-1" aria-label="Close"><X size={22} /></button>
             </div>
-
             <div className="p-6 space-y-6">
               {/* Goal Type Selector */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
-                  What's your goal?
-                </label>
+                <label className="block text-sm font-medium text-slate-300 mb-3">What's your goal?</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {(Object.keys(GOAL_LABELS) as GoalType[]).map((gt) => (
-                    <button
-                      key={gt}
-                      type="button"
-                      onClick={() => setForm({ ...form, goal_type: gt })}
-                      className={`px-3 py-3 rounded-xl text-sm font-bold border transition relative overflow-hidden ${
-                        form.goal_type === gt
-                          ? "bg-brand-400 border-brand-300 text-slate-950 shadow-lg shadow-brand-400/20"
-                          : "bg-slate-950 border-slate-800 text-slate-300 hover:border-brand-500/50 hover:bg-slate-900"
-                      }`}
-                    >
-                      {GOAL_LABELS[gt]}
-                      {form.goal_type === gt && (
-                        <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </span>
-                      )}
-                    </button>
+                    <button key={gt} type="button" onClick={() => setForm({ ...form, goal_type: gt })} className={`px-3 py-3 rounded-xl text-sm font-bold border transition relative overflow-hidden ${form.goal_type === gt ? "bg-brand-400 border-brand-300 text-slate-950 shadow-lg shadow-brand-400/20" : "bg-slate-950 border-slate-800 text-slate-300 hover:border-brand-500/50 hover:bg-slate-900"}`}>{GOAL_LABELS[gt]}{form.goal_type === gt && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg></span>}</button>
                   ))}
                 </div>
               </div>
 
               {/* Calculator Fields */}
               <div className="border-t border-slate-800 pt-4">
-                <label className="block text-sm font-medium text-slate-300 mb-3">
-                  Your Stats
-                </label>
+                <label className="block text-sm font-medium text-slate-300 mb-3">Your Stats</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-xs text-slate-500 block mb-1">
-                      Weight (kg)
-                    </span>
-                    <input
-                      type="number"
-                      min="30"
-                      max="300"
-                      step="0.1"
-                      value={form.weight_kg}
-                      onChange={(e) =>
-                        setForm({ ...form, weight_kg: Number(e.target.value) })
-                      }
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block mb-1">
-                      Height (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min="100"
-                      max="250"
-                      value={form.height_cm}
-                      onChange={(e) =>
-                        setForm({ ...form, height_cm: Number(e.target.value) })
-                      }
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block mb-1">
-                      Date of birth{" "}
-                      {form.dob && ageFromDob(form.dob) !== null && (
-                        <span className="text-brand-400 font-semibold">
-                          · Age {ageFromDob(form.dob)}
-                        </span>
-                      )}
-                    </span>
-                    <input
-                      type="date"
-                      value={form.dob}
-                      onChange={(e) => {
-                        const dob = e.target.value;
-                        const derived = ageFromDob(dob);
-                        setForm({ ...form, dob, age: derived ?? form.age });
-                      }}
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block mb-1">
-                      Gender
-                    </span>
-                    <select
-                      value={form.gender}
-                      onChange={(e) =>
-                        setForm({ ...form, gender: e.target.value })
-                      }
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"
-                    >
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-xs text-slate-500 block mb-1">
-                      Activity Level
-                    </span>
-                    <select
-                      value={form.activity_level}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          activity_level: e.target.value as CalcInputs["activity_level"],
-                        })
-                      }
-                      className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"
-                    >
-                      <option value="sedentary">
-                        Sedentary — Little/no exercise (1.20x)
-                      </option>
-                      <option value="lightly_active">
-                        Lightly Active — Light exercise 1–3 days/week (1.375x)
-                      </option>
-                      <option value="moderately_active">
-                        Moderately Active — Moderate exercise 3–5 days/week
-                        (1.55x)
-                      </option>
-                      <option value="very_active">
-                        Very Active — Hard exercise 6–7 days/week (1.725x)
-                      </option>
-                      <option value="extremely_active">
-                        Extremely Active — Very hard exercise, physical job
-                        (1.90x)
-                      </option>
-                    </select>
-                  </div>
+                  <div><span className="text-xs text-slate-500 block mb-1">Weight (kg)</span><input type="number" min="30" max="300" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
+                  <div><span className="text-xs text-slate-500 block mb-1">Height (cm)</span><input type="number" min="100" max="250" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
+                  <div><span className="text-xs text-slate-500 block mb-1">Date of birth {form.dob && ageFromDob(form.dob) !== null && <span className="text-brand-400 font-semibold">· Age {ageFromDob(form.dob)}</span>}</span><input type="date" value={form.dob} onChange={(e) => { const dob = e.target.value; const derived = ageFromDob(dob); setForm({ ...form, dob, age: derived ?? form.age }); }} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
+                  <div><span className="text-xs text-slate-500 block mb-1">Gender</span><select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"><option value="male">Male</option><option value="female">Female</option></select></div>
+                  <div className="col-span-2"><span className="text-xs text-slate-500 block mb-1">Activity Level</span><select value={form.activity_level} onChange={(e) => setForm({ ...form, activity_level: e.target.value as CalcInputs["activity_level"] })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"><option value="sedentary">Sedentary — Little/no exercise (1.20x)</option><option value="lightly_active">Lightly Active — Light exercise 1–3 days/week (1.375x)</option><option value="moderately_active">Moderately Active — Moderate exercise 3–5 days/week (1.55x)</option><option value="very_active">Very Active — Hard exercise 6–7 days/week (1.725x)</option><option value="extremely_active">Extremely Active — Very hard exercise, physical job (1.90x)</option></select></div>
                 </div>
               </div>
 
               {/* Live Result Preview */}
               <div className="bg-brand-900/20 border border-brand-600/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-brand-400 mb-3">
-                  <Calculator size={14} /> Live Preview
-                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-brand-400 mb-3"><Calculator size={14} /> Live Preview</div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-slate-950/50 rounded-xl p-3">
-                    <div className="text-slate-500 text-xs">BMR</div>
-                    <div className="text-white font-bold text-lg">
-                      {fmtInt(bmr)} kcal
-                    </div>
-                  </div>
-                  <div className="bg-slate-950/50 rounded-xl p-3">
-                    <div className="text-slate-500 text-xs">TDEE</div>
-                    <div className="text-white font-bold text-lg">
-                      {fmtInt(tdee)} kcal
-                    </div>
-                  </div>
-                  <div className="bg-slate-950/50 rounded-xl p-3">
-                    <div className="text-slate-500 text-xs">Target</div>
-                    <div className="text-brand-400 font-bold text-lg">
-                      {fmtInt(target)} kcal
-                    </div>
-                  </div>
-                  <div className="bg-slate-950/50 rounded-xl p-3">
-                    <div className="text-slate-500 text-xs">Macros</div>
-                    <div className="text-white font-medium">
-                      P: {fmtInt(macros.protein)}g · F: {fmtInt(macros.fat)}g ·
-                      C: {fmtInt(macros.carbs)}g
-                    </div>
-                  </div>
+                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">BMR</div><div className="text-white font-bold text-lg">{fmtInt(bmr)} kcal</div></div>
+                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">TDEE</div><div className="text-white font-bold text-lg">{fmtInt(tdee)} kcal</div></div>
+                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">Target</div><div className="text-brand-400 font-bold text-lg">{fmtInt(target)} kcal</div></div>
+                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">Macros</div><div className="text-white font-medium">P: {fmtInt(macros.protein)}g · F: {fmtInt(macros.fat)}g · C: {fmtInt(macros.carbs)}g</div></div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-3 text-center">
-                  Based on Mifflin-St Jeor equation •{" "}
-                  {GOAL_LABELS[form.goal_type]} multiplier
-                </p>
+                <p className="text-[11px] text-slate-500 mt-3 text-center">Based on Mifflin-St Jeor equation • {GOAL_LABELS[form.goal_type]} multiplier</p>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Flag size={16} />{" "}
-                      {activeGoal ? "Update Goal" : "Save Goal"}
-                    </>
-                  )}
-                </button>
+                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 shadow-lg shadow-brand-400/20">{saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><CheckCircle2 size={16} /> {activeGoal ? "Update Goal" : "Create Goal"}</>}</button>
               </div>
             </div>
           </div>
         </div>
       )}
-      <DailyRecordModal
-        row={selectedRow}
-        userId={user?.id}
-        onClose={() => setSelectedRow(null)}
-      />
+
+      {/* View Daily Record Modal */}
+      {selectedRow && (
+        <DailyRecordModal
+          row={selectedRow}
+          userId={user?.id}
+          onClose={() => setSelectedRow(null)}
+        />
+      )}
     </div>
   );
 }
