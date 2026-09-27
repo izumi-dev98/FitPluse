@@ -275,9 +275,13 @@ export function calculateBadgeProgress(
       break;
   }
 
-  // For hybrid badges (goal_progress OR streak), check both
+  // For hybrid badges (goal_progress OR streak), check both.
+  // When the requirement already carries a live DB streak threshold, honor
+  // it instead of the hardcoded fallback.
   if (badge.level === 2 || badge.level === 3) {
-    const streakTarget = badge.level === 2 ? 14 : 30;
+    const streakTarget = badge.requirement.type === 'streak'
+      ? badge.requirement.target
+      : badge.level === 2 ? 14 : 30;
     const streakProgress = Math.min((currentStreak / streakTarget) * 100, 100);
     const streakEarned = currentStreak >= streakTarget;
     
@@ -290,16 +294,17 @@ export function calculateBadgeProgress(
     }
   }
 
-  // Level 4 hybrid: goal progress OR adherence
+  // Level 4 hybrid: goal progress OR adherence (live DB threshold when present).
   if (badge.level === 4) {
+    const adhTarget = badge.requirement.type === 'adherence' ? badge.requirement.target : 90;
     const goalProgressValue = Math.min(goalProgress, 100);
-    const adherenceProgress = Math.min((adherenceRate / 90) * 100, 100);
-    
+    const adherenceProgress = Math.min((adherenceRate / adhTarget) * 100, 100);
+
     if (adherenceProgress > goalProgressValue) {
       progress = adherenceProgress;
       currentValue = Math.round(adherenceRate);
-      targetValue = 90;
-      earned = adherenceDays >= 30 && adherenceRate >= 90;
+      targetValue = adhTarget;
+      earned = adherenceDays >= 30 && adherenceRate >= adhTarget;
     } else {
       progress = goalProgressValue;
       currentValue = Math.round(goalProgress);
