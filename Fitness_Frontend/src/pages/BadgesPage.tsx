@@ -117,6 +117,18 @@ export default function BadgesPage() {
         // Check if user has earned this badge from backend data
         const normalizeBadgeName = (value: string) => value.replace('→', '->');
         const backendBadge = badges.find((b) => b.id === def.id || normalizeBadgeName(String(b.name)) === normalizeBadgeName(def.name));
+        // Live threshold: DB requirement wins (real data); 'special' means
+        // goal completion, which the calculator expresses as goal_progress.
+        const liveRequirement: BadgeDefinition['requirement'] = (() => {
+          const t = backendBadge?.requirement_type;
+          const v = backendBadge?.requirement_value;
+          if (t === 'special') return { ...def.requirement, type: 'goal_progress' as const, target: 100 };
+          if ((t === 'milestone' || t === 'streak' || t === 'adherence') && typeof v === 'number') {
+            return { ...def.requirement, type: t, target: v };
+          }
+          return def.requirement;
+        })();
+        const liveDef = { ...def, requirement: liveRequirement };
         const userBadge = userBadges.find(ub => ub.badgeId === def.id);
         const isEarnedFromBackend = backendBadge?.earned === true;
         const earnedAt = backendBadge?.earned_at || userBadge?.earnedAt;
@@ -134,11 +146,12 @@ export default function BadgesPage() {
           inputs.isActiveGoal = isActiveGoal;
         }
         
-        const calculated = isEligibleGoal ? calculateBadgeProgress(def, inputs) : { progress: 0, currentValue: 0, targetValue: def.requirement.target, earned: false };
-        
+        const calculated = isEligibleGoal ? calculateBadgeProgress(liveDef, inputs) : { progress: 0, currentValue: 0, targetValue: liveDef.requirement.target, earned: false };
+
         return {
           ...def,
           ...calculated,
+          requirement: liveDef.requirement,
           earned: isEarnedFromBackend || userBadge?.earned || calculated.earned,
           earnedAt: earnedAt,
           progress: isEarnedFromBackend ? 100 : calculated.progress,
