@@ -1,36 +1,63 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode, useEffect } from 'react';
 import {
-  Activity, Target, Utensils, Dumbbell, BarChart3, Trophy, User, LogOut, Apple, CalendarDays,
+  LayoutDashboard,
+  Flame,
+  Apple,
+  Dumbbell,
+  BarChart3,
+  Target,
+  CalendarDays,
+  Trophy,
+  User,
+  LogOut,
+  Bell,
+  Sparkles,
+  Plus,
+  History,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { LanguageProvider, useLanguage, type Language } from '../lib/i18n';
+import QuickLogModal from './QuickLogModal';
+import CoachingModal from './CoachingModal';
 
-const NAV = [
-  { to: '/', label: 'Today', icon: Activity, end: true },
-  { to: '/daily', label: 'Log', icon: Utensils },
+const MAIN_NAV = [
+  { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/daily', label: 'Activity', icon: Flame },
+  { to: '/foods', label: 'Nutrition', icon: Apple },
+  { to: '/exercises', label: 'Workouts', icon: Dumbbell },
   { to: '/progress', label: 'Progress', icon: BarChart3 },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/foods', label: 'Foods', icon: Apple },
-  { to: '/exercises', label: 'Workout', icon: Dumbbell },
-  { to: '/badges', label: 'Badges', icon: Trophy },
-  { to: '/profile', label: 'Profile', icon: User },
 ];
 
-const MOBILE = [
-  { to: '/', label: 'Today', icon: Activity, end: true },
-  { to: '/daily', label: 'Log', icon: Utensils },
-  { to: '/calendar', label: 'Cal', icon: CalendarDays },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/profile', label: 'You', icon: User },
+const EXTRA_NAV = [
+  { to: '/history', label: 'History', icon: History },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/badges', label: 'Badges', icon: Trophy },
+  { to: '/profile', label: 'Profile', icon: User },
 ];
 
 function ShellContent({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { language, setLanguage, t: label } = useLanguage();
   const user = useAuthStore((s) => s.user);
-  const name = user?.name || user?.email?.split('@')[0] || 'Athlete';
+  const name = user?.name || user?.email?.split('@')[0] || 'Alex Morgan';
+  const initials = name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'AM';
+
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [coachingOpen, setCoachingOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Close "More" dropdown when route changes
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
 
   function handleLogout() {
     useAuthStore.getState().logout();
@@ -38,95 +65,393 @@ function ShellContent({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-ink text-slate-100 font-sans selection:bg-brand-500/30">
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-slate-800/80 bg-[#0a1017]">
-        <Link to="/" className="px-5 h-16 flex items-center gap-2.5 border-b border-slate-800/80">
-          <span className="h-8 w-8 rounded-lg bg-brand-400 grid place-items-center text-slate-950 font-black text-sm">FP</span>
-          <span className="text-lg font-extrabold tracking-tight text-white">FitPulse</span>
+    <div className="min-h-screen bg-[#080b11] text-slate-100 font-sans selection:bg-[#ccff00]/30">
+      {/* ========================================================= */}
+      {/* 1. DESKTOP SIDEBAR (>= 1024px)                            */}
+      {/* ========================================================= */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-[#151d2d] bg-[#090d16] z-30">
+        {/* Brand Logo */}
+        <Link to="/" className="px-6 h-20 flex items-center gap-3 border-b border-[#151d2d]">
+          <div className="w-9 h-9 rounded-xl bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.35)] shrink-0">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-black stroke-[3]">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-xl font-black tracking-tight text-white block leading-none">FITPULSE</span>
+            <span className="text-[10px] font-bold text-[#ccff00] tracking-widest uppercase">Performance OS</span>
+          </div>
         </Link>
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV.map((item) => {
-            const active = item.end ? location.pathname === '/' : location.pathname.startsWith(item.to);
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                  active
-                    ? 'bg-brand-600/15 text-brand-400 border border-brand-600/20'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent'
-                }`}
-              >
-                <item.icon size={18} />
-                {label(item.label)}
-              </NavLink>
-            );
-          })}
-        </nav>
-        <div className="p-3 border-t border-slate-800/80">
-          <div className="flex items-center justify-between px-3 py-2 mb-2 rounded-xl bg-slate-900/70 border border-slate-800">
-            <span className="text-xs font-semibold text-slate-400">Language</span>
-            <div className="flex rounded-lg bg-slate-950 p-0.5" role="group" aria-label="Language">
+
+        {/* Navigation */}
+        <div className="flex-1 px-4 py-5 space-y-6 overflow-y-auto">
+          {/* Main Workspace section */}
+          <div>
+            <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Workspace
+            </div>
+            <nav className="space-y-1">
+              {MAIN_NAV.map((item) => {
+                const active = item.end ? location.pathname === '/' : location.pathname.startsWith(item.to);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition relative group ${
+                      active
+                        ? 'bg-[#152033] text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                    }`}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#ccff00] rounded-r-full shadow-[0_0_8px_#ccff00]" />
+                    )}
+                    <item.icon
+                      size={18}
+                      className={active ? 'text-[#ccff00]' : 'text-slate-400 group-hover:text-white transition'}
+                    />
+                    <span>{label(item.label)}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Secondary section */}
+          <div>
+            <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Tools & Stats
+            </div>
+            <nav className="space-y-1">
+              {EXTRA_NAV.map((item) => {
+                const active = location.pathname.startsWith(item.to);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition group ${
+                      active
+                        ? 'bg-[#152033] text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                    }`}
+                  >
+                    <item.icon
+                      size={18}
+                      className={active ? 'text-[#ccff00]' : 'text-slate-400 group-hover:text-white transition'}
+                    />
+                    <span>{label(item.label)}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Unlock Coaching Card Widget */}
+          <div className="p-4 rounded-2xl bg-gradient-to-b from-[#121c2e] to-[#0c1322] border border-[#1d2b45] shadow-lg relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#ccff00]/10 rounded-full blur-2xl group-hover:bg-[#ccff00]/15 transition" />
+            <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#ccff00] mb-1">
+              <Sparkles size={13} />
+              <span>Unlock Coaching</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed mb-3">
+              Upgrade to access personalized AI coaching & smart meal plans.
+            </p>
+            <button
+              onClick={() => setCoachingOpen(true)}
+              className="w-full py-2 px-3 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-extrabold text-xs transition shadow-[0_0_12px_rgba(204,255,0,0.3)] flex items-center justify-center gap-1.5"
+            >
+              <span>Upgrade Now</span>
+            </button>
+          </div>
+        </div>
+
+        {/* User Profile Footer */}
+        <div className="p-4 border-t border-[#151d2d] bg-[#070a12] space-y-3">
+          {/* Language Switch */}
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#0e1625] border border-[#182338]">
+            <span className="text-[11px] font-semibold text-slate-400">Language</span>
+            <div className="flex rounded-lg bg-black/40 p-0.5" role="group">
               {(['en', 'my'] as Language[]).map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setLanguage(option)}
-                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${language === option ? 'bg-brand-400 text-slate-950' : 'text-slate-500 hover:text-white'}`}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                    language === option ? 'bg-[#ccff00] text-black' : 'text-slate-400 hover:text-white'
+                  }`}
                 >
                   {option === 'en' ? 'EN' : 'မြန်မာ'}
                 </button>
               ))}
             </div>
           </div>
-          <div className="px-3 py-2 mb-2">
-            <div className="text-sm font-semibold text-white truncate">{name}</div>
-            <div className="text-xs text-slate-500 truncate">{user?.email}</div>
+
+          {/* User Row */}
+          <div className="flex items-center justify-between">
+            <Link to="/profile" className="flex items-center gap-3 overflow-hidden group">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-blue-400/30 shrink-0">
+                {initials}
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-sm font-bold text-white truncate group-hover:text-[#ccff00] transition">
+                  {name}
+                </div>
+                <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                  <span>Pro Athlete</span>
+                </div>
+              </div>
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition shrink-0"
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-red-300 hover:bg-red-950/40 transition"
-          >
-            <LogOut size={16} /> {label('Sign out')}
-          </button>
         </div>
       </aside>
 
-      <header className="lg:hidden sticky top-0 z-40 h-14 bg-ink/90 backdrop-blur-md border-b border-slate-800/70 flex items-center justify-between px-4">
-        <Link to="/" className="font-extrabold text-brand-400 tracking-tight">FitPulse</Link>
-        <button onClick={handleLogout} className="text-slate-400 hover:text-red-300 p-2" aria-label={label('Sign out')}>
-          <LogOut size={18} />
-        </button>
-      </header>
+      {/* ========================================================= */}
+      {/* 2. TABLET TOP BAR (768px - 1023px, md: to lg:)            */}
+      {/* ========================================================= */}
+      <header className="hidden md:flex lg:hidden sticky top-0 z-40 h-16 bg-[#090d16]/95 backdrop-blur-md border-b border-[#151d2d] items-center justify-between px-6">
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_12px_rgba(204,255,0,0.3)]">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-black stroke-[3]">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <span className="text-lg font-black tracking-tight text-white">FITPULSE</span>
+        </Link>
 
-      <main className="lg:pl-60 pb-24 lg:pb-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">{children}</div>
-      </main>
-
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0a1017]/95 backdrop-blur-md border-t border-slate-800/80 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5">
-          {MOBILE.map((item) => {
+        {/* Quick Nav Links on Tablet */}
+        <nav className="flex items-center gap-1">
+          {MAIN_NAV.slice(0, 4).map((item) => {
             const active = item.end ? location.pathname === '/' : location.pathname.startsWith(item.to);
             return (
-              <Link
+              <NavLink
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${
-                  active ? 'text-brand-400' : 'text-slate-500'
+                end={item.end}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <item.icon size={20} />
-                {label(item.label)}
-              </Link>
+                <item.icon size={15} />
+                <span>{label(item.label)}</span>
+              </NavLink>
             );
           })}
+        </nav>
+
+        {/* Actions & Avatar */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setQuickLogOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-extrabold text-xs transition shadow-[0_0_10px_rgba(204,255,0,0.25)] flex items-center gap-1"
+          >
+            <Plus size={14} className="stroke-[3]" />
+            <span>Quick Log</span>
+          </button>
+
+          <button
+            onClick={() => alert('No new notifications')}
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-[#0e1625] border border-[#182338]"
+          >
+            <Bell size={16} />
+          </button>
+
+          <Link to="/profile" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-400/30">
+              {initials}
+            </div>
+          </Link>
+        </div>
+      </header>
+
+      {/* ========================================================= */}
+      {/* 3. MOBILE TOP BAR (< 768px)                               */}
+      {/* ========================================================= */}
+      <header className="md:hidden sticky top-0 z-40 h-14 bg-[#090d16]/95 backdrop-blur-md border-b border-[#151d2d] flex items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-black stroke-[3]">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <span className="font-black text-white text-base tracking-tight">FITPULSE</span>
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setQuickLogOpen(true)}
+            className="p-2 rounded-xl bg-[#ccff00] text-black font-bold flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]"
+            title="Quick Log"
+          >
+            <Plus size={16} className="stroke-[3]" />
+          </button>
+          <button
+            onClick={() => alert('No new notifications')}
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-[#0e1625] border border-[#182338]"
+          >
+            <Bell size={16} />
+          </button>
+          <Link to="/profile">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center ring-1 ring-blue-400/30">
+              {initials}
+            </div>
+          </Link>
+        </div>
+      </header>
+
+      {/* ========================================================= */}
+      {/* 4. MAIN CONTENT AREA (Responsive Margins & Padding)        */}
+      {/* ========================================================= */}
+      <main className="lg:pl-64 pb-36 lg:pb-12 min-h-screen">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7 pb-4 lg:pb-0">
+          {children}
+        </div>
+      </main>
+
+      {/* ========================================================= */}
+      {/* 5. MOBILE BOTTOM NAVIGATION (< 1024px)                     */}
+      {/* Includes all nav items with "More" dropdown               */}
+      {/* ========================================================= */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-[#151d2d] pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+        <div className="grid grid-cols-7 items-center max-w-md mx-auto relative px-1 py-1">
+          {/* Tab 1: Overview */}
+          <Link
+            to="/"
+            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+              location.pathname === '/' ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <LayoutDashboard size={19} />
+            <span>Overview</span>
+          </Link>
+
+          {/* Tab 2: Activity */}
+          <Link
+            to="/daily"
+            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+              location.pathname.startsWith('/daily') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Flame size={19} />
+            <span>Activity</span>
+          </Link>
+
+          {/* Tab 3: Nutrition */}
+          <Link
+            to="/foods"
+            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+              location.pathname.startsWith('/foods') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Apple size={19} />
+            <span>Nutrition</span>
+          </Link>
+
+          {/* Tab 4: (+) Quick Log (center elevated) */}
+          <div className="flex flex-col items-center justify-center -mt-6">
+            <button
+              onClick={() => setQuickLogOpen(true)}
+              className="w-13 h-13 rounded-full bg-[#ccff00] hover:bg-[#bbf000] text-black font-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.5)] border-4 border-[#090d16] active:scale-95 transition"
+              aria-label="Quick Log"
+            >
+              <Plus size={24} className="stroke-[3]" />
+            </button>
+            <span className="text-[9px] font-bold text-slate-400 mt-0.5">Log</span>
+          </div>
+
+          {/* Tab 5: Workouts */}
+          <Link
+            to="/exercises"
+            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+              location.pathname.startsWith('/exercises') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Dumbbell size={19} />
+            <span>Workouts</span>
+          </Link>
+
+          {/* Tab 6: Profile */}
+          <Link
+            to="/profile"
+            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+              location.pathname.startsWith('/profile') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <User size={19} />
+            <span>Profile</span>
+          </Link>
+
+          {/* Tab 7: More */}
+          <div className="relative">
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
+                moreOpen ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <ChevronDown size={19} />
+              <span>More</span>
+            </button>
+            {moreOpen && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#0f1626] border border-[#151d2d] rounded-2xl shadow-xl overflow-hidden z-50">
+                {MAIN_NAV.slice(2).map((item) => {
+                  const active = location.pathname.startsWith(item.to);
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition ${
+                        active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                      }`}
+                    >
+                      <item.icon size={16} />
+                      <span>{label(item.label)}</span>
+                    </NavLink>
+                  );
+                })}
+                {EXTRA_NAV.map((item) => {
+                  const active = location.pathname.startsWith(item.to);
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition border-t border-[#151d2d] ${
+                        active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                      }`}
+                    >
+                      <item.icon size={16} />
+                      <span>{label(item.label)}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
+
+      {/* Global Modals accessible anywhere */}
+      <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
+      <CoachingModal open={coachingOpen} onClose={() => setCoachingOpen(false)} />
     </div>
   );
 }
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  return <LanguageProvider><ShellContent>{children}</ShellContent></LanguageProvider>;
+  return (
+    <LanguageProvider>
+      <ShellContent>{children}</ShellContent>
+    </LanguageProvider>
+  );
 }

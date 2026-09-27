@@ -216,7 +216,7 @@ export default function FoodsPage() {
               hint="Use My Food to add your first item."
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-8 lg:pb-0">
               <table className="w-full text-sm min-w-[520px]">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
@@ -295,7 +295,7 @@ export default function FoodsPage() {
             hint="Log meals from the Daily page."
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-8 lg:pb-0">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">

@@ -34,9 +34,9 @@ export function PageHeader({
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  const padded = className.includes('p-0') ? '' : 'p-5';
+  const padded = className.includes('p-0') ? '' : 'p-5 sm:p-6';
   return (
-    <div className={`bg-panel/80 border border-slate-800/80 rounded-2xl ${padded} ${className}`}>
+    <div className={`bg-[#0f1626] border border-[#1a263d] rounded-3xl shadow-lg ${padded} ${className}`}>
       {children}
     </div>
   );
@@ -45,7 +45,7 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 export function ProgressBar({
   value,
   max,
-  color = 'bg-brand-500',
+  color = 'bg-[#ccff00]',
 }: {
   value: number;
   max: number;
@@ -54,7 +54,7 @@ export function ProgressBar({
   const pct = max > 0 ? Math.min(140, Math.round((value / max) * 100)) : 0;
   const over = max > 0 && value > max;
   return (
-    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+    <div className="w-full h-2 rounded-full bg-[#162238] overflow-hidden">
       <div
         className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-amber-400' : color}`}
         style={{ width: `${Math.min(100, pct)}%` }}
@@ -79,10 +79,10 @@ export function MacroRow({
   const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1.5">
-        <span className={`font-semibold ${color}`}>{label}</span>
-        <span className="text-slate-400">
-          <b className="text-white">{Math.round(current)}g</b>
+      <div className="flex justify-between text-xs mb-1.5 font-bold">
+        <span className={color}>{label}</span>
+        <span className="text-slate-300">
+          <b className="text-white font-extrabold">{Math.round(current)}g</b>
           {target > 0 && <> / {Math.round(target)}g</>}
           {target > 0 && <span className="ml-1 text-slate-500">{pct}%</span>}
         </span>
@@ -101,7 +101,7 @@ export function Ring({
   size?: number;
   children?: ReactNode;
 }) {
-  const stroke = 10;
+  const stroke = 11;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, percent));
@@ -109,13 +109,13 @@ export function Ring({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1e293b" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#162238" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={p > 100 ? '#fbbf24' : '#a3e635'}
+          stroke={p > 100 ? '#fbbf24' : '#ccff00'}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c}`}

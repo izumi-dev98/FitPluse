@@ -1,29 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Barlow Condensed', 'Inter', system-ui, sans-serif;
-  /* 60/30/10 system — dark slate chrome, ONE volt-lime accent */
-  --color-brand-300: #bef264;
-  --color-brand-400: #a3e635;
-  --color-brand-500: #84cc16;
-  --color-brand-600: #65a30d;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  /* Figma FitPulse Electric Neon Lime & Dark Slate Palette */
+  --color-brand-300: #d9f99d;
+  --color-brand-400: #ccff00;
+  --color-brand-500: #a3e635;
+  --color-brand-600: #84cc16;
   --color-brand-900: #365314;
   --color-brand-950: #1a2e05;
-  --color-ink: #0b0f14;
-  --color-panel: #121a24;
-  /* Muted data-viz tints (small surface only — labels always accompany color) */
-  --color-protein: #dd8a8a;
-  --color-carbs: #d9a94e;
-  --color-fat: #8aa8d6;
-  --color-water: #5fb8b5;
+  --color-neon-lime: #ccff00;
+  --color-ink: #080b11;
+  --color-panel: #0f1626;
+  --color-panel-card: #111a2e;
+  --color-panel-border: #1a263d;
+  /* Figma Data-Viz Tints */
+  --color-protein: #38bdf8;
+  --color-carbs: #fb923c;
+  --color-fat: #c084fc;
+  --color-water: #2dd4bf;
 }
 
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-sans);
-  background: #0b0f14;
+  background: #080b11;
   color: #f8fafc;
 }
 ::-webkit-scrollbar { width: 8px; height: 8px; }

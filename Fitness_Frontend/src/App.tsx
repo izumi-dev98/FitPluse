@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import BadgesPage from './pages/BadgesPage';
 import ProgressPage from './pages/ProgressPage';
 import CalendarPage from './pages/CalendarPage';
+import HistoryPage from './pages/HistoryPage';
 import { useAuthStore } from './store/auth';
 import { useProfile } from './lib/queries';
 
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/daily" element={<DailyPage />} />
           <Route path="/foods" element={<FoodsPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/calendar" element={<CalendarPage />} />

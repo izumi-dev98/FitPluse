@@ -859,7 +859,7 @@ export default function GoalsPage() {
                 }
               />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto pb-8 lg:pb-0">
                 <table className="w-full text-sm min-w-[720px]">
                   <thead>
                     <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
@@ -958,7 +958,7 @@ export default function GoalsPage() {
         ) : goals.length === 0 ? (
           <EmptyState title="No goals yet" hint="Create your first goal to get calorie and macro targets." />
         ) : (
-          <div className="overflow-x-auto p-4 md:p-5">
+          <div className="overflow-x-auto p-4 md:p-5 pb-8 lg:pb-0">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-800">

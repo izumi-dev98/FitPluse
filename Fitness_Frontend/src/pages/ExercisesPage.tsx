@@ -141,7 +141,7 @@ export default function ExercisesPage() {
           {filtered.length === 0 ? (
             <EmptyState title="No exercises yet" hint="Use My Exercise to add your first item." />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-8 lg:pb-0">
               <table className="w-full text-sm min-w-[480px]">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
@@ -179,7 +179,7 @@ export default function ExercisesPage() {
 
       <Card className="mt-6 overflow-hidden p-0">
         <div className="p-5 pb-3"><h2 className="text-lg font-bold text-white">Exercise log</h2><p className="text-slate-400 text-sm">Logged workouts, newest first.</p></div>
-        {sortedLogs.length === 0 ? <EmptyState title="No exercise logs yet" hint="Log workouts from the Daily page." /> : <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]"><thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800"><th className="px-4 py-2.5">Date</th><th className="px-3 py-2.5">Exercise</th><th className="px-3 py-2.5">Sets × reps</th><th className="px-3 py-2.5">Minutes</th><th className="px-3 py-2.5">kcal</th></tr></thead><tbody>{pagedLogs.map((log) => <tr key={log.id} className="border-b border-slate-800/70"><td className="px-4 py-3 text-slate-400">{formatDate(log.created_at)}</td><td className="px-3 py-3 text-white">{log.exercises?.name || log.exercise_name || items.find((item) => String(item.id) === String(log.exercise_id))?.name || '—'}</td><td className="px-3 py-3 text-slate-300">{log.sets}×{log.reps}</td><td className="px-3 py-3 text-slate-400">{log.duration_minutes}</td><td className="px-3 py-3 text-brand-400 font-semibold">{log.calories_burned}</td></tr>)}</tbody></table><PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} /></div>}
+        {sortedLogs.length === 0 ? <EmptyState title="No exercise logs yet" hint="Log workouts from the Daily page." /> : <div className="overflow-x-auto pb-8 lg:pb-0"><table className="w-full text-sm min-w-[640px]"><thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800"><th className="px-4 py-2.5">Date</th><th className="px-3 py-2.5">Exercise</th><th className="px-3 py-2.5">Sets × reps</th><th className="px-3 py-2.5">Minutes</th><th className="px-3 py-2.5">kcal</th></tr></thead><tbody>{pagedLogs.map((log) => <tr key={log.id} className="border-b border-slate-800/70"><td className="px-4 py-3 text-slate-400">{formatDate(log.created_at)}</td><td className="px-3 py-3 text-white">{log.exercises?.name || log.exercise_name || items.find((item) => String(item.id) === String(log.exercise_id))?.name || '—'}</td><td className="px-3 py-3 text-slate-300">{log.sets}×{log.reps}</td><td className="px-3 py-3 text-slate-400">{log.duration_minutes}</td><td className="px-3 py-3 text-brand-400 font-semibold">{log.calories_burned}</td></tr>)}</tbody></table><PaginationBar page={logPage} pageCount={logPageCount} total={sortedLogs.length} pageSize={PAGE_SIZE} onPage={setLogPage} /></div>}
       </Card>
 
       <CustomFieldsModal
