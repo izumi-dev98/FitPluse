@@ -25,16 +25,15 @@ export function calculateTDEE(bmr, activityLevel) {
 }
 
 export function calculateCalorieTarget({ tdee, goalType }) {
-  const strategies = {
-    skinny_to_fit: 1.20,
-    muscle_gain: 1.125,
-    weight_gain: 1.15,
-    maintain: 1.0,
-    fat_loss: 0.85,
-    weight_loss: 0.85,
+  const offsets = {
+    skinny_to_fit: 250,
+    weight_gain: 400,
+    maintain: 0,
+    fat_loss: -400,
+    weight_loss: -400,
   };
-  const mult = strategies[goalType] || 1.0;
-  return tdee * mult;
+  const offset = offsets[goalType] ?? 0;
+  return tdee + offset;
 }
 
 export function calculateProteinTarget(weight_kg, factor = 2.0) {

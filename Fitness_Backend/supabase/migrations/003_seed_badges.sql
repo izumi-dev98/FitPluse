@@ -2,7 +2,6 @@
 WITH goal_types(goal_type, label, color) AS (
   VALUES
     ('skinny_to_fit', 'Skinny -> Fit', 'emerald'),
-    ('muscle_gain', 'Muscle Gain', 'red'),
     ('weight_gain', 'Weight Gain', 'blue'),
     ('maintain', 'Fit / Maintain', 'violet'),
     ('fat_loss', 'Fat Loss', 'orange'),

@@ -21,7 +21,7 @@ export const bmrSchema = z.object({
 export const goalSchema = z.object({
   user_id: z.string(),
   goal_type: z.enum([
-    'skinny_to_fit', 'muscle_gain', 'weight_gain', 'maintain', 'fat_loss', 'weight_loss',
+    'skinny_to_fit', 'weight_gain', 'maintain', 'fat_loss', 'weight_loss',
   ]),
   target_value: z.number().positive().optional(),
   current_value: z.number().optional(),

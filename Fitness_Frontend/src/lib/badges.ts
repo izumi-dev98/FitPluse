@@ -1,5 +1,5 @@
 // Badge System Definitions
-// 6 Goal Types × 5 Badges Each = 30 Total Badges
+// 5 Goal Types × 5 Badges Each = 25 Total Badges
 
 import { GOAL_LABELS, type GoalType } from './theory';
 
@@ -45,17 +45,16 @@ const ICONS = {
 // Goal-type specific colors
 const GOAL_COLORS: Record<GoalType, { primary: string; secondary: string; glow: string }> = {
   skinny_to_fit: { primary: 'emerald', secondary: 'green', glow: 'shadow-emerald-500/30' },
-  muscle_gain: { primary: 'red', secondary: 'rose', glow: 'shadow-red-500/30' },
   weight_gain: { primary: 'blue', secondary: 'sky', glow: 'shadow-blue-500/30' },
   maintain: { primary: 'violet', secondary: 'purple', glow: 'shadow-violet-500/30' },
   fat_loss: { primary: 'orange', secondary: 'amber', glow: 'shadow-orange-500/30' },
   weight_loss: { primary: 'pink', secondary: 'rose', glow: 'shadow-pink-500/30' },
 };
 
-// Generate all 30 badges
+// Generate all 25 badges (5 goal types × 5 levels)
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [];
 
-const goalTypes: GoalType[] = ['skinny_to_fit', 'muscle_gain', 'weight_gain', 'maintain', 'fat_loss', 'weight_loss'];
+const goalTypes: GoalType[] = ['skinny_to_fit', 'weight_gain', 'maintain', 'fat_loss', 'weight_loss'];
 
 goalTypes.forEach(goalType => {
   const colors = GOAL_COLORS[goalType];

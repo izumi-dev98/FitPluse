@@ -62,7 +62,6 @@ export default function BadgesPage() {
   const loading = badgesQ.isLoading || userBadgesQ.isLoading || goalsQ.isLoading || recordsQ.isLoading;
   const [expandedGoals, setExpandedGoals] = useState<Record<GoalType, boolean>>({
     skinny_to_fit: true,
-    muscle_gain: false,
     weight_gain: false,
     maintain: false,
     fat_loss: false,
@@ -77,7 +76,7 @@ export default function BadgesPage() {
     const goals = goalsQ.data ?? [];
     const records = recordsQ.data ?? [];
     const activeGoal = goals.find((goal) => goal.status === 'active');
-    const activeGoalType = activeGoal?.goal_type as GoalType || user?.goal_type as GoalType || 'muscle_gain';
+    const activeGoalType = activeGoal?.goal_type as GoalType || user?.goal_type as GoalType || 'maintain';
     const loggedDates = new Set(records.filter((record) => Number(record.calories_consumed) > 0 || Number(record.calories_burned) > 0 || Number(record.water_ml) > 0 || Number(record.steps) > 0).map((record) => record.record_date));
     let currentStreak = 0;
     const cursor = new Date();
@@ -216,7 +215,7 @@ export default function BadgesPage() {
       <div>
         <PageHeader
           title="Badges & Achievements"
-          subtitle={`Collect badges across 6 goal types. ${totalEarned}/${totalBadges} earned • ${totalXP} XP • Rank: ${emoji} ${rank}`}
+          subtitle={`Collect badges across 5 goal types. ${totalEarned}/${totalBadges} earned • ${totalXP} XP • Rank: ${emoji} ${rank}`}
           icon={Trophy}
         />
 

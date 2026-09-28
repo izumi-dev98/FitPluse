@@ -14,14 +14,6 @@ interface ExerciseItem {
   done: boolean;
 }
 
-const DEFAULT_EXERCISES: ExerciseItem[] = [
-  { id: 1, name: 'Barbell Back Squat', sets: '4 sets', reps: '10 reps', notes: 'Warm up then 75% 1RM', done: false },
-  { id: 2, name: 'Romanian Deadlifts', sets: '3 sets', reps: '12 reps', notes: 'Focus on hamstring stretch', done: false },
-  { id: 3, name: 'Bulgarian Split Squats', sets: '3 sets', reps: '10 reps/leg', notes: 'Elevate rear foot on bench', done: false },
-  { id: 4, name: 'Standing Calf Raises', sets: '4 sets', reps: '15 reps', notes: '2 second pause at top', done: false },
-  { id: 5, name: 'Dumbbell Walking Lunges', sets: '3 sets', reps: '12 reps/leg', notes: 'Maintain torso upright', done: false },
-];
-
 export default function WorkoutModal({
   open,
   onClose,
@@ -31,7 +23,7 @@ export default function WorkoutModal({
   onClose: () => void;
   initialRunning?: boolean;
 }) {
-  const [exercises, setExercises] = useState<ExerciseItem[]>(DEFAULT_EXERCISES);
+  const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [seconds, setSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(initialRunning);
   const [logging, setLogging] = useState(false);
@@ -79,15 +71,15 @@ export default function WorkoutModal({
     setLogging(true);
     try {
       const todayRec = await ensureTodayRecord(qc, uid);
-      const minutes = Math.max(1, Math.round(seconds / 60)) || 45;
+      const minutes = Math.max(1, Math.round(seconds / 60));
       await apiClient.createDailyExercise({
         user_id: uid,
         daily_record_id: todayRec?.id,
-        exercise_name: 'Lower Body Power',
+        exercise_name: '',
         duration_minutes: minutes,
-        calories_burned: 380,
-        sets: 17,
-        reps: 150,
+        calories_burned: 0,
+        sets: 0,
+        reps: 0,
       });
       invalidateDaily(uid);
       setCompleted(true);
@@ -119,9 +111,9 @@ export default function WorkoutModal({
         <div className="flex items-center justify-between p-5 border-b border-[#182338]">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 mb-1">
-              Lower Body Focus
+              Custom Workout
             </div>
-            <h3 className="text-xl font-black text-white tracking-tight">Lower Body Power</h3>
+            <h3 className="text-xl font-black text-white tracking-tight">Custom Workout</h3>
           </div>
           <button
             onClick={onClose}
@@ -166,7 +158,7 @@ export default function WorkoutModal({
           <div className="flex items-center gap-3 text-xs font-semibold">
             <div className="flex items-center gap-1 text-slate-300">
               <Flame size={14} className="text-orange-400" />
-              <span>~380 kcal</span>
+              <span>~{Math.round(seconds * 0.16)} kcal</span>
             </div>
             <div className="flex items-center gap-1 text-slate-300">
               <Dumbbell size={14} className="text-[#ccff00]" />
@@ -236,7 +228,7 @@ export default function WorkoutModal({
             ) : logging ? (
               'Saving...'
             ) : (
-              'Finish & Log Workout (+380 kcal)'
+              'Finish & Log Workout'
             )}
           </button>
         </div>

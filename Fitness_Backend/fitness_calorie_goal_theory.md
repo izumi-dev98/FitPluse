@@ -600,12 +600,10 @@ Recommended `goals` table:
 
 ```text
 SKINNY_TO_FIT
-MUSCLE_GAIN
 WEIGHT_GAIN
 MAINTAIN
 FAT_LOSS
 WEIGHT_LOSS
-GENERAL_FITNESS
 ```
 
 ---
@@ -737,37 +735,31 @@ BMR × Activity Multiplier
 ## Skinny → Fit
 
 ```text
-TDEE × 1.10–1.20
-```
-
-## Muscle Gain
-
-```text
-TDEE × 1.10–1.15
+TDEE + 250 kcal
 ```
 
 ## Weight Gain
 
 ```text
-TDEE × 1.10–1.20
+TDEE + 400 kcal
 ```
 
 ## Maintain
 
 ```text
-TDEE × 1.00
+TDEE
 ```
 
 ## Fat Loss
 
 ```text
-TDEE × 0.80–0.90
+TDEE - 400 kcal
 ```
 
 ## Weight Loss
 
 ```text
-TDEE × 0.80–0.90
+TDEE - 400 kcal
 ```
 
 ## Protein

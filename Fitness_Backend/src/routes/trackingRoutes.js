@@ -51,7 +51,6 @@ router.post('/badges', awardBadge);
 function badgeGoalType(name) {
   const labels = {
     'Skinny -> Fit': 'skinny_to_fit',
-    'Muscle Gain': 'muscle_gain',
     'Weight Gain': 'weight_gain',
     'Fit / Maintain': 'maintain',
     'Fat Loss': 'fat_loss',
