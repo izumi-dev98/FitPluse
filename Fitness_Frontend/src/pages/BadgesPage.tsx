@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Award, Trophy, Lock, ChevronDown, Target, Zap, Crown, Star, Flag,
-  TrendingUp, Medal, Sparkles, BarChart2, HelpCircle, type LucideIcon,
+  TrendingUp, Medal, Sparkles, BarChart2, HelpCircle, Loader2, type LucideIcon,
 } from 'lucide-react';
 import { PageHeader, ProgressBar } from '../components/ui';
 import { useAuthStore } from '../store/auth';
@@ -12,7 +12,6 @@ import {
   getBadgesByGoalType,
   getAllGoalTypes,
   getLevelInfo,
-  getBadgeColorClasses,
   calculateBadgeProgress,
   getUserRank,
   type BadgeDefinition,
@@ -199,10 +198,7 @@ export default function BadgesPage() {
     return (
       <div className="py-16 text-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <Trophy className="text-brand-400 animate-spin" size={48} />
-            <div className="absolute inset-0 border-4 border-brand-500/20 rounded-full animate-ping" />
-          </div>
+          <Loader2 className="text-brand-400 animate-spin" size={48} />
           <p className="text-slate-400">Loading your badges...</p>
         </div>
       </div>
@@ -220,10 +216,10 @@ export default function BadgesPage() {
         />
 
         {/* XP Progress Bar */}
-        <div className="mt-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
+        <div className="mt-4 border border-panel-border bg-panel-card rounded-2xl p-4">
           <div className="flex items-center justify-between gap-4 mb-3">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-brand-900/30 border border-brand-600/30">
+              <div className="p-3 rounded-xl bg-brand-400/10">
                 <Sparkles className="text-brand-400" size={20} />
               </div>
               <div>
@@ -249,11 +245,9 @@ export default function BadgesPage() {
       {/* Goal Type Sections */}
       <div className="space-y-4">
         {badgeSections.map((section) => {
-          const colors = getBadgeColorClasses(section.badges[0]?.color || 'emerald');
           const isActive = section.isActiveGoal;
-          
           return (
-            <section key={section.goalType} className={`group ${colors.bg} ${colors.border} rounded-3xl overflow-hidden transition-all duration-300 ${isActive ? 'ring-1 ring-brand-500/30 shadow-lg' : ''} ${colors.glow}`}>
+            <section key={section.goalType} className={`rounded-3xl border bg-panel-card overflow-hidden transition-colors ${isActive ? 'border-brand-500/30' : 'border-panel-border'}`}>
               {/* Section Header */}
               <button
                 onClick={() => toggleSection(section.goalType)}
@@ -262,15 +256,15 @@ export default function BadgesPage() {
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   {/* Goal Type Icon */}
-                  <div className={`flex-shrink-0 p-3 rounded-2xl ${colors.bg} ${colors.border} ${colors.glow}`}>
-                    <Target className={colors.icon} size={24} />
+                  <div className={`flex-shrink-0 p-3 rounded-2xl ${isActive ? 'bg-brand-400/10 text-brand-400' : 'bg-white/5 text-slate-300'}`}>
+                    <Target size={24} />
                   </div>
                   
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h3 className="text-xl font-bold text-white truncate">{section.label}</h3>
                       {isActive && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-600/30 text-brand-300 border border-brand-500/30 whitespace-nowrap">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-400/15 text-brand-300 whitespace-nowrap">
                           Active Goal
                         </span>
                       )}
@@ -280,7 +274,7 @@ export default function BadgesPage() {
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm text-slate-500">
                       <span className="flex items-center gap-1">
-                        <Medal className={colors.icon} size={14} />
+                        <Medal className="text-slate-400" size={14} />
                         {section.totalXP.toLocaleString()} XP
                       </span>
                       <div className="flex-1 max-w-xs h-1.5">
@@ -311,7 +305,6 @@ export default function BadgesPage() {
                         key={badge.id}
                         badge={badge}
                         onClick={() => openBadgeDetail(badge)}
-                        colors={colors}
                       />
                     ))}
                   </div>
@@ -323,7 +316,7 @@ export default function BadgesPage() {
       </div>
 
       {/* Legend / Guide */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6">
         <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
           <HelpCircle className="text-brand-400" size={20} /> How Badges Work
         </h4>
@@ -332,9 +325,9 @@ export default function BadgesPage() {
             const { label, subtitle } = getLevelInfo(level);
             const Icon = [Flag, Zap, Target, Crown, Star][level - 1];
             return (
-              <div key={level} className="flex items-start gap-3 p-3 rounded-xl bg-slate-950/50 border border-slate-800">
-                <div className="flex-shrink-0 p-2 rounded-lg bg-brand-900/30 border border-brand-600/30">
-                  <Icon className="text-brand-400" size={18} />
+              <div key={level} className="flex items-start gap-3 p-3 rounded-xl border border-panel-border bg-ink/60">
+                <div className="flex-shrink-0 p-2 rounded-lg bg-white/5">
+                  <Icon className="text-slate-300" size={18} />
                 </div>
                 <div>
                   <div className="font-semibold text-white">{label} <span className="font-normal text-slate-500">Lv.{level}</span></div>
@@ -345,23 +338,23 @@ export default function BadgesPage() {
           })}
         </div>
         
-        <div className="mt-6 pt-6 border-t border-slate-800 grid md:grid-cols-3 gap-4 text-sm">
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-950/50 border border-slate-800">
-            <TrendingUp className="text-green-400 flex-shrink-0 mt-0.5" size={16} />
+        <div className="mt-6 pt-6 border-t border-panel-border grid md:grid-cols-3 gap-4 text-sm">
+          <div className="flex items-start gap-2 p-3 rounded-xl border border-panel-border bg-ink/60">
+            <TrendingUp className="text-slate-400 flex-shrink-0 mt-0.5" size={16} />
             <div>
               <div className="font-medium text-white">Goal Progress</div>
               <div className="text-slate-500 text-xs">% toward your target weight/calories</div>
             </div>
           </div>
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-950/50 border border-slate-800">
-            <BarChart2 className="text-blue-400 flex-shrink-0 mt-0.5" size={16} />
+          <div className="flex items-start gap-2 p-3 rounded-xl border border-panel-border bg-ink/60">
+            <BarChart2 className="text-slate-400 flex-shrink-0 mt-0.5" size={16} />
             <div>
               <div className="font-medium text-white">Consistency Streaks</div>
               <div className="text-slate-500 text-xs">Daily logging streaks (7/30/60 days)</div>
             </div>
           </div>
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-950/50 border border-slate-800">
-            <Target className="text-orange-400 flex-shrink-0 mt-0.5" size={16} />
+          <div className="flex items-start gap-2 p-3 rounded-xl border border-panel-border bg-ink/60">
+            <Target className="text-slate-400 flex-shrink-0 mt-0.5" size={16} />
             <div>
               <div className="font-medium text-white">Target Adherence</div>
               <div className="text-slate-500 text-xs">Staying within 10% of daily calorie goal</div>
@@ -375,7 +368,6 @@ export default function BadgesPage() {
         <BadgeDetailModal 
           badge={selectedBadge} 
           onClose={() => { setShowDetail(false); setSelectedBadge(null); }}
-          colors={getBadgeColorClasses(selectedBadge.color)}
         />
       )}
     </div>
@@ -386,20 +378,19 @@ export default function BadgesPage() {
 interface BadgeCardProps {
   badge: BadgeDefinition & { progress: number; currentValue: number; targetValue: number; earned: boolean; earnedAt?: string };
   onClick: () => void;
-  colors: { bg: string; border: string; text: string; icon: string; glow: string };
 }
 
-function BadgeCard({ badge, onClick, colors }: BadgeCardProps) {
+function BadgeCard({ badge, onClick }: BadgeCardProps) {
   const Icon = ICON_MAP[badge.icon] || Award;
   const isEarned = badge.earned;
 
   return (
     <button
       onClick={onClick}
-      className={`relative group rounded-2xl p-4 text-center border transition-all duration-300 cursor-pointer ${
+      className={`relative group rounded-2xl p-4 text-center border transition-colors cursor-pointer ${
         isEarned
-          ? `${colors.bg} ${colors.border} shadow-lg ${colors.glow} hover:shadow-xl hover:-translate-y-1`
-          : 'bg-slate-900/40 border-slate-800 opacity-60 hover:opacity-80 hover:border-slate-700'
+          ? 'border-brand-500/30 bg-brand-400/10'
+          : 'border-panel-border bg-panel-card opacity-60 hover:opacity-80'
       }`}
       disabled={!isEarned && badge.level > 1 && badge.progress === 0}
     >
@@ -414,28 +405,28 @@ function BadgeCard({ badge, onClick, colors }: BadgeCardProps) {
       <div className="relative z-10">
         {/* Level Badge */}
         <div className="flex items-center justify-center gap-1.5 mb-3">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-            isEarned ? `${colors.bg} ${colors.text} border ${colors.border}` : 'bg-slate-800 text-slate-500 border-slate-700'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            isEarned ? 'bg-brand-400/15 text-brand-300' : 'bg-white/10 text-slate-400'
           }`}>
             Lv.{badge.level}
           </span>
           {isEarned && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-              EARNED
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-400/15 text-brand-300">
+              Earned
             </span>
           )}
         </div>
 
         {/* Icon */}
         <div className={`mx-auto mb-3 relative ${isEarned ? '' : 'grayscale'}`}>
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${isEarned ? `${colors.bg} ${colors.border} ${colors.glow}` : 'bg-slate-800 border-slate-700'}`}>
-            <Icon className={`${isEarned ? colors.icon : 'text-slate-500'}`} size={32} />
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto border ${isEarned ? 'bg-brand-400/10 border-brand-500/30' : 'bg-white/5 border-panel-border'}`}>
+            <Icon className={`${isEarned ? 'text-brand-400' : 'text-slate-400'}`} size={32} />
           </div>
-          
+
           {/* Earned checkmark */}
           {isEarned && (
-            <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-green-500 border-2 border-slate-900 flex items-center justify-center">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+            <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-brand-400 border-2 border-panel-card flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#080b11" strokeWidth="3">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
@@ -477,19 +468,13 @@ function BadgeCard({ badge, onClick, colors }: BadgeCardProps) {
         )}
 
         {/* XP Reward */}
-        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-center gap-1 text-[11px]">
-          <Star className="text-yellow-400" size={12} />
-          <span className={`font-bold ${isEarned ? 'text-yellow-400' : 'text-slate-500'}`}>
+        <div className="mt-3 pt-3 border-t border-panel-border flex items-center justify-center gap-1 text-[11px]">
+          <Star className="text-slate-400" size={12} />
+          <span className={`font-bold ${isEarned ? 'text-white' : 'text-slate-500'}`}>
             +{badge.xpReward} XP
           </span>
         </div>
       </div>
-
-      {/* Hover glow for earned */}
-      {isEarned && (
-        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" 
-             style={{ boxShadow: `0 0 30px ${colors.icon.replace('text-', '')}80` }} />
-      )}
     </button>
   );
 }
@@ -498,38 +483,37 @@ function BadgeCard({ badge, onClick, colors }: BadgeCardProps) {
 interface BadgeDetailModalProps {
   badge: BadgeDefinition & { progress: number; currentValue: number; targetValue: number; earned: boolean; earnedAt?: string };
   onClose: () => void;
-  colors: { bg: string; border: string; text: string; icon: string; glow: string };
 }
 
-function BadgeDetailModal({ badge, onClose, colors }: BadgeDetailModalProps) {
+function BadgeDetailModal({ badge, onClose }: BadgeDetailModalProps) {
   const { label: levelLabel, subtitle } = getLevelInfo(badge.level);
   const Icon = ICON_MAP[badge.icon] || Award;
   const isEarned = badge.earned;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className={`bg-slate-900 border rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-300 ${colors.border} ${colors.glow}`}
+        className="border border-panel-border bg-panel-card rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`relative p-6 border-b ${colors.border}`}>
+        <div className="relative p-6 border-b border-panel-border">
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white p-1" aria-label="Close">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-          
+
           <div className="text-center">
-            <div className={`inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-4 ${colors.bg} ${colors.border} ${colors.glow}`}>
-              <Icon className={colors.icon} size={40} />
+            <div className={`inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-4 border ${isEarned ? 'bg-brand-400/10 border-brand-500/30' : 'bg-white/5 border-panel-border'}`}>
+              <Icon className={isEarned ? 'text-brand-400' : 'text-slate-400'} size={40} />
             </div>
-            
+
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isEarned ? `${colors.bg} ${colors.text} border ${colors.border}` : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${isEarned ? 'bg-brand-400/15 text-brand-300' : 'bg-white/10 text-slate-400'}`}>
                 Level {badge.level} · {levelLabel}
               </span>
               {isEarned && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
-                  EARNED
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-brand-400/15 text-brand-300">
+                  Earned
                 </span>
               )}
             </div>
@@ -541,19 +525,19 @@ function BadgeDetailModal({ badge, onClose, colors }: BadgeDetailModalProps) {
 
         <div className="p-6 space-y-6">
           {/* Description */}
-          <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-            <h4 className="text-sm font-semibold text-slate-400 mb-2 uppercase tracking-wide">Description</h4>
+          <div className="rounded-2xl p-4 border border-panel-border bg-ink/60">
+            <h4 className="text-xs text-slate-500 mb-2">Description</h4>
             <p className="text-white text-base leading-relaxed">{badge.description}</p>
           </div>
 
           {/* Requirement */}
-          <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-            <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wide flex items-center gap-2">
-              <Target className={colors.icon} size={16} />
+          <div className="rounded-2xl p-4 border border-panel-border bg-ink/60">
+            <h4 className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+              <Target className="text-slate-400" size={16} />
               Requirement
             </h4>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-              <div className="p-2 rounded-lg bg-brand-900/30 border border-brand-600/30">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-panel-border bg-ink/60">
+              <div className="p-2 rounded-lg bg-brand-400/10">
                 <Target className="text-brand-400" size={20} />
               </div>
               <div className="flex-1">
@@ -565,10 +549,10 @@ function BadgeDetailModal({ badge, onClose, colors }: BadgeDetailModalProps) {
 
           {/* Progress */}
           {!isEarned && badge.level > 1 && (
-            <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800">
-              <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wide flex items-center gap-2">
-                <BarChart2 className={colors.icon} size={16} />
-                Your Progress
+            <div className="rounded-2xl p-4 border border-panel-border bg-ink/60">
+              <h4 className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                <BarChart2 className="text-slate-400" size={16} />
+                Your progress
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
@@ -592,13 +576,13 @@ function BadgeDetailModal({ badge, onClose, colors }: BadgeDetailModalProps) {
 
           {/* Earned Info */}
           {isEarned && badge.earnedAt && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4">
+            <div className="border border-brand-500/30 bg-brand-400/10 rounded-2xl p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-green-500/20 border border-green-500/30">
-                  <Award className="text-green-400" size={24} />
+                <div className="p-3 rounded-xl bg-brand-400/10">
+                  <Award className="text-brand-400" size={24} />
                 </div>
                 <div>
-                  <div className="text-green-400 font-bold">Badge Earned!</div>
+                  <div className="text-brand-400 font-bold">Badge earned</div>
                   <div className="text-slate-400 text-sm">{new Date(badge.earnedAt).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
@@ -607,26 +591,26 @@ function BadgeDetailModal({ badge, onClose, colors }: BadgeDetailModalProps) {
                   })}</div>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-green-500/20 flex items-center justify-center gap-2 text-sm">
-                <Star className="text-yellow-400" size={16} />
-                <span className="text-yellow-400 font-bold">+{badge.xpReward} XP awarded</span>
+              <div className="mt-3 pt-3 border-t border-brand-500/20 flex items-center justify-center gap-2 text-sm">
+                <Star className="text-brand-400" size={16} />
+                <span className="text-brand-300 font-bold">+{badge.xpReward} XP awarded</span>
               </div>
             </div>
           )}
 
           {/* Locked Message */}
           {!isEarned && badge.level > 1 && badge.progress === 0 && (
-            <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-center">
+            <div className="border border-panel-border bg-ink/60 rounded-2xl p-4 text-center">
               <Lock className="text-slate-600 mx-auto mb-2" size={28} />
               <p className="text-slate-500 text-sm">Complete the previous badge to unlock this one</p>
             </div>
           )}
 
           {/* XP Reward */}
-          <div className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-            <Star className="text-yellow-400" size={20} />
+          <div className="flex items-center justify-center gap-2 p-4 rounded-2xl border border-panel-border bg-ink/60">
+            <Star className="text-slate-400" size={20} />
             <span className="text-white font-semibold">XP Reward: </span>
-            <span className={`text-xl font-extrabold ${isEarned ? 'text-yellow-400' : 'text-slate-400'}`}>
+            <span className={`text-xl font-extrabold ${isEarned ? 'text-brand-400' : 'text-slate-400'}`}>
               +{badge.xpReward}
             </span>
           </div>

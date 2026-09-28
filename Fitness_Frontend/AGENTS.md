@@ -29,8 +29,10 @@
 
 ## UI conventions
 
-- 60/30/10 system: slate chrome, single volt-lime `brand` accent.
-  Teal = water, orange = streak/flame, amber = warnings only, red = errors.
+- Visual authority is `design.md` (tokens, color jobs, component recipes,
+  layout, copy, accessibility). This file does not define colors or
+  typography — follow `design.md` for all className work, with
+  `GoalsPage.tsx` as the reference implementation.
 - Numbers via `fmtInt()` in `src/lib/format.ts`; age derives from `dob`
   via `ageFromDob()` — never store or input raw age.
 - Check `src/lib/database.ts` relationship comments before joining data

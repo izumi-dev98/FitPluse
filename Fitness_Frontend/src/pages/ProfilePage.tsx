@@ -240,13 +240,13 @@ export default function ProfilePage() {
 
       {/* Messages */}
       {successMsg && (
-        <div className="mb-4 bg-green-900/30 border border-green-600/40 text-green-300 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+        <div className="mb-4 border border-brand-500/30 bg-brand-400/10 text-brand-300 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
           <Check size={16} /> {successMsg}
         </div>
       )}
 
       {/* Profile Info Card */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8 mb-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 md:p-8 mb-6">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
           <User size={20} className="text-brand-400" /> Your Information
         </h3>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-brand-600/40">
+            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center overflow-hidden border-2 border-brand-500/30">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
@@ -267,7 +267,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition">
+            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition">
               <Camera size={16} />{" "}
               {avatarPreview ? "Change Avatar" : "Upload Avatar"}
               <input
@@ -385,7 +385,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -399,14 +399,14 @@ export default function ProfilePage() {
       </div>
 
       {/* Change Password Section */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8 mb-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 md:p-8 mb-6">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
           <Lock size={20} className="text-brand-400" /> Security
         </h3>
         {!showPasswordSection ? (
           <button
             onClick={() => setShowPasswordSection(true)}
-            className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl border border-panel-border text-slate-300 font-bold transition hover:bg-white/5 hover:text-white flex items-center justify-center gap-2"
           >
             <Lock size={18} /> Change Password
           </button>
@@ -454,7 +454,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={pwSaving}
-                className="flex-1 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {pwSaving ? (
                   <Loader2 className="animate-spin" size={18} />
@@ -469,7 +469,7 @@ export default function ProfilePage() {
                   setShowPasswordSection(false);
                   setPwError("");
                 }}
-                className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition"
+                className="px-6 py-3 rounded-xl border border-panel-border text-slate-300 font-bold transition hover:bg-white/5 hover:text-white"
               >
                 Cancel
               </button>
@@ -479,7 +479,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Body Progress Images */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8 mb-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 md:p-8 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <ImageIcon size={20} className="text-brand-400" /> Body Progress
@@ -487,7 +487,7 @@ export default function ProfilePage() {
           </h3>
           <button
             onClick={() => setShowImageUpload(!showImageUpload)}
-            className="px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition"
+            className="px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition"
           >
             {showImageUpload ? "Cancel" : "+ Upload"}
           </button>
@@ -496,7 +496,7 @@ export default function ProfilePage() {
         {showImageUpload && (
           <form
             onSubmit={handleBodyImageUpload}
-            className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 mb-4 space-y-3"
+            className="border border-panel-border bg-ink/60 rounded-xl p-4 mb-4 space-y-3"
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
@@ -531,7 +531,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg border border-panel-border text-slate-300 text-sm font-bold transition hover:bg-white/5 hover:text-white flex items-center gap-2"
                 >
                   <Upload size={16} /> Choose Image
                 </button>
@@ -543,7 +543,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={!imageFile}
-              className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-bold transition disabled:opacity-50"
             >
               Save Body Progress Image
             </button>
@@ -555,9 +555,9 @@ export default function ProfilePage() {
             {bodyImages.map((img, i) => (
               <div
                 key={i}
-                className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950"
+                className="rounded-xl overflow-hidden border border-panel-border bg-panel-card"
               >
-                <div className="h-32 bg-slate-800 flex items-center justify-center">
+                  <div className="h-32 bg-white/5 flex items-center justify-center">
                   <ImageIcon size={24} className="text-slate-600" />
                 </div>
                 <div className="p-2 text-center text-xs text-slate-400 capitalize">
@@ -572,9 +572,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Earned Badges */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8 mb-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 md:p-8 mb-6">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Award size={20} className="text-yellow-400" /> Earned Badges
+          <Award size={20} className="text-slate-400" /> Earned badges
         </h3>
         {earnedBadges.length === 0 ? (
           <p className="text-slate-500 text-sm">
@@ -585,10 +585,10 @@ export default function ProfilePage() {
             {earnedBadges.map((badge) => (
               <div
                 key={badge.id}
-                className="flex items-center gap-3 bg-slate-950/60 border border-yellow-500/20 rounded-xl px-4 py-3"
+                className="flex items-center gap-3 border border-brand-500/30 bg-brand-400/10 rounded-xl px-4 py-3"
               >
-                <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                  <Award size={20} className="text-yellow-400" />
+                <div className="p-2 rounded-lg bg-brand-400/10">
+                  <Award size={20} className="text-brand-400" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-white font-bold truncate">
@@ -610,8 +610,8 @@ export default function ProfilePage() {
       </div>
 
       {/* Goal History */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 md:p-8">
-        <h3 className="text-xl font-bold text-white mb-4">Goal History</h3>
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 md:p-8">
+        <h3 className="text-xl font-bold text-white mb-4">Goal history</h3>
         {goals.length === 0 ? (
           <p className="text-slate-500 text-sm">
             No goals set yet. Go to{" "}
@@ -625,7 +625,7 @@ export default function ProfilePage() {
             {goals.map((g) => (
               <div
                 key={g.id}
-                className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl px-5 py-4"
+                className="flex items-center justify-between border border-panel-border bg-ink/60 rounded-xl px-5 py-4"
               >
                 <div>
                   <span className="font-bold text-brand-400 capitalize">
@@ -649,7 +649,7 @@ export default function ProfilePage() {
                     {g.target_date ? ` · Target: ${g.target_date}` : ""}
                   </div>
                 </div>
-                <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full bg-brand-600/20 text-brand-300">
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-brand-400/15 text-brand-300">
                   {g.status ?? "active"}
                 </span>
               </div>

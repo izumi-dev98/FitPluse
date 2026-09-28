@@ -7,10 +7,10 @@ export default function AuthPage({ onAuth }: { onAuth: () => void }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink px-4 py-12">
-      <div className="w-full max-w-md bg-panel/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md border border-panel-border bg-panel-card rounded-3xl shadow-2xl overflow-hidden">
         <div className="p-8 md:p-10">
           <div className="text-center mb-8">
-            <div className="mx-auto mb-4 h-11 w-11 rounded-xl bg-brand-400 grid place-items-center text-slate-950 font-black">FP</div>
+            <div className="mx-auto mb-4 h-11 w-11 rounded-xl bg-brand-400 grid place-items-center text-ink font-black">FP</div>
             <h1 className="text-3xl font-display font-semibold uppercase tracking-wide text-white mb-2">FitPulse</h1>
             <p className="text-slate-400 text-sm">{mode === 'login' ? 'Sign in to track calories, workouts, and progress.' : 'Create an account and start logging today.'}</p>
           </div>

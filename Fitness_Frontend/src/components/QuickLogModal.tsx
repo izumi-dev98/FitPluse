@@ -369,20 +369,17 @@ export default function QuickLogModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[#0f1626] border border-[#1a263d] rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden relative"
+        className="border border-panel-border bg-panel-card rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Glow Header Accent */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-[#ccff00] blur-sm rounded-full pointer-events-none" />
-
         {/* Modal Top Header (Sticky) */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#182338] bg-[#0f1626] shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-panel-border bg-panel-card shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-[#ccff00] text-black font-black flex items-center justify-center text-sm shadow-[0_0_12px_rgba(204,255,0,0.35)] shrink-0">
+            <span className="w-8 h-8 rounded-xl bg-brand-400 text-ink font-black flex items-center justify-center text-sm shrink-0">
               +
             </span>
             <div>
@@ -399,7 +396,7 @@ export default function QuickLogModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white transition hover:bg-white/5"
             aria-label="Close"
           >
             <X size={18} />
@@ -407,13 +404,13 @@ export default function QuickLogModal({
         </div>
 
         {/* Responsive Tab Bar (Touch-friendly & Horizontal Scroll on Mobile) */}
-        <div className="flex sm:grid sm:grid-cols-5 gap-1.5 p-2 bg-[#090d16] border-b border-[#182338] overflow-x-auto no-scrollbar shrink-0">
+        <div className="flex sm:grid sm:grid-cols-5 gap-1.5 p-2 bg-ink border-b border-panel-border overflow-x-auto no-scrollbar shrink-0">
           {[
-            { id: 'food', label: 'Food', icon: Utensils, color: 'text-amber-400' },
-            { id: 'workout', label: 'Workout', icon: Dumbbell, color: 'text-[#ccff00]' },
-            { id: 'water', label: 'Water', icon: Droplets, color: 'text-cyan-400' },
-            { id: 'steps', label: 'Steps', icon: Footprints, color: 'text-emerald-400' },
-            { id: 'weight', label: 'Weight', icon: Scale, color: 'text-indigo-400' },
+            { id: 'food', label: 'Food', icon: Utensils },
+            { id: 'workout', label: 'Workout', icon: Dumbbell },
+            { id: 'water', label: 'Water', icon: Droplets },
+            { id: 'steps', label: 'Steps', icon: Footprints },
+            { id: 'weight', label: 'Weight', icon: Scale },
           ].map((t) => {
             const active = tab === t.id;
             return (
@@ -421,13 +418,15 @@ export default function QuickLogModal({
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id as QuickLogTab)}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 sm:px-1 min-w-[70px] sm:min-w-0 rounded-xl font-bold transition text-xs shrink-0 ${
+                role="tab"
+                aria-selected={active}
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-3 sm:px-1 min-w-[70px] sm:min-w-0 rounded-xl text-xs font-bold transition shrink-0 ${
                   active
-                    ? 'bg-[#152033] text-white border border-[#223352] shadow-sm'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/50'
+                    ? 'bg-brand-400 text-ink'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <t.icon size={16} className={active ? t.color : 'text-slate-500'} />
+                <t.icon size={16} />
                 <span className="text-[11px] tracking-tight">{t.label}</span>
               </button>
             );
@@ -436,8 +435,8 @@ export default function QuickLogModal({
 
           {/* Goal Guidance Summary */}
           {guidance && (
-            <div className="mx-4 mb-3 px-4 py-2 rounded-xl bg-[#ccff00]/5 border border-[#ccff00]/20 flex items-center gap-3 text-xs">
-              <span className="text-[#ccff00] font-bold capitalize">
+            <div className="mx-4 mb-3 px-4 py-2 rounded-xl bg-brand-400/5 border border-brand-500/20 flex items-center gap-3 text-xs">
+              <span className="text-brand-400 font-bold capitalize">
                 {String(resolvedGoalType).replace(/_/g, ' ')}
               </span>
               <span className="text-slate-400">{guidance.calories}</span>
@@ -450,7 +449,7 @@ export default function QuickLogModal({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
           {successMsg ? (
             <div className="py-12 text-center flex flex-col items-center justify-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-[#ccff00]/20 border border-[#ccff00] text-[#ccff00] flex items-center justify-center animate-bounce shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+              <div className="w-14 h-14 rounded-full bg-brand-400/15 border border-brand-500/30 text-brand-400 flex items-center justify-center">
                 <Check size={28} className="stroke-[3]" />
               </div>
               <p className="text-white font-black text-base">{successMsg}</p>
@@ -462,8 +461,8 @@ export default function QuickLogModal({
                 <form onSubmit={handleLogFood} className="space-y-4">
                   {/* Meal Category Pills */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Meal Type
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5">
+                      Meal type
                     </label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((m) => (
@@ -473,8 +472,8 @@ export default function QuickLogModal({
                           onClick={() => setMealType(m)}
                           className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center ${
                             mealType === m
-                              ? 'bg-[#ccff00] text-black shadow-[0_0_10px_rgba(204,255,0,0.25)]'
-                              : 'bg-[#141f33] text-slate-300 hover:bg-[#1a2842]'
+                              ? 'bg-brand-400 text-ink'
+                              : 'bg-white/10 text-slate-300 hover:bg-white/20'
                           }`}
                         >
                           {m}
@@ -486,13 +485,13 @@ export default function QuickLogModal({
                   {/* User's own foods from the database */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                        <Sparkles size={12} className="text-[#ccff00]" />
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                        <Sparkles size={12} className="text-slate-400" />
                         <span>Recommended · My foods</span>
                       </span>
                     </div>
                     {foodRecs.length === 0 ? (
-                      <p className="text-xs text-slate-500 p-3 rounded-2xl bg-[#090d16] border border-[#182338] text-center">
+                      <p className="text-xs text-slate-500 p-3 rounded-2xl bg-ink border border-panel-border text-center">
                         No foods yet. Add some on the Foods page.
                       </p>
                     ) : (
@@ -502,11 +501,11 @@ export default function QuickLogModal({
                             key={p.id}
                             type="button"
                             onClick={() => applyFoodPreset(p)}
-                            className="text-left p-2 rounded-xl bg-[#090d16] hover:bg-[#121c2e] border border-[#182338] hover:border-slate-600 transition"
+                            className="text-left p-2 rounded-xl bg-ink hover:bg-white/5 border border-panel-border hover:border-slate-600 transition"
                           >
                             <div className="text-xs font-bold text-white truncate">{p.name}</div>
                             <div className="text-[10px] text-slate-400 flex items-center justify-between mt-0.5">
-                              <span className="text-[#ccff00] font-semibold">{p.calories ?? 0} kcal</span>
+                              <span className="text-brand-400 font-semibold">{p.calories ?? 0} kcal</span>
                               <span>{p.protein ?? 0}g P</span>
                             </div>
                           </button>
@@ -523,14 +522,14 @@ export default function QuickLogModal({
                       placeholder="e.g. Grilled Chicken Quinoa Bowl"
                       value={foodName}
                       onChange={(e) => setFoodName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        Calories {calAuto && <span className="text-[#ccff00] font-semibold">· auto</span>}
+                        Calories {calAuto && <span className="text-brand-400 font-semibold">· auto</span>}
                       </label>
                       <input
                         type="number"
@@ -538,17 +537,17 @@ export default function QuickLogModal({
                         placeholder="kcal"
                         value={calories}
                         onChange={(e) => handleCaloriesChange(e.target.value)}
-                        className="w-full px-2.5 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                        className="w-full px-2.5 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-sky-400 mb-1">Protein</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Protein</label>
                       <input
                         type="number"
                         placeholder="g"
                         value={protein}
                         onChange={(e) => handleMacroChange('p', e.target.value)}
-                        className="w-full px-2.5 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-sky-400 focus:outline-none"
+                        className="w-full px-2.5 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-brand-500 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -558,17 +557,17 @@ export default function QuickLogModal({
                         placeholder="g"
                         value={carbs}
                         onChange={(e) => handleMacroChange('c', e.target.value)}
-                        className="w-full px-2.5 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-amber-400 focus:outline-none"
+                        className="w-full px-2.5 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-amber-400 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-purple-400 mb-1">Fat</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Fat</label>
                       <input
                         type="number"
                         placeholder="g"
                         value={fat}
                         onChange={(e) => handleMacroChange('f', e.target.value)}
-                        className="w-full px-2.5 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-purple-400 focus:outline-none"
+                        className="w-full px-2.5 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-brand-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -581,7 +580,7 @@ export default function QuickLogModal({
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-sm uppercase tracking-wider transition shadow-[0_0_15px_rgba(204,255,0,0.3)] disabled:opacity-50 active:scale-95"
+                    className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-sm transition disabled:opacity-50 active:scale-95"
                   >
                     {submitting ? 'Saving...' : 'Add Meal'}
                   </button>
@@ -593,12 +592,12 @@ export default function QuickLogModal({
                 <form onSubmit={handleLogWorkout} className="space-y-4">
                   {/* User's own exercises from the database */}
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1.5">
-                      <Sparkles size={12} className="text-[#ccff00]" />
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mb-1.5">
+                      <Sparkles size={12} className="text-slate-400" />
                       <span>Recommended · My exercises</span>
                     </span>
                     {workoutRecs.length === 0 ? (
-                      <p className="text-xs text-slate-500 p-3 rounded-2xl bg-[#090d16] border border-[#182338] text-center">
+                      <p className="text-xs text-slate-500 p-3 rounded-2xl bg-ink border border-panel-border text-center">
                         No exercises yet. Add some on the Workout page.
                       </p>
                     ) : (
@@ -608,11 +607,11 @@ export default function QuickLogModal({
                             key={p.id}
                             type="button"
                             onClick={() => applyWorkoutPreset(p)}
-                            className="text-left p-2 rounded-xl bg-[#090d16] hover:bg-[#121c2e] border border-[#182338] hover:border-slate-600 transition"
+                            className="text-left p-2 rounded-xl bg-ink hover:bg-white/5 border border-panel-border hover:border-slate-600 transition"
                           >
                             <div className="text-xs font-bold text-white truncate">{p.name}</div>
                             <div className="text-[10px] text-slate-400 flex items-center justify-between mt-0.5">
-                              <span className="text-[#ccff00] font-semibold">{p.exercise_type ?? 'Exercise'}</span>
+                              <span className="text-brand-400 font-semibold">{p.exercise_type ?? 'Exercise'}</span>
                             </div>
                           </button>
                         ))}
@@ -628,7 +627,7 @@ export default function QuickLogModal({
                       placeholder="e.g. Lower Body Power"
                       value={workoutName}
                       onChange={(e) => setWorkoutName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                     />
                   </div>
 
@@ -639,18 +638,18 @@ export default function QuickLogModal({
                         type="number"
                         value={duration}
                         onChange={(e) => handleDurationChange(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#ccff00] mb-1">
+                      <label className="block text-xs font-bold text-brand-400 mb-1">
                         Calories Burned (kcal) {burnAuto && <span className="font-semibold">· auto</span>}
                       </label>
                       <input
                         type="number"
                         value={burned}
                         onChange={(e) => handleBurnedChange(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -667,7 +666,7 @@ export default function QuickLogModal({
                         type="number"
                         value={sets}
                         onChange={(e) => setSets(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -676,7 +675,7 @@ export default function QuickLogModal({
                         type="number"
                         value={reps}
                         onChange={(e) => setReps(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -684,7 +683,7 @@ export default function QuickLogModal({
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-sm uppercase tracking-wider transition shadow-[0_0_15px_rgba(204,255,0,0.3)] disabled:opacity-50 active:scale-95"
+                    className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-sm transition disabled:opacity-50 active:scale-95"
                   >
                     {submitting ? 'Saving...' : 'Log Workout'}
                   </button>
@@ -704,28 +703,28 @@ export default function QuickLogModal({
                         type="button"
                         onClick={() => handleLogWater(amt)}
                         disabled={submitting}
-                        className="py-4 px-2 rounded-2xl bg-[#141f33] hover:bg-cyan-950/60 border border-[#223352] hover:border-cyan-400 text-white font-extrabold text-sm transition flex flex-col items-center justify-center gap-1.5 active:scale-95"
+                        className="py-4 px-2 rounded-2xl border border-panel-border bg-ink text-white font-extrabold text-sm transition flex flex-col items-center justify-center gap-1.5 active:scale-95"
                       >
-                        <Droplets size={22} className="text-cyan-400" />
+                        <Droplets size={22} className="text-slate-300" />
                         <span>+{amt} ml</span>
                       </button>
                     ))}
                   </div>
 
-                  <div className="pt-3 border-t border-[#182338]">
+                  <div className="pt-3 border-t border-panel-border">
                     <label className="block text-xs font-bold text-slate-300 mb-1">Custom Amount (ml)</label>
                     <div className="flex gap-2">
                       <input
                         type="number"
                         value={waterAmount}
                         onChange={(e) => setWaterAmount(e.target.value)}
-                        className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-cyan-400 focus:outline-none"
+                        className="flex-1 px-3.5 py-2.5 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-brand-500 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => handleLogWater(Number(waterAmount) || 0)}
                         disabled={submitting || !waterAmount}
-                        className="px-5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-sm transition disabled:opacity-50 active:scale-95"
+                        className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-sm transition disabled:opacity-50 active:scale-95"
                       >
                         Add
                       </button>
@@ -748,8 +747,8 @@ export default function QuickLogModal({
                         onClick={() => setStepCount(String(amt))}
                         className={`py-3 rounded-2xl border text-xs font-black transition flex items-center justify-center gap-1 ${
                           stepCount === String(amt)
-                            ? 'bg-[#ccff00] text-black border-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.3)]'
-                            : 'bg-[#141f33] text-white border-[#223352] hover:border-slate-500'
+                            ? 'bg-brand-400 text-ink border border-brand-500/30'
+                            : 'bg-white/10 text-white border-panel-border hover:border-slate-500'
                         }`}
                       >
                         <Plus size={14} className="stroke-[3]" /> {amt.toLocaleString()}
@@ -764,14 +763,14 @@ export default function QuickLogModal({
                       required
                       value={stepCount}
                       onChange={(e) => setStepCount(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-[#ccff00] focus:outline-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submitting || !stepCount}
-                    className="w-full py-3 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-sm uppercase tracking-wider transition shadow-[0_0_15px_rgba(204,255,0,0.3)] disabled:opacity-50 active:scale-95"
+                    className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-sm transition disabled:opacity-50 active:scale-95"
                   >
                     {submitting ? 'Updating...' : 'Add Steps'}
                   </button>
@@ -792,13 +791,13 @@ export default function QuickLogModal({
                       placeholder="e.g. 74.5"
                       value={weightKg}
                       onChange={(e) => setWeightKg(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-white text-base sm:text-sm focus:border-indigo-400 focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-ink border border-panel-border text-white text-base sm:text-sm focus:border-brand-500 focus:outline-none"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={submitting || !weightKg}
-                    className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-sm uppercase tracking-wider transition shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50 active:scale-95"
+                    className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-sm transition disabled:opacity-50 active:scale-95"
                   >
                     {submitting ? 'Saving...' : 'Update Weight'}
                   </button>

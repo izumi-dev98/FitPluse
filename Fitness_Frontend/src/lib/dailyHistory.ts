@@ -34,9 +34,9 @@ export type DailyRow = {
 };
 
 export const verdictClass: Record<VerdictTone, string> = {
-  green: 'bg-green-600/20 text-green-300 border-green-500/30',
+  green: 'bg-brand-400/15 text-brand-300 border-brand-500/30',
   amber: 'bg-amber-600/20 text-amber-300 border-amber-500/30',
-  red: 'bg-red-600/20 text-red-300 border-red-500/30',
+  red: 'bg-amber-600/20 text-amber-300 border-amber-500/30',
   slate: 'bg-slate-800 text-slate-400 border-slate-700',
 };
 

@@ -28,14 +28,14 @@ function cellTone(row?: DailyRow) {
   const logged = !!row && (row.consumed > 0 || row.burned > 0 || row.water > 0 || row.steps > 0);
   if (!logged) {
     return {
-      wrap: 'bg-slate-950/40 border-slate-800 text-slate-500 hover:border-slate-600',
+      wrap: 'bg-ink/40 border-panel-border text-slate-500',
       dot: 'bg-slate-700',
     };
   }
   if (row.verdict.tone === 'green') {
     return {
-      wrap: 'bg-green-600/20 border-green-500/40 text-green-100 hover:border-green-400',
-      dot: 'bg-green-400',
+      wrap: 'bg-brand-400/15 border-brand-500/30 text-brand-300',
+      dot: 'bg-brand-400',
     };
   }
   if (row.verdict.tone === 'amber') {
@@ -46,12 +46,12 @@ function cellTone(row?: DailyRow) {
   }
   if (row.verdict.tone === 'red') {
     return {
-      wrap: 'bg-red-600/20 border-red-500/40 text-red-100 hover:border-red-400',
-      dot: 'bg-red-400',
+      wrap: 'bg-amber-600/20 border-amber-500/40 text-amber-100 hover:border-amber-400',
+      dot: 'bg-amber-400',
     };
   }
   return {
-    wrap: 'bg-slate-800/50 border-slate-700 text-slate-200 hover:border-slate-500',
+    wrap: 'bg-white/5 border-panel-border text-slate-200',
     dot: 'bg-slate-400',
   };
 }
@@ -149,7 +149,7 @@ export default function CalendarPage() {
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+          className="p-2 rounded-xl border border-panel-border bg-ink text-slate-300 hover:text-white"
           aria-label="Previous month"
         >
           <ChevronLeft size={18} />
@@ -167,7 +167,7 @@ export default function CalendarPage() {
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+          className="p-2 rounded-xl border border-panel-border bg-ink text-slate-300 hover:text-white"
           aria-label="Next month"
         >
           <ChevronRight size={18} />
@@ -176,21 +176,21 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-3 gap-3 mb-5">
         <MiniStat label="Logged" value={monthStats.logged} />
-        <MiniStat label="On target" value={monthStats.hits} color="text-green-400" />
+        <MiniStat label="On target" value={monthStats.hits} color="text-brand-400" />
         <MiniStat label="Missed" value={monthStats.misses} color="text-amber-400" />
       </div>
 
       <div className="flex flex-wrap gap-3 text-[11px] text-slate-400 mb-4">
-        <Legend swatch="bg-green-500" label="On target (within 10%)" />
+        <Legend swatch="bg-brand-500" label="On target (within 10%)" />
         <Legend swatch="bg-amber-400" label="Under target" />
-        <Legend swatch="bg-red-500" label="Over target" />
+        <Legend swatch="bg-amber-400" label="Over target" />
         <Legend swatch="bg-slate-700" label="No log" />
       </div>
 
-      <div className="bg-panel/80 border border-slate-800/80 rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-slate-800">
+      <div className="border border-panel-border bg-panel-card rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-7 border-b border-panel-border">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">
+            <div key={d} className="py-2 text-center text-[11px] font-bold text-slate-500">
               {d}
             </div>
           ))}
@@ -199,10 +199,10 @@ export default function CalendarPage() {
           <div className="py-16 text-center text-slate-500">Loading calendar…</div>
         ) : (
           <div className="grid grid-cols-7">
-            {cells.map((cell, i) => {
-              if (!cell.date) {
-                return <div key={`pad-${i}`} className="min-h-[72px] md:min-h-[96px] border-b border-r border-slate-800/60 bg-slate-950/20" />;
-              }
+              {cells.map((cell, i) => {
+                if (!cell.date) {
+                  return <div key={`pad-${i}`} className="min-h-[72px] md:min-h-[96px] border-b border-r border-panel-border/60 bg-white/[0.02]" />;
+                }
               const date: string = cell.date;
               const row = byDate.get(cell.date);
               const tone = cellTone(row);
@@ -214,7 +214,7 @@ export default function CalendarPage() {
                   type="button"
                   disabled={isFuture}
                   onClick={() => setSelected(row || emptyDayRow(date, goals))}
-                  className={`min-h-[72px] md:min-h-[96px] p-1.5 md:p-2 text-left border-b border-r border-slate-800/60 transition ${tone.wrap} ${
+                  className={`min-h-[72px] md:min-h-[96px] p-1.5 md:p-2 text-left border-b border-r border-panel-border/60 transition ${tone.wrap} ${
                     isToday ? 'ring-2 ring-brand-400 ring-inset' : ''
                   } ${isFuture ? 'opacity-40 cursor-default' : ''}`}
                 >
@@ -246,8 +246,8 @@ export default function CalendarPage() {
 
 function MiniStat({ label, value, color = 'text-white' }: { label: string; value: number; color?: string }) {
   return (
-    <div className="rounded-2xl bg-slate-900/60 border border-slate-800 px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
+    <div className="rounded-2xl border border-panel-border bg-panel-card px-4 py-3">
+      <div className="text-[11px] text-slate-500">{label}</div>
       <div className={`text-2xl font-extrabold ${color}`}>{value}</div>
     </div>
   );

@@ -9,7 +9,6 @@ import {
   Target,
   Droplets,
   Footprints,
-  Flame,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +37,6 @@ import {
 const MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 const WATER_GOAL = 2500;
 const STEPS_GOAL = 8000;
-const ACTIVE_MIN_GOAL = 30;
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -262,7 +260,7 @@ export default function DailyPage() {
         action={
           <button
             onClick={() => openQuickLog("food")}
-            className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold shadow-lg shadow-brand-400/20 flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-bold shadow-lg shadow-brand-400/20 flex items-center gap-2"
           >
             <Plus size={18} /> Add log
           </button>
@@ -279,13 +277,13 @@ export default function DailyPage() {
           </Ring>
           <div className="flex-1 w-full">
             <div className="grid grid-cols-3 gap-2 text-center mb-4">
-              <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+              <div className="rounded-xl border border-panel-border bg-ink/60 p-3">
                 <div className="text-[11px] text-slate-500">Target</div>
                 <div className="font-bold text-white">
                   {fmtInt(goalCalories) ?? "—"}
                 </div>
               </div>
-              <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+              <div className="rounded-xl border border-panel-border bg-ink/60 p-3">
                 <div className="text-[11px] text-slate-500">Left</div>
                 <div
                   className={`font-bold ${remaining != null && remaining < 0 ? "text-amber-400" : "text-brand-400"}`}
@@ -293,7 +291,7 @@ export default function DailyPage() {
                   {remaining == null ? "—" : fmtInt(remaining)}
                 </div>
               </div>
-              <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+              <div className="rounded-xl border border-panel-border bg-ink/60 p-3">
                 <div className="text-[11px] text-slate-500">Burned</div>
                 <div className="font-bold text-white">
                   {fmtInt(todayExBurned)}
@@ -350,15 +348,15 @@ export default function DailyPage() {
           <Card>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-white flex items-center gap-2">
-                <Droplets size={16} className="text-sky-400" /> Water
+                <Droplets size={16} className="text-slate-400" /> Water
               </span>
               <span className="text-xs text-slate-500">
                 {fmtInt(water)} / {fmtInt(WATER_GOAL)} ml
               </span>
             </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-3">
               <div
-                className="h-full bg-sky-400 rounded-full"
+                className="h-full bg-water rounded-full"
                 style={{
                   width: `${Math.min(100, Math.round((water / WATER_GOAL) * 100))}%`,
                 }}
@@ -369,7 +367,7 @@ export default function DailyPage() {
                 <button
                   key={ml}
                   onClick={() => addWater(ml)}
-                  className="py-2 rounded-lg bg-slate-800 hover:bg-sky-900/40 text-xs font-bold text-slate-200 border border-slate-700"
+                  className="py-2 rounded-lg border border-panel-border bg-ink text-xs font-bold text-slate-300 hover:text-white"
                 >
                   +{ml}
                 </button>
@@ -385,7 +383,7 @@ export default function DailyPage() {
                 {steps.toLocaleString()} / {STEPS_GOAL.toLocaleString()}
               </span>
             </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-3">
               <div
                 className="h-full bg-brand-500 rounded-full"
                 style={{
@@ -404,7 +402,7 @@ export default function DailyPage() {
               />
               <button
                 onClick={saveSteps}
-                className="px-3 rounded-lg bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold"
+                className="px-3 rounded-lg bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold"
               >
                 Save
               </button>
@@ -417,7 +415,7 @@ export default function DailyPage() {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-white flex items-center gap-2">
-              <Utensils size={18} className="text-yellow-400" /> Meals
+              <Utensils size={18} className="text-slate-400" /> Meals
             </h3>
             <button
               onClick={() => openQuickLog("food")}
@@ -433,7 +431,7 @@ export default function DailyPage() {
               action={
                 <button
                   onClick={() => openQuickLog("food")}
-                  className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold"
+                  className="px-4 py-2 rounded-xl bg-brand-400 text-ink text-sm font-bold"
                 >
                   Log food
                 </button>
@@ -450,7 +448,7 @@ export default function DailyPage() {
                 );
                 return (
                   <div key={meal}>
-                    <div className="flex justify-between text-xs uppercase tracking-wide text-slate-500 mb-1.5">
+                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
                       <span>{meal}</span>
                       <span>{fmtInt(kcal)} kcal</span>
                     </div>
@@ -458,7 +456,7 @@ export default function DailyPage() {
                       {items.map((f) => (
                         <div
                           key={f.id}
-                          className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2"
+                          className="flex items-center justify-between border border-panel-border bg-ink/60 rounded-lg px-3 py-2"
                         >
                           <div>
                             <span className="text-white text-sm font-medium">
@@ -500,7 +498,7 @@ export default function DailyPage() {
               action={
                 <button
                   onClick={() => openQuickLog("workout")}
-                  className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold"
+                  className="px-4 py-2 rounded-xl bg-brand-400 text-ink text-sm font-bold"
                 >
                   Log workout
                 </button>
@@ -511,7 +509,7 @@ export default function DailyPage() {
               {loggedExercises.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2"
+                  className="flex items-center justify-between border border-panel-border bg-ink/60 rounded-lg px-3 py-2"
                 >
                   <div>
                     <span className="text-white text-sm font-medium">
@@ -540,7 +538,7 @@ export default function DailyPage() {
       <Card>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-white flex items-center gap-2">
-            <ImageIcon size={18} className="text-purple-400" /> Body photos
+            <ImageIcon size={18} className="text-slate-400" /> Body photos
           </h3>
           <button
             onClick={() => setPhotoOpen(true)}
@@ -558,7 +556,7 @@ export default function DailyPage() {
             {bodyImages.map((img, i: number) => (
               <div
                 key={img.id ?? i}
-                className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950"
+                className="rounded-xl overflow-hidden border border-panel-border bg-panel-card"
               >
                 {img.image_url?.startsWith("data:") ||
                 img.image_url?.startsWith("http") ? (
@@ -568,7 +566,7 @@ export default function DailyPage() {
                     className="w-full h-28 object-cover"
                   />
                 ) : (
-                  <div className="h-28 bg-slate-800 flex items-center justify-center">
+                  <div className="h-28 bg-white/5 flex items-center justify-center">
                     <ImageIcon size={20} className="text-slate-600" />
                   </div>
                 )}
@@ -594,10 +592,10 @@ export default function DailyPage() {
           onClick={() => setPhotoOpen(false)}
         >
           <div
-            className="bg-panel border border-brand-600/30 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="border border-panel-border bg-panel-card rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-5 border-b border-slate-800 sticky top-0 bg-panel rounded-t-3xl z-10">
+            <div className="flex items-center justify-between p-5 border-b border-panel-border sticky top-0 bg-panel-card rounded-t-3xl z-10">
               <h3 className="text-lg font-bold text-white">Add body photo</h3>
               <button
                 onClick={() => setPhotoOpen(false)}
@@ -609,17 +607,17 @@ export default function DailyPage() {
             </div>
             <div className="p-5">
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  {(["front", "side", "back"] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setImageType(t)}
-                      className={`py-2 rounded-xl text-sm font-bold capitalize ${imageType === t ? "bg-brand-400 text-slate-950" : "bg-slate-800 text-slate-400"}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                  <div className="grid grid-cols-3 gap-2 rounded-xl border border-panel-border bg-ink p-1">
+                    {(['front', 'side', 'back'] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setImageType(t)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize ${imageType === t ? 'bg-brand-400 text-ink' : 'text-slate-400 hover:text-white'}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 <input
                   type="file"
                   accept="image/*"
@@ -635,7 +633,7 @@ export default function DailyPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                  className="w-full py-3 rounded-xl border border-panel-border text-slate-300 font-bold transition hover:bg-white/5 hover:text-white"
                 >
                   {imagePreview ? "Change image" : "Choose image"}
                 </button>
@@ -649,7 +647,7 @@ export default function DailyPage() {
                 {imageFile && (
                   <button
                     onClick={handleUploadImage}
-                    className="w-full py-2.5 rounded-xl bg-brand-400 text-slate-950 font-bold"
+                    className="w-full py-2.5 rounded-xl bg-brand-400 text-ink font-bold"
                   >
                     Upload photo
                   </button>

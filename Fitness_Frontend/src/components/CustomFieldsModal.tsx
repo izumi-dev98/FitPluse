@@ -101,7 +101,7 @@ export function CustomFieldsModal({
   };
 
   const renderField = (field: CustomField, _index: number, isBase: boolean) => (
-    <div key={field.id} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3 relative">
+    <div key={field.id} className="border border-panel-border bg-ink/60 rounded-xl p-4 space-y-3 relative">
       {!isBase && (
         <button
           type="button"
@@ -180,7 +180,7 @@ export function CustomFieldsModal({
             className="flex-1 p-2.5 rounded-lg bg-ink border border-slate-700 text-white text-sm"
           />
           {field.options && field.options.map((opt, i) => (
-            <span key={i} className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300 flex items-center gap-1">
+            <span key={i} className="px-2 py-1 bg-white/5 border border-panel-border rounded text-xs text-slate-300 flex items-center gap-1">
               {opt}
               <button type="button" onClick={() => {
                 setFields(prev => prev.map(f => 
@@ -241,7 +241,7 @@ export function CustomFieldsModal({
             <button
               type="button"
               onClick={addCustomField}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-panel-border text-slate-300 text-xs font-medium transition hover:bg-white/5 hover:text-white"
             >
               <Plus size={14} /> Add Field
             </button>
@@ -267,7 +267,7 @@ export function CustomFieldsModal({
                       };
                       setFields(prev => [...prev, newField]);
                     }}
-                    className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition-colors"
+                    className="px-3 py-1.5 rounded-full border border-panel-border bg-ink text-slate-300 text-xs font-medium transition-colors hover:text-white"
                   >
                     {suggestion.label}
                   </button>
@@ -286,7 +286,7 @@ export function CustomFieldsModal({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold disabled:opacity-50"
+          className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold disabled:opacity-50"
         >
           {submitting ? 'Saving...' : submitLabel}
         </button>

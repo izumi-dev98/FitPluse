@@ -122,18 +122,18 @@ export default function ProgressPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card className="text-center">
-          <Scale className="text-brand-400 mx-auto mb-2" size={22} />
-          <div className="text-xs text-slate-400">Latest Weight</div>
+          <Scale className="text-slate-400 mx-auto mb-2" size={22} />
+          <div className="text-xs text-slate-500">Latest weight</div>
           <div className="text-white font-bold text-xl">{sorted.length ? `${sorted[0].weight} kg` : '—'}</div>
         </Card>
         <Card className="text-center">
-          <Calculator className="text-brand-400 mx-auto mb-2" size={22} />
-          <div className="text-xs text-slate-400">7-Day Avg</div>
+          <Calculator className="text-slate-400 mx-auto mb-2" size={22} />
+          <div className="text-xs text-slate-500">7-day avg</div>
           <div className="text-white font-bold text-xl">{avgWeight ?? '—'} kg</div>
         </Card>
         <Card className="text-center">
-          <Target className="text-brand-400 mx-auto mb-2" size={22} />
-          <div className="text-xs text-slate-400">BMR</div>
+          <Target className="text-slate-400 mx-auto mb-2" size={22} />
+          <div className="text-xs text-slate-500">BMR</div>
           <div className="text-white font-bold text-xl">{profile?.bmr ?? '—'}</div>
         </Card>
         <Card className="text-center">
@@ -146,17 +146,17 @@ export default function ProgressPage() {
       {/* Weekly Adjustment */}
       {adjustment && (
         <div className={`rounded-2xl p-5 mb-6 border ${
-          adjustment.includes('✅') ? 'bg-green-900/15 border-green-600/20' :
-          adjustment.includes('⚡') ? 'bg-yellow-900/15 border-yellow-600/20' :
-          adjustment.includes('📈') || adjustment.includes('📉') ? 'bg-red-900/15 border-red-600/20' :
-          'bg-slate-900/40 border-slate-700'
+          adjustment.includes('✅') ? 'border-brand-500/30 bg-brand-400/10' :
+          adjustment.includes('⚡') ? 'bg-amber-600/20 border-amber-500/30' :
+          adjustment.includes('📈') || adjustment.includes('📉') ? 'bg-amber-600/20 border-amber-500/30' :
+          'border-panel-border bg-panel-card'
         }`}>
           <div className="flex items-start gap-3">
             <RefreshCw size={20} className={`mt-1 ${
-              adjustment.includes('✅') ? 'text-green-400' :
-              adjustment.includes('⚡') ? 'text-yellow-400' :
-              adjustment.includes('📈') || adjustment.includes('📉') ? 'text-red-400' :
-              'text-brand-400'
+              adjustment.includes('✅') ? 'text-brand-400' :
+              adjustment.includes('⚡') ? 'text-amber-400' :
+              adjustment.includes('📈') || adjustment.includes('📉') ? 'text-amber-400' :
+              'text-slate-400'
             }`} />
             <div>
               <h3 className="text-lg font-bold text-white mb-1">Weekly Progress Adjustment</h3>
@@ -168,7 +168,7 @@ export default function ProgressPage() {
 
       {/* Weight trend comparison */}
       {last7.length >= 2 && (
-        <div className="bg-brand-900/15 border border-brand-600/20 rounded-2xl p-5 mb-6">
+        <div className="border border-panel-border bg-panel-card rounded-2xl p-5 mb-6">
           <h3 className="text-lg font-bold text-white mb-2">Weekly Trend</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
@@ -181,7 +181,7 @@ export default function ProgressPage() {
             </div>
             <div>
               <div className="text-slate-400">Change</div>
-              <div className={`font-bold text-lg ${weightDiff && weightDiff > 0 ? 'text-green-400' : weightDiff && weightDiff < 0 ? 'text-red-400' : 'text-white'}`}>
+              <div className="font-bold text-lg text-white">
                 {weightDiff !== null ? (weightDiff > 0 ? '+' : '') + weightDiff + ' kg' : '—'}
               </div>
             </div>
@@ -191,22 +191,22 @@ export default function ProgressPage() {
 
       {/* Weight Chart */}
       {sorted.length >= 2 && (
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 mb-6">
+        <div className="border border-panel-border bg-panel-card rounded-2xl p-6 mb-6">
           <h3 className="text-lg font-bold text-white mb-4">Weight Trend</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-              <YAxis stroke="#94a3b8" fontSize={12} />
-              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc' }} />
-              <Line type="monotone" dataKey="weight" stroke="#65a30d" strokeWidth={3} dot={{ fill: '#65a30d', r: 5 }} activeDot={{ r: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1a263d" />
+              <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
+              <YAxis stroke="#64748b" fontSize={11} />
+              <Tooltip contentStyle={{ backgroundColor: '#111a2e', border: '1px solid #1a263d', borderRadius: '12px', color: '#f8fafc' }} />
+              <Line type="monotone" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ fill: '#a3e635', r: 5 }} activeDot={{ r: 8 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {/* Log weight */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 mb-6">
+      <div className="border border-panel-border bg-panel-card rounded-2xl p-6 mb-6">
         <h3 className="text-lg font-bold text-white mb-4">Log Weight</h3>
         <form onSubmit={handleLogWeight} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
           <div>
@@ -221,7 +221,7 @@ export default function ProgressPage() {
           </div>
           <div className="col-span-2 md:col-span-1">
             <button type="submit" disabled={saving}
-              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
+              className="w-full py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-bold transition disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? 'Saving...' : 'Log Weight'}
             </button>
           </div>
@@ -237,9 +237,9 @@ export default function ProgressPage() {
         ) : (
           <div className="grid gap-2">
             {sorted.slice(0, 20).map((w, i) => (
-              <div key={w.id ?? i} className="flex items-center justify-between bg-slate-900/40 border border-slate-800 rounded-xl px-5 py-3">
+              <div key={w.id ?? i} className="flex items-center justify-between border border-panel-border bg-ink/60 rounded-xl px-5 py-3">
                 <div className="flex items-center gap-3">
-                  <Scale size={16} className="text-brand-400" />
+                  <Scale size={16} className="text-slate-400" />
                   <div>
                     <div className="text-white font-medium">{w.weight} kg</div>
                     <div className="text-xs text-slate-500">
@@ -248,7 +248,7 @@ export default function ProgressPage() {
                     </div>
                   </div>
                 </div>
-                {i === 0 && <span className="text-xs bg-brand-600/20 text-brand-300 px-2 py-1 rounded-full">Latest</span>}
+                {i === 0 && <span className="text-xs bg-brand-400/15 text-brand-300 px-2 py-1 rounded-full">Latest</span>}
               </div>
             ))}
           </div>

@@ -17,7 +17,7 @@ import {
   Loader2,
   History,
 } from "lucide-react";
-import { PageHeader, EmptyState, Ring } from "../components/ui";
+import { PageHeader, Ring } from "../components/ui";
 import DailyRecordModal from "../components/DailyRecordModal";
 import Swal from "sweetalert2";
 import { apiClient } from "../lib/api";
@@ -105,15 +105,6 @@ function applyProfile(prev: CalcInputs, p: { gender?: string; weight?: number; h
 
 const pct = (value: number, target: number) =>
   target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
-
-const sumByDate = <T,>(rows: T[], dateOf: (r: T) => string, valueOf: (r: T) => number) => {
-  const out = new Map<string, number>();
-  for (const r of rows) {
-    const d = dateOf(r);
-    if (d) out.set(d, (out.get(d) || 0) + valueOf(r));
-  }
-  return out;
-};
 
 /* ---------------------------- small pieces ---------------------------- */
 
@@ -397,7 +388,7 @@ export default function GoalsPage() {
   const exercisesQ = useDailyExercises(uid);
   const loading = goalsQ.isLoading || recordsQ.isLoading || foodsQ.isLoading || exercisesQ.isLoading;
 
-  const { goals, records, activeGoal, todayMacros } = useMemo(() => {
+  const { goals, activeGoal, todayMacros } = useMemo(() => {
     try {
       const allGoals: Goal[] = goalsQ.data ?? [];
       const recs: DailyRecord[] = recordsQ.data ?? [];
@@ -461,9 +452,10 @@ export default function GoalsPage() {
     }
   }, [goalsQ.data, recordsQ.data, foodsQ.data, exercisesQ.data]);
 
+  const modalOpenedRef = useRef(false);
   useEffect(() => {
-    if (!loading && goals.length === 0 && user?.id && !prefilledRef.current) {
-      prefilledRef.current = true;
+    if (!loading && goals.length === 0 && user?.id && !modalOpenedRef.current) {
+      modalOpenedRef.current = true;
       setShowModal(true);
     }
   }, [loading, goals.length, user?.id]);
@@ -709,7 +701,7 @@ export default function GoalsPage() {
                     </span>
                   ) : (
                     activeGoal.target_date && (
-                      <span className="rounded-full bg-sky-400/15 text-sky-300 px-2.5 py-0.5 text-xs font-bold">
+                      <span className="rounded-full bg-brand-400/15 text-brand-300 px-2.5 py-0.5 text-xs font-bold">
                         Target reached · can change
                       </span>
                     )

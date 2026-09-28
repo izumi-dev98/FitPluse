@@ -74,21 +74,21 @@ function ShellContent({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 font-sans selection:bg-[#ccff00]/30">
+    <div className="min-h-screen bg-ink text-slate-100 font-sans selection:bg-brand-400/30">
       {/* ========================================================= */}
       {/* 1. DESKTOP SIDEBAR (>= 1024px)                            */}
       {/* ========================================================= */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-[#151d2d] bg-[#090d16] z-30">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-panel-border bg-[#090d16] z-30">
         {/* Brand Logo */}
-        <Link to="/" className="px-6 h-20 flex items-center gap-3 border-b border-[#151d2d]">
-          <div className="w-9 h-9 rounded-xl bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.35)] shrink-0">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-black stroke-[3]">
+        <Link to="/" className="px-6 h-20 flex items-center gap-3 border-b border-panel-border">
+          <div className="w-9 h-9 rounded-xl bg-brand-400 text-ink font-black flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-ink stroke-[3]">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <div>
-            <span className="text-xl font-black tracking-tight text-white block leading-none">FITPULSE</span>
-            <span className="text-[10px] font-bold text-[#ccff00] tracking-widest uppercase">Performance OS</span>
+            <span className="text-xl font-black tracking-tight text-white block leading-none">FitPulse</span>
+            <span className="text-[10px] font-bold text-brand-400">Performance OS</span>
           </div>
         </Link>
 
@@ -109,16 +109,16 @@ function ShellContent({ children }: { children: ReactNode }) {
                     end={item.end}
                     className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition relative group ${
                       active
-                        ? 'bg-[#152033] text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                        ? 'bg-brand-400/10 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#ccff00] rounded-r-full shadow-[0_0_8px_#ccff00]" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-400 rounded-r-full" />
                     )}
                     <item.icon
                       size={18}
-                      className={active ? 'text-[#ccff00]' : 'text-slate-400 group-hover:text-white transition'}
+                      className={active ? 'text-brand-400' : 'text-slate-400 group-hover:text-white transition'}
                     />
                     <span>{label(item.label)}</span>
                   </NavLink>
@@ -141,13 +141,13 @@ function ShellContent({ children }: { children: ReactNode }) {
                     to={item.to}
                     className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition group ${
                       active
-                        ? 'bg-[#152033] text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                        ? 'bg-brand-400/10 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <item.icon
                       size={18}
-                      className={active ? 'text-[#ccff00]' : 'text-slate-400 group-hover:text-white transition'}
+                      className={active ? 'text-brand-400' : 'text-slate-400 group-hover:text-white transition'}
                     />
                     <span>{label(item.label)}</span>
                   </NavLink>
@@ -158,9 +158,9 @@ function ShellContent({ children }: { children: ReactNode }) {
         </div>
 
         {/* User Profile Footer */}
-        <div className="p-4 border-t border-[#151d2d] bg-[#070a12] space-y-3">
+        <div className="p-4 border-t border-panel-border bg-ink space-y-3">
           {/* Language Switch */}
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#0e1625] border border-[#182338]">
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-ink border border-panel-border">
             <span className="text-[11px] font-semibold text-slate-400">Language</span>
             <div className="flex rounded-lg bg-black/40 p-0.5" role="group">
               {(['en', 'my'] as Language[]).map((option) => (
@@ -169,7 +169,7 @@ function ShellContent({ children }: { children: ReactNode }) {
                   type="button"
                   onClick={() => setLanguage(option)}
                   className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
-                    language === option ? 'bg-[#ccff00] text-black' : 'text-slate-400 hover:text-white'
+                    language === option ? 'bg-brand-400 text-ink' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {option === 'en' ? 'EN' : 'မြန်မာ'}
@@ -181,15 +181,15 @@ function ShellContent({ children }: { children: ReactNode }) {
           {/* User Row */}
           <div className="flex items-center justify-between">
             <Link to="/profile" className="flex items-center gap-3 overflow-hidden group">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-black text-sm flex items-center justify-center ring-2 ring-blue-400/30 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-brand-400 text-ink font-black text-sm flex items-center justify-center ring-2 ring-brand-500/30 shrink-0">
                 {initials}
               </div>
               <div className="overflow-hidden">
-                <div className="text-sm font-bold text-white truncate group-hover:text-[#ccff00] transition">
+                <div className="text-sm font-bold text-white truncate group-hover:text-brand-400 transition">
                   {name}
                 </div>
                 <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
                   <span>Active</span>
                 </div>
               </div>
@@ -197,7 +197,7 @@ function ShellContent({ children }: { children: ReactNode }) {
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition shrink-0"
+              className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition shrink-0"
               title="Sign Out"
             >
               <LogOut size={16} />
@@ -209,14 +209,14 @@ function ShellContent({ children }: { children: ReactNode }) {
       {/* ========================================================= */}
       {/* 2. TABLET TOP BAR (768px - 1023px, md: to lg:)            */}
       {/* ========================================================= */}
-      <header className="hidden md:flex lg:hidden sticky top-0 z-40 h-16 bg-[#090d16]/95 backdrop-blur-md border-b border-[#151d2d] items-center justify-between px-6">
+      <header className="hidden md:flex lg:hidden sticky top-0 z-40 h-16 bg-ink border-b border-panel-border items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_12px_rgba(204,255,0,0.3)]">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-black stroke-[3]">
+          <div className="w-8 h-8 rounded-xl bg-brand-400 text-ink font-black flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-ink stroke-[3]">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <span className="text-lg font-black tracking-tight text-white">FITPULSE</span>
+          <span className="text-lg font-black tracking-tight text-white">FitPulse</span>
         </Link>
 
         {/* Quick Nav Links on Tablet */}
@@ -229,7 +229,7 @@ function ShellContent({ children }: { children: ReactNode }) {
                 to={item.to}
                 end={item.end}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                  active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white'
+                  active ? 'bg-brand-400/10 text-brand-400' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <item.icon size={15} />
@@ -243,7 +243,7 @@ function ShellContent({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setQuickLogOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-extrabold text-xs transition shadow-[0_0_10px_rgba(204,255,0,0.25)] flex items-center gap-1"
+            className="px-3.5 py-1.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-extrabold text-xs transition flex items-center gap-1"
           >
             <Plus size={14} className="stroke-[3]" />
             <span>Quick Log</span>
@@ -251,13 +251,13 @@ function ShellContent({ children }: { children: ReactNode }) {
 
           <button
             onClick={() => alert('No new notifications')}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-[#0e1625] border border-[#182338]"
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-ink border border-panel-border"
           >
             <Bell size={16} />
           </button>
 
           <Link to="/profile" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-400/30">
+            <div className="w-8 h-8 rounded-full bg-brand-400 text-ink font-bold text-xs flex items-center justify-center ring-2 ring-brand-500/30">
               {initials}
             </div>
           </Link>
@@ -267,32 +267,32 @@ function ShellContent({ children }: { children: ReactNode }) {
       {/* ========================================================= */}
       {/* 3. MOBILE TOP BAR (< 768px)                               */}
       {/* ========================================================= */}
-      <header className="md:hidden sticky top-0 z-40 h-14 bg-[#090d16]/95 backdrop-blur-md border-b border-[#151d2d] flex items-center justify-between px-4">
+      <header className="md:hidden sticky top-0 z-40 h-14 bg-ink border-b border-panel-border flex items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]">
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-black stroke-[3]">
+          <div className="w-7 h-7 rounded-lg bg-brand-400 text-ink font-black flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-ink stroke-[3]">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <span className="font-black text-white text-base tracking-tight">FITPULSE</span>
+          <span className="font-black text-white text-base tracking-tight">FitPulse</span>
         </Link>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setQuickLogOpen(true)}
-            className="p-2 rounded-xl bg-[#ccff00] text-black font-bold flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]"
+            className="p-2 rounded-xl bg-brand-400 text-ink font-bold flex items-center justify-center"
             title="Quick Log"
           >
             <Plus size={16} className="stroke-[3]" />
           </button>
           <button
             onClick={() => alert('No new notifications')}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-[#0e1625] border border-[#182338]"
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-ink border border-panel-border"
           >
             <Bell size={16} />
           </button>
           <Link to="/profile">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center ring-1 ring-blue-400/30">
+            <div className="w-8 h-8 rounded-full bg-brand-400 text-ink font-bold text-xs flex items-center justify-center ring-1 ring-blue-400/30">
               {initials}
             </div>
           </Link>
@@ -312,13 +312,13 @@ function ShellContent({ children }: { children: ReactNode }) {
       {/* 5. MOBILE BOTTOM NAVIGATION (< 1024px)                     */}
       {/* 5 tabs fit small screens — the rest live under "More"     */}
       {/* ========================================================= */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-[#151d2d] pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-ink border-t border-panel-border pb-[env(safe-area-inset-bottom)] shadow-xl">
         <div className="grid grid-cols-5 items-center max-w-md mx-auto relative px-2 py-1">
           {/* Tab 1: Overview */}
           <Link
             to="/"
             className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname === '/' ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              location.pathname === '/' ? 'text-brand-400' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <LayoutDashboard size={20} />
@@ -329,7 +329,7 @@ function ShellContent({ children }: { children: ReactNode }) {
           <Link
             to="/daily"
             className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname.startsWith('/daily') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              location.pathname.startsWith('/daily') ? 'text-brand-400' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <Flame size={20} />
@@ -340,7 +340,7 @@ function ShellContent({ children }: { children: ReactNode }) {
           <div className="flex flex-col items-center justify-center -mt-6">
             <button
               onClick={() => setQuickLogOpen(true)}
-              className="w-13 h-13 rounded-full bg-[#ccff00] hover:bg-[#bbf000] text-black font-black flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.5)] border-4 border-[#090d16] active:scale-95 transition"
+              className="w-13 h-13 rounded-full bg-brand-400 hover:bg-brand-300 text-ink font-black flex items-center justify-center border-4 border-[#090d16] active:scale-95 transition"
               aria-label="Quick Log"
             >
               <Plus size={24} className="stroke-[3]" />
@@ -352,7 +352,7 @@ function ShellContent({ children }: { children: ReactNode }) {
           <Link
             to="/goals"
             className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname.startsWith('/goals') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              location.pathname.startsWith('/goals') ? 'text-brand-400' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <Target size={20} />
@@ -365,7 +365,7 @@ function ShellContent({ children }: { children: ReactNode }) {
               onClick={() => setMoreOpen(!moreOpen)}
               className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition w-full ${
                 moreOpen || MORE_PATHS.some((p) => location.pathname.startsWith(p))
-                  ? 'text-[#ccff00]'
+                  ? 'text-brand-400'
                   : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -373,7 +373,7 @@ function ShellContent({ children }: { children: ReactNode }) {
               <span>More</span>
             </button>
             {moreOpen && (
-              <div className="absolute bottom-full right-0 mb-2 w-52 max-h-[60vh] overflow-y-auto bg-[#0f1626] border border-[#151d2d] rounded-2xl shadow-xl overflow-hidden z-50">
+              <div className="absolute bottom-full right-0 mb-2 w-52 max-h-[60vh] overflow-y-auto bg-panel-card border border-panel-border rounded-2xl shadow-xl overflow-hidden z-50">
                 {MORE_NAV.map((item, i) => {
                   const active = location.pathname.startsWith(item.to);
                   return (
@@ -382,9 +382,9 @@ function ShellContent({ children }: { children: ReactNode }) {
                       to={item.to}
                       onClick={() => setMoreOpen(false)}
                       className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition ${
-                        i > 0 ? 'border-t border-[#151d2d]' : ''
+                        i > 0 ? 'border-t border-panel-border' : ''
                       } ${
-                        active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
+                        active ? 'bg-brand-400/10 text-brand-400' : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
                       <item.icon size={16} />
