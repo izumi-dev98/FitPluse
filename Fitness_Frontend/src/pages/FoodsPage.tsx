@@ -4,8 +4,8 @@ import Swal from "sweetalert2";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
-import { qk } from "../lib/queries";
-import type { DailyFoodRow, Food } from "../lib/database";
+import { qk, useDailyFoods, useFoods } from "../lib/queries";
+import type { Food } from "../lib/database";
 import { PageHeader, Card, PaginationBar, EmptyState } from "../components/ui";
 import { fmtInt } from "../lib/format";
 import {
@@ -20,9 +20,6 @@ function formatDate(value?: string) {
 }
 
 export default function FoodsPage() {
-  const [userId, setUserId] = useState("");
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [logs, setLogs] = useState<DailyFoodRow[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -35,41 +32,21 @@ export default function FoodsPage() {
     import("../components/CustomFieldsModal").CustomField[]
   >([]);
 
-  async function loadFoods(uid: string) {
-    try {
-      const d = await apiClient.getFoods(uid);
-      setFoods(Array.isArray(d) ? d : []);
-    } catch {
-      setFoods([]);
-    }
-  }
-  async function loadLogs(uid: string) {
-    try {
-      const data = await apiClient.getDailyFoods(uid);
-      setLogs(Array.isArray(data) ? data : []);
-    } catch {
-      setLogs([]);
-    }
-  }
-  const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const uid = user?.id;
   const qc = useQueryClient();
 
-  useEffect(() => {
-    if (!accessToken || !user?.id) return;
-    setUserId(user.id);
-    loadFoods(user.id);
-    loadLogs(user.id);
-  }, [accessToken, user?.id]);
+  // Shared cached queries — same keys Daily uses, so the log modal stays fresh.
+  const foods = useFoods(uid).data ?? [];
+  const logs = useDailyFoods(uid).data ?? [];
 
   async function handleCreateFood(data: Record<string, unknown>) {
-    if (!data.name) return;
+    if (!data.name || !uid) return;
     setCreating(true);
     try {
-      await apiClient.createFood({ user_id: userId, ...data });
+      await apiClient.createFood({ user_id: uid, ...data });
       setCreateOpen(false);
-      await loadFoods(userId);
-      qc.invalidateQueries({ queryKey: qk.foods(userId) });
+      qc.invalidateQueries({ queryKey: qk.foods(uid) });
       Swal.fire({
         icon: "success",
         title: "Food added",
@@ -92,10 +69,9 @@ export default function FoodsPage() {
     if (!editFood || !data.name) return;
     setCreating(true);
     try {
-      await apiClient.updateFood(editFood.id, { user_id: userId, ...data });
+      await apiClient.updateFood(editFood.id, { user_id: uid, ...data });
       setEditFood(null);
-      await loadFoods(userId);
-      qc.invalidateQueries({ queryKey: qk.foods(userId) });
+      qc.invalidateQueries({ queryKey: qk.foods(uid) });
       Swal.fire({
         icon: "success",
         title: "Food updated",
@@ -126,8 +102,7 @@ export default function FoodsPage() {
     if (!result.isConfirmed) return;
     try {
       await apiClient.deleteFood(food.id);
-      await loadFoods(userId);
-      qc.invalidateQueries({ queryKey: qk.foods(userId) });
+      qc.invalidateQueries({ queryKey: qk.foods(uid) });
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",

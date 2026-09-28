@@ -30,6 +30,8 @@ import DailyRecordModal from "../components/DailyRecordModal";
 import Swal from "sweetalert2";
 import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { qk, useDailyExercises, useDailyFoods, useDailyRecords, useGoals } from "../lib/queries";
 import { useProfile } from "../lib/queries";
 import { ageFromDob, fmtInt } from "../lib/format";
 import type { DailyRecord, DailyFoodRow, DailyExerciseRow, Goal } from "../lib/database";
@@ -133,12 +135,10 @@ function MacroRing({ label, value, target, unit = "g" }: {
 
 export default function GoalsPage() {
   const { user } = useAuthStore();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [records, setRecords] = useState<DailyRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const uid = user?.id;
+  const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [historyTab, setHistoryTab] = useState<HistoryTab>("daily");
   const [range, setRange] = useState<RangeKey>(14);
   const [page, setPage] = useState(1);
@@ -152,7 +152,6 @@ export default function GoalsPage() {
     age: user?.age || 30,
     activity_level: toActivityLevel(user?.activity_level, "moderately_active"),
   });
-  const [todayMacros, setTodayMacros] = useState({ protein: 0, fat: 0, carbs: 0 });
 
   const profileQ = useProfile();
   const prefilledRef = useRef<string | null>(null);
@@ -183,15 +182,20 @@ export default function GoalsPage() {
   const target = Math.round(calcTarget(tdee, form.goal_type));
   const macros = calcMacros(target, Number(form.weight_kg) || 0);
 
-  async function loadGoals(uid: string) {
+  const goalsQ = useGoals(uid);
+  const recordsQ = useDailyRecords(uid);
+  const foodsQ = useDailyFoods(uid);
+  const exercisesQ = useDailyExercises(uid);
+  const loading =
+    goalsQ.isLoading || recordsQ.isLoading || foodsQ.isLoading || exercisesQ.isLoading;
+
+  // Shared cached queries — revisits render instantly with no refetch.
+  const { goals, records, activeGoal, todayMacros } = useMemo(() => {
     try {
-      const [data, recs, foodLogs, exerciseLogs] = await Promise.all([
-        apiClient.getGoals(uid),
-        apiClient.getDailyRecords(uid).catch(() => []),
-        apiClient.getDailyFoods(uid).catch(() => []),
-        apiClient.getDailyExercises(uid).catch(() => []),
-      ]);
-      const allGoals = Array.isArray(data) ? data : [];
+      const allGoals: Goal[] = goalsQ.data ?? [];
+      const recs: DailyRecord[] = recordsQ.data ?? [];
+      const foodLogs: DailyFoodRow[] = foodsQ.data ?? [];
+      const exerciseLogs: DailyExerciseRow[] = exercisesQ.data ?? [];
       const recordsById = new Map(
         (Array.isArray(recs) ? recs : []).map((record: DailyRecord) => [
           String(record.id),
@@ -246,7 +250,7 @@ export default function GoalsPage() {
             );
         },
       );
-      const mergedRecords = (Array.isArray(recs) ? recs : []).map(
+      const mergedRecords = recs.map(
         (record: DailyRecord) => ({
           ...record,
           calories_consumed: Math.max(
@@ -259,27 +263,29 @@ export default function GoalsPage() {
           ),
         }),
       );
-      setGoals(allGoals);
-      setRecords(mergedRecords);
-      const active = allGoals.find((g: Goal) => g.status === "active");
-      setActiveGoal(active || null);
+      const activeGoal = allGoals.find((g: Goal) => g.status === "active") || null;
       
-      // Find today's macros
+      // Today's macros
       const today = todayKey();
-      setTodayMacros({
-        protein: proteinTotals.get(today) || 0,
-        fat: fatTotals.get(today) || 0,
-        carbs: carbTotals.get(today) || 0,
-      });
+      return {
+        goals: allGoals,
+        records: mergedRecords,
+        activeGoal,
+        todayMacros: {
+          protein: proteinTotals.get(today) || 0,
+          fat: fatTotals.get(today) || 0,
+          carbs: carbTotals.get(today) || 0,
+        },
+      };
     } catch {
-      setGoals([]);
-      setRecords([]);
-      setActiveGoal(null);
-      setTodayMacros({ protein: 0, fat: 0, carbs: 0 });
-    } finally {
-      setLoading(false);
+      return {
+        goals: [],
+        records: [],
+        activeGoal: null,
+        todayMacros: { protein: 0, fat: 0, carbs: 0 },
+      };
     }
-  }
+  }, [goalsQ.data, recordsQ.data, foodsQ.data, exercisesQ.data]);
 
   const dailyRows = useMemo(() => {
     const cutoff = range
@@ -336,10 +342,6 @@ export default function GoalsPage() {
     }
     return { days, avgIn, avgBurn, hitRate, streak };
   }, [dailyRows]);
-
-  useEffect(() => {
-    if (user?.id) loadGoals(user.id);
-  }, [user?.id]);
 
   // Auto-open modal for new users with no goals
   useEffect(() => {
@@ -399,7 +401,7 @@ export default function GoalsPage() {
         status: "active",
       });
 
-      await loadGoals(user.id);
+      qc.invalidateQueries({ queryKey: qk.goals(user.id) });
       setShowModal(false);
       Swal.fire({
         icon: "success",
@@ -460,7 +462,7 @@ export default function GoalsPage() {
 
     try {
       await apiClient.deleteGoal(goalId);
-      await loadGoals(user!.id);
+      qc.invalidateQueries({ queryKey: qk.goals(user!.id) });
       Swal.fire({
         icon: "success",
         title: "Deleted",

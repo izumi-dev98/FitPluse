@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Utensils, X, Sparkles, BookOpen } from 'lucide-react';
-import { apiClient } from '../lib/api';
+import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Utensils, X, BookOpen } from 'lucide-react';
 import { formatDay, todayKey, verdictClass, type DailyRow } from '../lib/dailyHistory';
+import { useDailyExercises, useDailyFoods } from '../lib/queries';
 import { Ring } from './ui';
 import { fmtInt } from '../lib/format';
 import type { DailyExerciseRow, DailyFoodRow } from '../lib/database';
@@ -17,49 +17,27 @@ export default function DailyRecordModal({
   userId?: string;
   onClose: () => void;
 }) {
-  const [foods, setFoods] = useState<DailyFoodRow[]>([]);
-  const [exercises, setExercises] = useState<DailyExerciseRow[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showTheory, setShowTheory] = useState(false);
 
-  useEffect(() => {
-    if (!row || !userId) {
-      setFoods([]);
-      setExercises([]);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const [foodData, exData] = await Promise.all([
-          apiClient.getDailyFoods(userId, row.id).catch(() => []),
-          apiClient.getDailyExercises(userId).catch(() => []),
-        ]);
-        if (cancelled) return;
-        const foodList: DailyFoodRow[] = Array.isArray(foodData) ? foodData : [];
-        setFoods(
-          row.id
-            ? foodList.filter((f) => f.daily_record_id === row.id || dateOf(f) === row.date)
-            : foodList.filter((f) => dateOf(f) === row.date),
-        );
-        const exList: DailyExerciseRow[] = Array.isArray(exData) ? exData : [];
-        setExercises(
-          row.id
-            ? exList.filter((e) => e.daily_record_id === row.id || dateOf(e) === row.date)
-            : exList.filter((e) => dateOf(e) === row.date),
-        );
-      } catch {
-        if (!cancelled) {
-          setFoods([]);
-          setExercises([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [row?.id, row?.date, userId]);
+  // Shared cached queries (per-record key, also used by Daily) — no refetch
+  // when reopening a recently viewed day.
+  const foodsQ = useDailyFoods(userId, row?.id);
+  const exercisesQ = useDailyExercises(userId);
+  const loading = foodsQ.isLoading || exercisesQ.isLoading;
+  const foods = useMemo(() => {
+    if (!row) return [];
+    const foodList = foodsQ.data ?? [];
+    return row.id
+      ? foodList.filter((f) => f.daily_record_id === row.id || dateOf(f) === row.date)
+      : foodList.filter((f) => dateOf(f) === row.date);
+  }, [foodsQ.data, row?.id, row?.date]);
+  const exercises = useMemo(() => {
+    if (!row) return [];
+    const exList = exercisesQ.data ?? [];
+    return row.id
+      ? exList.filter((e) => e.daily_record_id === row.id || dateOf(e) === row.date)
+      : exList.filter((e) => dateOf(e) === row.date);
+  }, [exercisesQ.data, row?.id, row?.date]);
 
   if (!row) return null;
 

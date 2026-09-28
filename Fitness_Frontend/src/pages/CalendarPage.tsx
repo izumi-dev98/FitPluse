@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import { PageHeader } from '../components/ui';
 import { fmtInt } from '../lib/format';
-import type { DailyExerciseRow, DailyFoodRow, DailyRecord, Goal } from '../lib/database';
+import type { DailyExerciseRow, DailyFoodRow } from '../lib/database';
 import DailyRecordModal from '../components/DailyRecordModal';
-import { apiClient } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { useDailyExercises, useDailyFoods, useDailyRecords, useGoals } from '../lib/queries';
 import {
   emptyDayRow,
   enrichDailyRecords,
@@ -58,28 +58,27 @@ function cellTone(row?: DailyRow) {
 
 export default function CalendarPage() {
   const { user } = useAuthStore();
+  const uid = user?.id;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [rows, setRows] = useState<DailyRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DailyRow | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const [g, recs, foodLogs, exerciseLogs] = await Promise.all([
-          apiClient.getGoals(user.id).catch(() => []),
-          apiClient.getDailyRecords(user.id).catch(() => []),
-          apiClient.getDailyFoods(user.id).catch(() => []),
-          apiClient.getDailyExercises(user.id).catch(() => []),
-        ]);
-        const goalList = Array.isArray(g) ? g : [];
-        const recordList: DailyRecord[] = Array.isArray(recs) ? recs : [];
-        const recordsById = new Map(recordList.map((record) => [String(record.id), record.record_date]));
+  // Shared cached queries — same keys Dashboard/Daily use, so revisits are instant.
+  const goalsQ = useGoals(uid);
+  const recordsQ = useDailyRecords(uid);
+  const foodsQ = useDailyFoods(uid);
+  const exercisesQ = useDailyExercises(uid);
+  const loading = goalsQ.isLoading || recordsQ.isLoading || foodsQ.isLoading || exercisesQ.isLoading;
+
+  const goals = goalsQ.data ?? [];
+
+  const rows: DailyRow[] = useMemo(() => {
+    const goalList = goalsQ.data ?? [];
+    const recs = recordsQ.data ?? [];
+    const foodLogs = foodsQ.data ?? [];
+    const exerciseLogs = exercisesQ.data ?? [];
+    const recordsById = new Map(recs.map((record) => [String(record.id), record.record_date]));
         const foodTotals = new Map<string, number>();
         const exerciseTotals = new Map<string, number>();
         (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: DailyFoodRow) => {
@@ -90,21 +89,13 @@ export default function CalendarPage() {
           const date = String(recordsById.get(String(exercise.daily_record_id)) || exercise.record_date || exercise.created_at || '').slice(0, 10);
           if (date) exerciseTotals.set(date, (exerciseTotals.get(date) || 0) + (Number(exercise.calories_burned) || 0));
         });
-        const mergedRecords = recordList.map((record) => ({
+        const mergedRecords = recs.map((record) => ({
           ...record,
           calories_consumed: Math.max(Number(record.calories_consumed) || 0, foodTotals.get(String(record.record_date)) || 0),
           calories_burned: Math.max(Number(record.calories_burned) || 0, exerciseTotals.get(String(record.record_date)) || 0),
         }));
-        setGoals(goalList);
-        setRows(enrichDailyRecords(mergedRecords, goalList));
-      } catch {
-        setGoals([]);
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user?.id]);
+        return enrichDailyRecords(mergedRecords, goalList);
+  }, [goalsQ.data, recordsQ.data, foodsQ.data, exercisesQ.data]);
 
   const byDate = useMemo(() => new Map(rows.map((r) => [r.date, r])), [rows]);
 
