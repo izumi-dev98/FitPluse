@@ -2,15 +2,8 @@ import { useState, useMemo } from 'react';
 import {
   History,
   Calendar,
-  Utensils,
   Flame,
-  Target,
   Droplets,
-  Footprints,
-  ArrowRight,
-  Filter,
-  CheckCircle2,
-  AlertCircle,
   Search,
   BookOpen,
   Sparkles,
@@ -21,8 +14,6 @@ import { useAuthStore } from '../store/auth';
 import {
   useDailyRecords,
   useGoals,
-  useDailyFoods,
-  useDailyExercises,
 } from '../lib/queries';
 import {
   enrichDailyRecords,
@@ -54,8 +45,6 @@ export default function HistoryPage() {
   // Queries
   const recordsQ = useDailyRecords(uid);
   const goalsQ = useGoals(uid);
-  const foodsQ = useDailyFoods(uid);
-  const exercisesQ = useDailyExercises(uid);
 
   const loading = recordsQ.isLoading || goalsQ.isLoading;
 
@@ -317,7 +306,7 @@ export default function HistoryPage() {
           <select
             value={verdictFilter}
             onChange={(e) => {
-              setVerdictFilter(e.target.value as any);
+              setVerdictFilter(e.target.value as 'all' | 'green' | 'amber' | 'red');
               setPage(1);
             }}
             className="px-3 py-1.5 rounded-xl bg-[#090d16] border border-[#182338] text-xs font-bold text-slate-300 focus:outline-none focus:border-[#ccff00]"
@@ -373,7 +362,6 @@ export default function HistoryPage() {
         <div className="space-y-3">
           {pagedRows.map((row) => {
             const isToday = row.date === todayKey();
-            const pct = row.target > 0 ? Math.round((row.consumed / row.target) * 100) : 0;
             const diff = row.target > 0 ? row.consumed - row.target : 0;
 
             return (
