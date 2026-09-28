@@ -8,6 +8,7 @@ import {
   Play,
   Plus,
   ArrowUpRight,
+  ArrowDownRight,
   Trophy,
   Scale,
   Calendar,
@@ -22,6 +23,7 @@ import {
   useDailyExercises,
   useDailyFoods,
   useDailyRecords,
+  useFoods,
   useGoals,
   useWaterIntake,
   useWeightHistory,
@@ -60,6 +62,8 @@ export default function DashboardPage() {
   const waterQ = useWaterIntake(uid);
   const weightsQ = useWeightHistory(uid);
   const burnTargetQ = useBurnTarget(uid);
+  // User's own food catalog for resolving log-row names (shared cache).
+  const foodsCatalogQ = useFoods(uid);
 
   const loading =
     goalsQ.isLoading ||
@@ -84,6 +88,10 @@ export default function DashboardPage() {
     carbs,
     water,
     streak,
+    weekDays,
+    weekBurn,
+    weekTotal,
+    weekDelta,
     latestWeight,
     targetWeight,
     todayFoodsList,
@@ -117,15 +125,62 @@ export default function DashboardPage() {
     );
 
     const dates = new Set(recs.map((r) => r.record_date).filter(Boolean));
+    const recordIdToDate = new Map(recs.map((r) => [String(r.id), r.record_date]));
+    const logDate = (x: { record_date?: string; daily_record_id?: string; created_at?: string }) =>
+      String(x.record_date || recordIdToDate.get(String(x.daily_record_id)) || x.created_at || '').slice(0, 10);
+
+    // Any day with a record, food/exercise log, or water counts as active.
+    const activityDates = new Set(dates);
+    for (const f of foodList) {
+      const d = logDate(f);
+      if (d) activityDates.add(d);
+    }
+    for (const e of exList) {
+      const d = logDate(e);
+      if (d) activityDates.add(d);
+    }
+    for (const w of wList) {
+      const d = String(w.recorded_at || w.created_at || '').slice(0, 10);
+      if (d) activityDates.add(d);
+    }
     let s = 0;
     const d = new Date();
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       const key = d.toISOString().slice(0, 10);
-      if (dates.has(key)) {
+      if (activityDates.has(key)) {
         s++;
         d.setDate(d.getDate() - 1);
       } else break;
     }
+
+    // Last 7 days (oldest → today): hits + burned kcal per day.
+    const weekDays: { key: string; label: string; hit: boolean }[] = [];
+    const weekBurn: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const dt = new Date();
+      dt.setDate(dt.getDate() - i);
+      const key = dt.toISOString().slice(0, 10);
+      weekDays.push({ key, label: 'SMTWTFS'[dt.getDay()], hit: activityDates.has(key) });
+      weekBurn.push(0);
+    }
+    const weekIndex = new Map(weekDays.map((w, i) => [w.key, i]));
+    for (const e of exList) {
+      const idx = weekIndex.get(logDate(e));
+      if (idx !== undefined) weekBurn[idx] += Number(e.calories_burned) || 0;
+    }
+    // Previous 7 days total for the week-over-week delta.
+    const prevKeys = new Set<string>();
+    for (let i = 7; i < 14; i++) {
+      const dt = new Date();
+      dt.setDate(dt.getDate() - i);
+      prevKeys.add(dt.toISOString().slice(0, 10));
+    }
+    let prevBurn = 0;
+    for (const e of exList) {
+      if (prevKeys.has(logDate(e))) prevBurn += Number(e.calories_burned) || 0;
+    }
+    const weekTotal = weekBurn.reduce((a, v) => a + v, 0);
+    const weekDelta = prevBurn > 0 ? Math.round(((weekTotal - prevBurn) / prevBurn) * 100) : weekTotal > 0 ? 100 : 0;
 
     const wHist = weightsQ.data ?? [];
     const latest = wHist.length
@@ -139,6 +194,8 @@ export default function DashboardPage() {
     const b = todayEx.reduce((sum: number, e) => sum + (Number(e.calories_burned) || 0), 0);
 
     const burnTarget = burnTargetQ.data;
+
+    const foodNames = new Map((foodsCatalogQ.data ?? []).map((f) => [String(f.id), f.name]));
 
     return {
       steps: Number(todayRec?.steps) || 0,
@@ -159,9 +216,16 @@ export default function DashboardPage() {
       carbs: todayFoods.reduce((sum: number, f) => sum + (Number(f.carbohydrates) || 0), 0),
       water: waterSum || Number(todayRec?.water_ml) || 0,
       streak: s,
+      weekDays,
+      weekBurn,
+      weekTotal,
+      weekDelta,
       latestWeight: latest ? Number(latest.weight) : 0,
       targetWeight: active?.target_value ? Number(active.target_value) : 0,
-      todayFoodsList: todayFoods,
+      todayFoodsList: todayFoods.map((f) => ({
+        ...f,
+        food_name: foodNames.get(String(f.food_id)) || f.food_name || f.meal_type || 'Meal',
+      })),
     };
   }, [
     recordsQ.data,
@@ -170,6 +234,7 @@ export default function DashboardPage() {
     exercisesQ.data,
     waterQ.data,
     weightsQ.data,
+    foodsCatalogQ.data,
     burnTargetQ.data,
     user?.weight_kg,
   ]);
@@ -208,6 +273,8 @@ export default function DashboardPage() {
   ) || 0;
 
   const displayStreak = streak;
+  const weekHits = weekDays.filter((w) => w.hit).length;
+  const weekMax = Math.max(...weekBurn, 1);
   const currentWeight = latestWeight || user?.weight_kg || 0;
   const goalWeight = targetWeight || 0;
   const weightChange = (currentWeight - goalWeight).toFixed(1);
@@ -875,21 +942,27 @@ export default function DashboardPage() {
             <p className="text-[11px] text-slate-400 mb-2.5">
               Logged workouts & fuel consecutively
             </p>
-            {/* 7 Weekday Bubbles */}
+            {/* 7 Weekday Bubbles — real activity, oldest → today */}
             <div className="grid grid-cols-7 gap-1.5 text-center">
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1">
-                  <div className="w-8 h-8 rounded-full bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]">
-                    <CheckCircle2 size={16} className="stroke-[3]" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400">{day}</span>
+              {weekDays.map((w) => (
+                <div key={w.key} className="flex flex-col items-center gap-1">
+                  {w.hit ? (
+                    <div className="w-8 h-8 rounded-full bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]">
+                      <CheckCircle2 size={16} className="stroke-[3]" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#162238] border border-[#223352] flex items-center justify-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                    </div>
+                  )}
+                  <span className={`text-[10px] font-bold ${w.hit ? 'text-[#ccff00]' : 'text-slate-500'}`}>{w.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#182338] flex items-center justify-between text-[11px] text-slate-400">
-            <span>7/7 days hit this week</span>
+            <span>{weekHits}/7 days hit this week</span>
             <button
               onClick={() => navigate('/calendar')}
               className="text-[#ccff00] font-bold hover:underline"
@@ -899,56 +972,55 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* CARD 3: TRAINING LOAD (Bar Chart) */}
+        {/* CARD 3: TRAINING LOAD (Bar Chart — real burned kcal, last 7 days) */}
         <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
               <TrendingUp size={16} className="text-[#ccff00]" />
               Training Load
             </span>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 flex items-center gap-0.5">
-              <span>+14%</span>
-              <ArrowUpRight size={12} />
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border flex items-center gap-0.5 ${
+              weekDelta >= 0
+                ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30'
+                : 'bg-rose-950/60 text-rose-300 border-rose-800/40'
+            }`}>
+              <span>{weekDelta >= 0 ? `+${weekDelta}%` : `${weekDelta}%`}</span>
+              {weekDelta >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
             </span>
           </div>
 
           <div className="my-2">
-            <p className="text-[11px] text-slate-400 mb-3">Optimal strain zone: 420-550</p>
+            <p className="text-[11px] text-slate-400 mb-3">Burned kcal per day · vs previous week</p>
             {/* High-tech bar chart */}
             <div className="h-20 flex items-end justify-between gap-2 px-1">
-              {[
-                { day: 'M', height: '45%', active: false },
-                { day: 'T', height: '60%', active: false },
-                { day: 'W', height: '40%', active: false },
-                { day: 'T', height: '75%', active: false },
-                { day: 'F', height: '55%', active: false },
-                { day: 'S', height: '70%', active: false },
-                { day: 'S', height: '95%', active: true },
-              ].map((b, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                  <div
-                    className={`w-full rounded-t-lg transition-all duration-500 ${
-                      b.active
-                        ? 'bg-[#ccff00] shadow-[0_0_12px_#ccff00]'
-                        : 'bg-[#18263e] hover:bg-[#223555]'
-                    }`}
-                    style={{ height: b.height }}
-                  />
-                  <span
-                    className={`text-[10px] font-bold ${
-                      b.active ? 'text-[#ccff00]' : 'text-slate-500'
-                    }`}
-                  >
-                    {b.day}
-                  </span>
-                </div>
-              ))}
+              {weekBurn.map((v, idx) => {
+                const isToday = idx === weekBurn.length - 1;
+                return (
+                  <div key={weekDays[idx]?.key ?? idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div
+                      className={`w-full rounded-t-lg transition-all duration-500 ${
+                        isToday
+                          ? 'bg-[#ccff00] shadow-[0_0_12px_#ccff00]'
+                          : 'bg-[#18263e] hover:bg-[#223555]'
+                      }`}
+                      style={{ height: `${v > 0 ? Math.max(8, Math.round((v / weekMax) * 100)) : 4}%` }}
+                    />
+                    <span
+                      className={`text-[10px] font-bold ${
+                        isToday ? 'text-[#ccff00]' : 'text-slate-500'
+                      }`}
+                    >
+                      {weekDays[idx]?.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#182338] flex items-center justify-between text-[11px] text-slate-400">
-            <span>Weekly strain score: 480</span>
-            <span className="text-[#ccff00] font-bold">Optimal</span>
+            <span>Week total: {fmtInt(weekTotal)} kcal</span>
+            <span className="text-[#ccff00] font-bold">{weekTotal > 0 ? 'Active' : 'Rest week'}</span>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   CalendarDays,
   Plus,
@@ -26,6 +26,8 @@ import {
   useDailyExercises,
   useDailyFoods,
   useDailyRecords,
+  useExercises,
+  useFoods,
   useGoals,
   useInvalidateDaily,
   useWaterIntake,
@@ -68,6 +70,10 @@ export default function DailyPage() {
   const waterQ = useWaterIntake(uid);
   const dailyExercisesQ = useDailyExercises(uid);
   const burnTargetQ = useBurnTarget(uid);
+  // User's own catalogs (shared cache with Foods/Workout pages) — the
+  // backend returns raw log rows, so names resolve client-side.
+  const foodsCatalogQ = useFoods(uid);
+  const exercisesCatalogQ = useExercises(uid);
 
   const goals = goalsQ.data ?? [];
   const records = recordsQ.data ?? [];
@@ -76,6 +82,14 @@ export default function DailyPage() {
   const allLoggedExercises = dailyExercisesQ.data ?? [];
 
   const burnTarget = burnTargetQ.data;
+  const foodNames = useMemo(
+    () => new Map((foodsCatalogQ.data ?? []).map((f) => [String(f.id), f.name])),
+    [foodsCatalogQ.data],
+  );
+  const exerciseNames = useMemo(
+    () => new Map((exercisesCatalogQ.data ?? []).map((e) => [String(e.id), e.name])),
+    [exercisesCatalogQ.data],
+  );
 
   const today = todayStr();
   const rec = records.find((r) => r.record_date === today);
@@ -448,7 +462,7 @@ export default function DailyPage() {
                         >
                           <div>
                             <span className="text-white text-sm font-medium">
-                              {f.name}
+                              {foodNames.get(String(f.food_id)) || f.name || "Food"}
                             </span>
                             <span className="text-slate-500 ml-2 text-xs">
                               ×{f.quantity}
@@ -501,7 +515,7 @@ export default function DailyPage() {
                 >
                   <div>
                     <span className="text-white text-sm font-medium">
-                      {e.name}
+                      {exerciseNames.get(String(e.exercise_id)) || e.name || "Workout"}
                     </span>
                     <span className="text-slate-500 ml-2 text-xs">
                       {e.sets}×{e.reps} · {e.duration_minutes} min

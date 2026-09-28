@@ -7,10 +7,15 @@ import profileRoutes from './routes/profileRoutes.js';
 import calculationRoutes from './routes/calculationRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
 import trackingRoutes from './routes/trackingRoutes.js';
+import { requestId } from './middleware/requestId.js';
+import { requireAuth, requireOwner } from './middleware/requireAuth.js';
+import { notFound } from './middleware/notFound.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(requestId);
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -22,15 +27,13 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/profiles', profileRoutes);
+app.use('/api/profiles', requireAuth, requireOwner, profileRoutes);
 app.use('/api', calculationRoutes);
-app.use('/api', resourceRoutes);
+app.use('/api', requireAuth, requireOwner, resourceRoutes);
 app.use('/api', trackingRoutes);
 
-app.use((err, _req, res, _next) => {
-  console.error('Unhandled request error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use('/api', notFound);
+app.use(errorHandler);
 
 const server = app.listen(port, () => {
   console.log(`Fitness API running on http://localhost:${port}`);

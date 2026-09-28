@@ -12,7 +12,6 @@ import {
   User,
   LogOut,
   Bell,
-  Sparkles,
   Plus,
   History,
   ChevronDown,
@@ -20,7 +19,6 @@ import {
 import { useAuthStore } from '../store/auth';
 import { LanguageProvider, useLanguage, type Language } from '../lib/i18n';
 import QuickLogModal from './QuickLogModal';
-import CoachingModal from './CoachingModal';
 
 const MAIN_NAV = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -63,7 +61,6 @@ function ShellContent({ children }: { children: ReactNode }) {
     .toUpperCase();
 
   const [quickLogOpen, setQuickLogOpen] = useState(false);
-  const [coachingOpen, setCoachingOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
   // Close "More" dropdown when route changes
@@ -157,24 +154,6 @@ function ShellContent({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-          </div>
-
-          {/* Unlock Coaching Card Widget */}
-          <div className="p-4 rounded-2xl bg-gradient-to-b from-[#121c2e] to-[#0c1322] border border-[#1d2b45] shadow-lg relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#ccff00]/10 rounded-full blur-2xl group-hover:bg-[#ccff00]/15 transition" />
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#ccff00] mb-1">
-              <Sparkles size={13} />
-              <span>Unlock Coaching</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed mb-3">
-              Upgrade to access personalized AI coaching & smart meal plans.
-            </p>
-            <button
-              onClick={() => setCoachingOpen(true)}
-              className="w-full py-2 px-3 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-extrabold text-xs transition shadow-[0_0_12px_rgba(204,255,0,0.3)] flex items-center justify-center gap-1.5"
-            >
-              <span>Upgrade Now</span>
-            </button>
           </div>
         </div>
 
@@ -421,7 +400,6 @@ function ShellContent({ children }: { children: ReactNode }) {
 
       {/* Global Modals accessible anywhere */}
       <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
-      <CoachingModal open={coachingOpen} onClose={() => setCoachingOpen(false)} />
     </div>
   );
 }
