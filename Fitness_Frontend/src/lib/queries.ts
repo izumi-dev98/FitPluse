@@ -79,7 +79,6 @@ export const useUserBadges = (uid?: string) =>
 // Returns the additive adjustment applied to TDEE for the current goal.
 export const useBurnTarget = (uid?: string) => {
   const { data: profile } = useProfile();
-  const { data: goals } = useGoals(uid);
 
   return useQuery({
     queryKey: qk.burnTarget(uid),

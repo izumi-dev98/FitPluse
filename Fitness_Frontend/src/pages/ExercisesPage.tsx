@@ -159,7 +159,7 @@ export default function ExercisesPage() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold"
           >
             <Plus size={16} /> My Exercise
           </button>
@@ -182,7 +182,7 @@ export default function ExercisesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search exercises..."
-                className="w-full pl-9 p-3 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm"
+                className="w-full pl-9 p-3 rounded-xl bg-ink border border-panel-border text-white text-sm"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function ExercisesPage() {
             <div className="overflow-x-auto pb-8 lg:pb-0">
               <table className="w-full text-sm min-w-[480px]">
                 <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
+                  <tr className="text-left text-[11px] text-slate-500 border-y border-panel-border">
                     <th className="px-4 py-2.5 font-semibold">Name</th>
                     <th className="px-3 py-2.5 font-semibold">Type</th>
                     <th className="px-3 py-2.5 font-semibold">Description</th>
@@ -209,7 +209,7 @@ export default function ExercisesPage() {
                     return (
                       <tr
                         key={x.id}
-                        className="border-b border-slate-800/70 hover:bg-slate-900/50"
+                        className="border-b border-panel-border hover:bg-white/[0.03]"
                       >
                         <td className="px-4 py-3 font-bold text-white">
                           {x.name}
@@ -271,7 +271,7 @@ export default function ExercisesPage() {
           <div className="overflow-x-auto pb-8 lg:pb-0">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
+                <tr className="text-left text-[11px] text-slate-500 border-y border-panel-border">
                   <th className="px-4 py-2.5">Date</th>
                   <th className="px-3 py-2.5">Exercise</th>
                   <th className="px-3 py-2.5">Sets × reps</th>
@@ -281,7 +281,7 @@ export default function ExercisesPage() {
               </thead>
               <tbody>
                 {pagedLogs.map((log) => (
-                  <tr key={log.id} className="border-b border-slate-800/70">
+                  <tr key={log.id} className="border-b border-panel-border">
                     <td className="px-4 py-3 text-slate-400">
                       {formatDate(log.created_at)}
                     </td>

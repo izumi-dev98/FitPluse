@@ -242,8 +242,8 @@ export default function DashboardPage() {
   if (loading && !recordsQ.data && !goalsQ.data) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-slate-400">
-        <div className="w-10 h-10 rounded-full border-2 border-[#ccff00] border-t-transparent animate-spin" />
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Loading your performance metrics…</p>
+        <div className="w-10 h-10 rounded-full border-2 border-brand-400 border-t-transparent animate-spin" />
+        <p className="text-xs font-bold  text-slate-400">Loading your performance metrics…</p>
       </div>
     );
   }
@@ -289,8 +289,7 @@ export default function DashboardPage() {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
-    })
-    .toUpperCase();
+    });
 
   // Quick instant actions
   const handleQuickAddWater = async () => {
@@ -355,15 +354,15 @@ export default function DashboardPage() {
       {/* ========================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest text-[#ccff00] mb-1">
+          <p className="text-[11px] font-black  text-brand-400 mb-1">
             {dateFormatted}
           </p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight uppercase">
-            OWN YOUR {dayName.toUpperCase()}, {firstName.toUpperCase()}.
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+            Own your {dayName}, {firstName}.
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
             You're{' '}
-            <span className="text-[#ccff00] font-bold">{fmtInt(displayRemaining)} kcal</span> and{' '}
+            <span className="text-brand-400 font-bold">{fmtInt(displayRemaining)} kcal</span> and{' '}
             <span className="text-white font-bold">{displaySteps >= STEPS_GOAL ? '0' : stepsRemaining.toLocaleString()} steps</span>{' '}
             away from a perfect day.
           </p>
@@ -372,8 +371,8 @@ export default function DashboardPage() {
         {/* Right Header Controls */}
         <div className="flex items-center gap-3">
           <div className="relative">
-            <button className="px-3.5 py-2 rounded-xl bg-[#0f1726] border border-[#1a263d] text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 transition">
-              <Calendar size={14} className="text-[#ccff00]" />
+            <button className="px-3.5 py-2 rounded-xl border border-panel-border bg-ink text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 transition">
+              <Calendar size={14} className="text-brand-400" />
               <span>Today</span>
               <ChevronDown size={14} className="text-slate-500" />
             </button>
@@ -381,7 +380,7 @@ export default function DashboardPage() {
 
           <button
             onClick={() => openQuickLog('food')}
-            className="px-5 py-2.5 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_20px_rgba(204,255,0,0.35)] flex items-center gap-1.5 active:scale-95"
+            className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-xs transition flex items-center gap-1.5 active:scale-95"
           >
             <Plus size={16} className="stroke-[3]" />
             <span>Quick Log</span>
@@ -394,26 +393,26 @@ export default function DashboardPage() {
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* DAILY FUEL CARD */}
-        <div className="lg:col-span-2 rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 sm:p-6 shadow-xl relative overflow-hidden group">
+        <div className="lg:col-span-2 rounded-3xl bg-panel-card border border-panel-border p-5 sm:p-6 shadow-xl relative overflow-hidden group">
           {/* Subtle glow highlight */}
-          <div className="absolute top-0 right-1/4 w-40 h-40 bg-[#ccff00]/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-1/4 w-40 h-40 bg-brand-400/5 rounded-full blur-3xl pointer-events-none" />
 
           {/* Card Top Title Row */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-lg bg-[#ccff00]/15 text-[#ccff00] flex items-center justify-center">
+              <span className="w-7 h-7 rounded-lg bg-brand-400/15 text-brand-400 flex items-center justify-center">
                 <Flame size={16} />
               </span>
               <div>
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">Daily Fuel</h2>
+                <h2 className="text-sm font-black text-white ">Daily Fuel</h2>
                 <p className="text-[11px] text-slate-400">
                   Calorie balance • {fmtInt(displayGoal)} kcal target
                 </p>
               </div>
             </div>
 
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 shadow-[0_0_8px_rgba(204,255,0,0.2)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-pulse" />
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold bg-brand-400/15 text-brand-400 border border-brand-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
               On Track
             </span>
           </div>
@@ -428,7 +427,7 @@ export default function DashboardPage() {
                   cy="78"
                   r="64"
                   fill="none"
-                  stroke="#162238"
+                  stroke="#1a263d"
                   strokeWidth="13"
                 />
                 <circle
@@ -447,7 +446,7 @@ export default function DashboardPage() {
                 <span className="text-3xl font-black text-white tracking-tight">
                   {fmtInt(displayRemaining)}
                 </span>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mt-0.5">
+                <span className="text-[10px] font-extrabold  text-slate-400 mt-0.5">
                   Kcal Left
                 </span>
               </div>
@@ -455,8 +454,8 @@ export default function DashboardPage() {
 
             {/* 3 Stat Columns */}
             <div className="flex-1 w-full grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="p-3.5 rounded-2xl bg-[#090e18] border border-[#18253b] text-center">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 text-center">
+                <div className="text-[10px] font-extrabold  text-slate-400">
                   Consumed
                 </div>
                 <div className="text-lg sm:text-xl font-black text-white mt-0.5">
@@ -465,11 +464,11 @@ export default function DashboardPage() {
                 <div className="text-[10px] text-slate-500 font-medium">kcal</div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#090e18] border border-[#18253b] text-center">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 text-center">
+                <div className="text-[10px] font-extrabold  text-slate-400">
                   Burned
                 </div>
-                <div className="text-lg sm:text-xl font-black text-[#ccff00] mt-0.5">
+                <div className="text-lg sm:text-xl font-black text-brand-400 mt-0.5">
                   {fmtInt(displayBurned)}
                 </div>
                 {burnTarget && burnTarget.offset !== 0 && (
@@ -483,8 +482,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[#090e18] border border-[#18253b] text-center">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 text-center">
+                <div className="text-[10px] font-extrabold  text-slate-400">
                   Net Kcal
                 </div>
                 <div className="text-lg sm:text-xl font-black text-white mt-0.5">
@@ -497,13 +496,13 @@ export default function DashboardPage() {
         </div>
 
         {/* MACROS CARD */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 sm:p-6 shadow-xl flex flex-col justify-between">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 sm:p-6 shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-black text-white uppercase tracking-wider">Macros</h2>
+              <h2 className="text-sm font-black text-white ">Macros</h2>
               <p className="text-[11px] text-slate-400">Target: {proteinTarget}g P • {carbTarget}g C</p>
             </div>
-            <span className="text-2xl font-black text-[#ccff00] tracking-tight">
+            <span className="text-2xl font-black text-brand-400 tracking-tight">
               {macroPct}%
             </span>
           </div>
@@ -513,17 +512,17 @@ export default function DashboardPage() {
             {/* Protein */}
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
-                <span className="text-sky-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-protein" />
                   Protein
                 </span>
                 <span className="text-slate-300 font-semibold">
                   <b className="text-white font-extrabold">{Math.round(displayProtein)}</b> / {proteinTarget}g
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-[#162238] overflow-hidden">
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-sky-400 transition-all duration-700"
+                  className="h-full rounded-full bg-protein transition-all duration-700"
                   style={{ width: `${Math.min(100, (displayProtein / proteinTarget) * 100)}%` }}
                 />
               </div>
@@ -532,17 +531,17 @@ export default function DashboardPage() {
             {/* Carbs */}
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
-                <span className="text-amber-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-carbs" />
                   Carbs
                 </span>
                 <span className="text-slate-300 font-semibold">
                   <b className="text-white font-extrabold">{Math.round(displayCarbs)}</b> / {carbTarget}g
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-[#162238] overflow-hidden">
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-amber-400 transition-all duration-700"
+                  className="h-full rounded-full bg-carbs transition-all duration-700"
                   style={{ width: `${Math.min(100, (displayCarbs / carbTarget) * 100)}%` }}
                 />
               </div>
@@ -551,28 +550,28 @@ export default function DashboardPage() {
             {/* Fat */}
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
-                <span className="text-purple-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-fat" />
                   Fat
                 </span>
                 <span className="text-slate-300 font-semibold">
                   <b className="text-white font-extrabold">{Math.round(displayFat)}</b> / {fatTarget}g
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-[#162238] overflow-hidden">
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-purple-400 transition-all duration-700"
+                  className="h-full rounded-full bg-fat transition-all duration-700"
                   style={{ width: `${Math.min(100, (displayFat / fatTarget) * 100)}%` }}
                 />
               </div>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[#182338] flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-4 pt-3 border-t border-panel-border flex items-center justify-between text-[11px] text-slate-400">
             <span>Daily Macro Balance</span>
             <button
               onClick={() => openQuickLog('food')}
-              className="text-[#ccff00] hover:underline font-bold flex items-center gap-0.5"
+              className="text-brand-400 hover:underline font-bold flex items-center gap-0.5"
             >
               <span>Log food</span>
               <ArrowUpRight size={13} />
@@ -586,13 +585,13 @@ export default function DashboardPage() {
       {/* ========================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* HYDRATION CARD */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between relative group hover:border-cyan-500/40 transition">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between relative group transition">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-cyan-400 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
+            <span className="text-slate-500 flex items-center gap-2 text-xs font-extrabold ">
               <Droplets size={16} />
               Hydration
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/60 text-cyan-300 border border-cyan-800/40">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-400">
               {waterPct}%
             </span>
           </div>
@@ -608,9 +607,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="h-1.5 rounded-full bg-[#162238] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-cyan-400 transition-all duration-500"
+                className="h-full rounded-full bg-water transition-all duration-500"
                 style={{ width: `${Math.min(100, waterPct)}%` }}
               />
             </div>
@@ -618,14 +617,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between pt-1">
               <button
                 onClick={handleQuickAddWater}
-                className="px-3 py-1 rounded-xl bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/50 text-cyan-300 text-xs font-bold transition flex items-center gap-1"
+                className="px-3 py-1 rounded-xl border border-panel-border bg-ink text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
               >
                 <Plus size={13} />
                 <span>250ml</span>
               </button>
               <button
                 onClick={() => openQuickLog('water')}
-                className="text-[11px] text-slate-400 hover:text-cyan-300 transition"
+                className="text-[11px] text-slate-400 hover:text-white transition"
               >
                 Custom log →
               </button>
@@ -634,13 +633,13 @@ export default function DashboardPage() {
         </div>
 
         {/* DAILY STEPS CARD */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between relative group hover:border-[#ccff00]/40 transition">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between relative group transition">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[#ccff00] flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
+            <span className="text-slate-500 flex items-center gap-2 text-xs font-extrabold ">
               <Footprints size={16} />
               Daily Steps
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-400">
               {stepsPct}%
             </span>
           </div>
@@ -658,9 +657,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="h-1.5 rounded-full bg-[#162238] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#ccff00] transition-all duration-500 shadow-[0_0_8px_#ccff00]"
+                  className="h-full rounded-full bg-brand-400 transition-all duration-500"
                 style={{ width: `${Math.min(100, stepsPct)}%` }}
               />
             </div>
@@ -668,14 +667,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between pt-1">
               <button
                 onClick={handleQuickAddSteps}
-                className="px-3 py-1 rounded-xl bg-[#ccff00]/15 hover:bg-[#ccff00]/25 border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold transition flex items-center gap-1"
+                  className="px-3 py-1 rounded-xl border border-panel-border bg-ink text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
               >
                 <Plus size={13} />
                 <span>1,000 steps</span>
               </button>
               <button
                 onClick={() => openQuickLog('steps')}
-                className="text-[11px] text-slate-400 hover:text-[#ccff00] transition"
+                className="text-[11px] text-slate-400 hover:text-brand-400 transition"
               >
                 Update →
               </button>
@@ -684,13 +683,13 @@ export default function DashboardPage() {
         </div>
 
         {/* ACTIVE PERIOD CARD */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between relative group hover:border-rose-500/40 transition">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between relative group transition">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-rose-400 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
+            <span className="text-slate-500 flex items-center gap-2 text-xs font-extrabold ">
               <Flame size={16} />
               Active Period
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950/60 text-rose-300 border border-rose-800/40">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-400">
               75%
             </span>
           </div>
@@ -704,9 +703,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="h-1.5 rounded-full bg-[#162238] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-rose-400 transition-all duration-500"
+                className="h-full rounded-full bg-brand-400 transition-all duration-500"
                 style={{ width: '75%' }}
               />
             </div>
@@ -714,14 +713,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between pt-1">
               <button
                 onClick={() => setWorkoutModalOpen(true)}
-                className="px-3 py-1 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-800/50 text-rose-300 text-xs font-bold transition flex items-center gap-1"
+                className="px-3 py-1 rounded-xl border border-panel-border bg-ink text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1"
               >
                 <Play size={12} />
                 <span>Start workout</span>
               </button>
               <button
                 onClick={() => navigate('/exercises')}
-                className="text-[11px] text-slate-400 hover:text-rose-300 transition"
+                className="text-[11px] text-slate-400 hover:text-white transition"
               >
                 Routines →
               </button>
@@ -735,19 +734,19 @@ export default function DashboardPage() {
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* TODAY'S WORKOUT CARD */}
-        <div className="lg:col-span-2 rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 sm:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-2 rounded-3xl bg-panel-card border border-panel-border p-5 sm:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
           <div>
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Dumbbell size={18} className="text-[#ccff00]" />
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                <Dumbbell size={18} className="text-brand-400" />
+                <h2 className="text-sm font-black text-white ">
                   Today's Workout
                 </h2>
               </div>
               <button
                 onClick={() => setWorkoutModalOpen(true)}
-                className="text-xs font-bold text-[#ccff00] hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-brand-400 hover:underline flex items-center gap-1"
               >
                 <span>View plan</span>
                 <ArrowUpRight size={14} />
@@ -755,41 +754,40 @@ export default function DashboardPage() {
             </div>
 
             {/* Workout Card Layout (Split Details and Graphic) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center bg-[#090d16] border border-[#182338] rounded-2xl p-4 sm:p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center bg-panel-card border border-panel-border rounded-2xl p-4 sm:p-5">
               <div className="space-y-2">
-                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30">
+                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-400/15 text-brand-400 border border-brand-500/30">
                   Lower Body Focus
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  LOWER BODY POWER
+                  Lower body power
                 </h3>
                 <p className="text-xs text-slate-400">
                   5 exercises • 45 mins • Circuit style
                 </p>
 
                 <div className="pt-2 flex flex-wrap gap-2">
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-[#141f33] text-slate-300">
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-white/10 text-slate-300">
                     🔥 380 kcal est.
                   </span>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-[#141f33] text-slate-300">
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-white/10 text-slate-300">
                     ⏱️ 90s rest
                   </span>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-[#141f33] text-slate-300">
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-xl bg-white/10 text-slate-300">
                     🏋️ Dumbbells + Mat
                   </span>
                 </div>
               </div>
 
               {/* Workout Illustration / Visual Preview */}
-              <div className="relative h-36 rounded-xl bg-gradient-to-tr from-[#0a1220] to-[#122038] border border-[#1e2f4d] flex flex-col items-center justify-center overflow-hidden p-4 group">
-                <div className="absolute inset-0 bg-[radial-gradient(#ccff00_1px,transparent_1px)] [background-size:16px_16px] opacity-10" />
+              <div className="relative h-36 rounded-xl border border-panel-border bg-panel-card flex flex-col items-center justify-center overflow-hidden p-4 group">
                 <div className="text-center z-10 space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black mx-auto flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.4)]">
+                  <div className="w-10 h-10 rounded-full bg-brand-400 text-ink mx-auto flex items-center justify-center">
                     <Dumbbell size={20} className="stroke-[2.5]" />
                   </div>
                   <button
                     onClick={() => setWorkoutModalOpen(true)}
-                    className="px-6 py-2 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_15px_rgba(204,255,0,0.35)] flex items-center gap-1.5 mx-auto active:scale-95"
+                    className="px-6 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-xs transition flex items-center gap-1.5 mx-auto active:scale-95"
                   >
                     <Play size={13} fill="currentColor" />
                     <span>Start Session</span>
@@ -801,18 +799,18 @@ export default function DashboardPage() {
         </div>
 
         {/* MEAL LOG CARD */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 sm:p-6 shadow-xl flex flex-col justify-between">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 sm:p-6 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Utensils size={18} className="text-amber-400" />
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                <Utensils size={18} className="text-slate-400" />
+                <h2 className="text-sm font-black text-white ">
                   Meal Log
                 </h2>
               </div>
               <button
                 onClick={() => openQuickLog('food')}
-                className="text-xs font-bold text-[#ccff00] hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-brand-400 hover:underline flex items-center gap-1"
               >
                 <span>Add meal</span>
                 <Plus size={14} />
@@ -831,10 +829,10 @@ export default function DashboardPage() {
               ).map((meal, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-2xl bg-[#090e18] border border-[#18253b] flex items-center justify-between hover:border-slate-700 transition"
+                  className="p-3 rounded-2xl border border-panel-border bg-ink/60 flex items-center justify-between hover:border-slate-700 transition"
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-8 h-8 rounded-xl bg-[#141f33] text-amber-400 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-white/5 text-slate-300 flex items-center justify-center shrink-0">
                       <Utensils size={15} />
                     </div>
                     <div className="overflow-hidden">
@@ -842,7 +840,7 @@ export default function DashboardPage() {
                       <div className="text-[10px] text-slate-400">{meal.type}</div>
                     </div>
                   </div>
-                  <span className="text-xs font-extrabold text-[#ccff00] shrink-0 ml-2">
+                  <span className="text-xs font-extrabold text-brand-400 shrink-0 ml-2">
                     {meal.calories} kcal
                   </span>
                 </div>
@@ -851,19 +849,19 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick inline add */}
-          <form onSubmit={handleInlineMealAdd} className="mt-4 pt-3 border-t border-[#182338]">
+          <form onSubmit={handleInlineMealAdd} className="mt-4 pt-3 border-t border-panel-border">
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Quick add snack (e.g. Banana)"
                 value={quickMealInput}
                 onChange={(e) => setQuickMealInput(e.target.value)}
-                className="flex-1 px-3 py-1.5 rounded-xl bg-[#0a0e18] border border-[#1e2c45] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#ccff00]"
+                className="flex-1 px-3 py-1.5 rounded-xl bg-ink border border-panel-border text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
               />
               <button
                 type="submit"
                 disabled={addingMeal || !quickMealInput.trim()}
-                className="w-8 h-8 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black flex items-center justify-center transition shrink-0 disabled:opacity-40"
+                className="w-8 h-8 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black flex items-center justify-center transition shrink-0 disabled:opacity-40"
               >
                 <Plus size={16} className="stroke-[3]" />
               </button>
@@ -878,13 +876,13 @@ export default function DashboardPage() {
       {/* ========================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* CARD 1: LEAN & STRONG (Goal Progress) */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-white flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
-              <Scale size={16} className="text-[#ccff00]" />
+            <span className="text-white flex items-center gap-2 text-xs font-extrabold ">
+              <Scale size={16} className="text-brand-400" />
               {goalType}
             </span>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30">
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-brand-400/15 text-brand-400 border border-brand-400/30">
               88%
             </span>
           </div>
@@ -893,31 +891,31 @@ export default function DashboardPage() {
             <p className="text-[11px] text-slate-400 mb-2">
               Target: {goalWeight} kg • Active period
             </p>
-            <div className="grid grid-cols-3 gap-2 text-center p-2.5 rounded-2xl bg-[#090d16] border border-[#182338]">
+            <div className="grid grid-cols-3 gap-2 text-center p-2.5 rounded-2xl bg-panel-card border border-panel-border">
               <div>
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Current</div>
+                <div className="text-[10px] text-slate-500 font-bold">Current</div>
                 <div className="text-sm font-black text-white mt-0.5">{currentWeight} kg</div>
               </div>
               <div>
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Target</div>
+                <div className="text-[10px] text-slate-500 font-bold">Target</div>
                 <div className="text-sm font-black text-white mt-0.5">{goalWeight} kg</div>
               </div>
               <div>
-                <div className="text-[10px] text-[#ccff00] uppercase font-bold">Delta</div>
-                <div className="text-sm font-black text-[#ccff00] mt-0.5">-{weightChange} kg</div>
+                <div className="text-[10px] text-brand-400 font-bold">Delta</div>
+                <div className="text-sm font-black text-brand-400 mt-0.5">-{weightChange} kg</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="h-1.5 rounded-full bg-[#162238] overflow-hidden">
-              <div className="h-full rounded-full bg-[#ccff00]" style={{ width: '88%' }} />
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full rounded-full bg-brand-400" style={{ width: '88%' }} />
             </div>
             <div className="flex justify-between text-[11px] text-slate-400">
               <span>Goal trajectory</span>
               <button
                 onClick={() => navigate('/progress')}
-                className="text-[#ccff00] font-bold hover:underline"
+                className="text-brand-400 font-bold hover:underline"
               >
                 Track history →
               </button>
@@ -926,15 +924,15 @@ export default function DashboardPage() {
         </div>
 
         {/* CARD 2: CONSISTENCY (Streak) */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-white flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
+            <span className="text-white flex items-center gap-2 text-xs font-extrabold ">
               <Trophy size={16} className="text-amber-400" />
               Consistency
             </span>
             <span className="text-xs font-black text-amber-400 flex items-center gap-1">
               <span>{displayStreak}</span>
-              <span className="text-[10px] uppercase font-bold text-slate-400">days</span>
+              <span className="text-[10px] font-bold text-slate-400">days</span>
             </span>
           </div>
 
@@ -947,25 +945,25 @@ export default function DashboardPage() {
               {weekDays.map((w) => (
                 <div key={w.key} className="flex flex-col items-center gap-1">
                   {w.hit ? (
-                    <div className="w-8 h-8 rounded-full bg-[#ccff00] text-black font-black flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.3)]">
+                    <div className="w-8 h-8 rounded-full bg-brand-400 text-ink font-black flex items-center justify-center">
                       <CheckCircle2 size={16} className="stroke-[3]" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#162238] border border-[#223352] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-white/10 border border-panel-border flex items-center justify-center">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
                     </div>
                   )}
-                  <span className={`text-[10px] font-bold ${w.hit ? 'text-[#ccff00]' : 'text-slate-500'}`}>{w.label}</span>
+                  <span className={`text-[10px] font-bold ${w.hit ? 'text-brand-400' : 'text-slate-500'}`}>{w.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#182338] flex items-center justify-between text-[11px] text-slate-400">
+          <div className="pt-2 border-t border-panel-border flex items-center justify-between text-[11px] text-slate-400">
             <span>{weekHits}/7 days hit this week</span>
             <button
               onClick={() => navigate('/calendar')}
-              className="text-[#ccff00] font-bold hover:underline"
+              className="text-brand-400 font-bold hover:underline"
             >
               Calendar →
             </button>
@@ -973,16 +971,16 @@ export default function DashboardPage() {
         </div>
 
         {/* CARD 3: TRAINING LOAD (Bar Chart — real burned kcal, last 7 days) */}
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-3xl bg-panel-card border border-panel-border p-5 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-white flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider">
-              <TrendingUp size={16} className="text-[#ccff00]" />
+            <span className="text-white flex items-center gap-2 text-xs font-extrabold ">
+              <TrendingUp size={16} className="text-brand-400" />
               Training Load
             </span>
             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border flex items-center gap-0.5 ${
               weekDelta >= 0
-                ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30'
-                : 'bg-rose-950/60 text-rose-300 border-rose-800/40'
+                ? 'bg-brand-400/15 text-brand-400 border-brand-500/30'
+                : 'bg-white/10 text-slate-400 border-white/10'
             }`}>
               <span>{weekDelta >= 0 ? `+${weekDelta}%` : `${weekDelta}%`}</span>
               {weekDelta >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
@@ -1000,14 +998,14 @@ export default function DashboardPage() {
                     <div
                       className={`w-full rounded-t-lg transition-all duration-500 ${
                         isToday
-                          ? 'bg-[#ccff00] shadow-[0_0_12px_#ccff00]'
-                          : 'bg-[#18263e] hover:bg-[#223555]'
+                          ? 'bg-brand-400'
+                          : 'bg-white/10 hover:bg-white/20'
                       }`}
                       style={{ height: `${v > 0 ? Math.max(8, Math.round((v / weekMax) * 100)) : 4}%` }}
                     />
                     <span
                       className={`text-[10px] font-bold ${
-                        isToday ? 'text-[#ccff00]' : 'text-slate-500'
+                        isToday ? 'text-brand-400' : 'text-slate-500'
                       }`}
                     >
                       {weekDays[idx]?.label}
@@ -1018,9 +1016,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#182338] flex items-center justify-between text-[11px] text-slate-400">
+          <div className="pt-2 border-t border-panel-border flex items-center justify-between text-[11px] text-slate-400">
             <span>Week total: {fmtInt(weekTotal)} kcal</span>
-            <span className="text-[#ccff00] font-bold">{weekTotal > 0 ? 'Active' : 'Rest week'}</span>
+            <span className="text-brand-400 font-bold">{weekTotal > 0 ? 'Active' : 'Rest week'}</span>
           </div>
         </div>
       </div>

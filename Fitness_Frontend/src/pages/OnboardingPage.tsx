@@ -35,25 +35,22 @@ const ACTIVITY_OPTIONS: { value: string; label: string; hint: string; icon: Luci
   { value: 'extremely_active', label: 'Extremely active', hint: 'Athlete / physical job', icon: Zap },
 ];
 
-const GOAL_OPTIONS: { value: GoalType; label: string; icon: LucideIcon; description: string; color: string }[] = [
-  { value: 'fat_loss', label: 'Fat Loss', icon: Flame, description: 'Reduce body fat with a moderate deficit and high protein', color: 'bg-orange-500/20 border-orange-500/30 text-orange-400' },
-  { value: 'weight_loss', label: 'Weight Loss', icon: TrendingUp, description: 'Reduce body weight gradually without an aggressive deficit', color: 'bg-pink-500/20 border-pink-500/30 text-pink-400' },
-  { value: 'weight_gain', label: 'Weight Gain', icon: Heart, description: 'Increase body weight gradually while monitoring progress', color: 'bg-blue-500/20 border-blue-500/30 text-blue-400' },
-  { value: 'skinny_to_fit', label: 'Skinny → Fit', icon: Zap, description: 'Build body weight and strength with a controlled surplus', color: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' },
-  { value: 'maintain', label: 'Fit / Maintain', icon: Leaf, description: 'Keep body weight stable while supporting training', color: 'bg-violet-500/20 border-violet-500/30 text-violet-400' },
+const GOAL_OPTIONS: { value: GoalType; label: string; icon: LucideIcon; description: string }[] = [
+  { value: 'fat_loss', label: 'Fat Loss', icon: Flame, description: 'Reduce body fat with a moderate deficit and high protein' },
+  { value: 'weight_loss', label: 'Weight Loss', icon: TrendingUp, description: 'Reduce body weight gradually without an aggressive deficit' },
+  { value: 'weight_gain', label: 'Weight Gain', icon: Heart, description: 'Increase body weight gradually while monitoring progress' },
+  { value: 'skinny_to_fit', label: 'Skinny → Fit', icon: Zap, description: 'Build body weight and strength with a controlled surplus' },
+  { value: 'maintain', label: 'Fit / Maintain', icon: Leaf, description: 'Keep body weight stable while supporting training' },
 ];
 
 const FEATURE_CARDS = [
   {
     id: 'food',
     title: 'Smart Food Tracking',
-    subtitle: 'Create Your Own food, Macro & Fooddatabase',
+    subtitle: 'Create your own food, macro & food database',
     icon: Utensils,
     description: 'Build custom foods, set macros, and access a massive verified database. Log meals fast with barcode scan and AI recognition.',
     highlight: 'Custom foods + 1M database',
-    color: 'bg-amber-500/20 border-amber-500/30',
-    iconColor: 'text-amber-400',
-    bgGradient: 'from-amber-900/20 to-amber-900/5',
   },
   {
     id: 'workout',
@@ -62,9 +59,6 @@ const FEATURE_CARDS = [
     icon: Dumbbell,
     description: 'Track workouts like food — exercises, sets, reps, weight, RPE. Built-in rest timer, plate calculator, and progression charts.',
     highlight: 'Exercise library + timer',
-    color: 'bg-red-500/20 border-red-500/30',
-    iconColor: 'text-red-400',
-    bgGradient: 'from-red-900/20 to-red-900/5',
   },
   {
     id: 'tracker',
@@ -73,9 +67,6 @@ const FEATURE_CARDS = [
     icon: BarChart2,
     description: 'Your mission control. Log food, exercise, water, steps, and body weight. See real-time progress toward your daily targets.',
     highlight: 'Live macro rings & verdicts',
-    color: 'bg-brand-500/20 border-brand-500/30',
-    iconColor: 'text-brand-400',
-    bgGradient: 'from-lime-900/20 to-lime-900/5',
   },
   {
     id: 'anyai',
@@ -84,9 +75,6 @@ const FEATURE_CARDS = [
     icon: Brain,
     description: 'Your 24/7 fitness intelligence. Ask anything — meal ideas, form checks, plateau fixes. Context-aware answers from your logs and goals.',
     highlight: 'Context-aware responses',
-    color: 'bg-violet-500/20 border-violet-500/30',
-    iconColor: 'text-violet-400',
-    bgGradient: 'from-violet-900/20 to-violet-900/5',
   },
   {
     id: 'badge',
@@ -95,9 +83,6 @@ const FEATURE_CARDS = [
     icon: Award,
     description: '25 unique badges across 5 goal types. 5 levels per goal: Starter → Momentum → Dedicated → Master → Legend. XP, ranks, and bragging rights.',
     highlight: '25 badges • 7 ranks',
-    color: 'bg-yellow-500/20 border-yellow-500/30',
-    iconColor: 'text-yellow-400',
-    bgGradient: 'from-yellow-900/20 to-yellow-900/5',
   },
 ];
 
@@ -234,7 +219,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
         {/* Header */}
         <div className="text-center mb-6">
           <p className="text-brand-400 text-sm font-semibold mb-1">Welcome to FitPulse</p>
-          <h1 className="text-3xl font-display font-semibold uppercase tracking-wide text-white">
+          <h1 className="text-3xl font-extrabold text-white">
             {isOriginalStep ? 'Set up your profile' : isGoalStep ? 'What\'s Your Goal?' : 'Everything You Need to Succeed'}
           </h1>
         </div>
@@ -245,7 +230,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
             <span>Step {step + 1} of {TOTAL_STEPS}</span>
             <span className="text-brand-400 font-semibold">{currentStepLabel}</span>
           </div>
-          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
               className="h-full bg-brand-400 rounded-full transition-all duration-300"
               style={{ width: `${progressPct}%` }}
@@ -253,7 +238,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
           </div>
         </div>
 
-        <div className="bg-panel/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div className="border border-panel-border bg-panel-card rounded-3xl p-6 md:p-8 shadow-2xl">
           {/* ===== ORIGINAL STEP 0: BASICS ===== */}
           {step === 0 && (
             <div className="space-y-4">
@@ -280,8 +265,8 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                       onClick={() => setGender(g)}
                       className={`py-2.5 rounded-xl text-sm font-bold capitalize transition ${
                         gender === g
-                          ? 'bg-brand-400 text-slate-950'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          ? 'bg-brand-400 text-ink'
+                          : 'bg-white/5 text-slate-400'
                       }`}>
                       {g}
                     </button>
@@ -317,10 +302,10 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                   className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition ${
                     activity === opt.value
                       ? 'border-brand-400 bg-brand-400/10'
-                      : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
+                      : 'border-panel-border bg-panel-card'
                   }`}>
                   <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${
-                    activity === opt.value ? 'bg-brand-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    activity === opt.value ? 'bg-brand-400 text-ink' : 'bg-white/5 text-slate-400'
                   }`}>
                     <opt.icon size={18} />
                   </span>
@@ -345,7 +330,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                 ['Weight', `${weight} kg`],
                 ['Activity', ACTIVITY_OPTIONS.find((o) => o.value === activity)?.label || activity],
               ].map(([label, value]) => (
-                <div key={label} className="flex justify-between text-sm border-b border-slate-800/70 pb-2">
+                <div key={label} className="flex justify-between text-sm border-b border-panel-border pb-2">
                   <span className="text-slate-500">{label}</span>
                   <span className="text-white font-semibold capitalize">{value}</span>
                 </div>
@@ -366,8 +351,8 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                   onClick={() => setSelectedGoal(opt.value)}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-all duration-200 relative overflow-hidden ${
                     selectedGoal === opt.value
-                      ? 'border-brand-400 bg-brand-400/10 shadow-lg shadow-brand-400/10'
-                      : 'border-slate-800 bg-slate-950/40 hover:border-slate-700 hover:bg-slate-900/50'
+                      ? 'border-brand-400 bg-brand-400/10'
+                      : 'border-panel-border bg-panel-card'
                   }`}
                 >
                   <div
@@ -375,7 +360,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                       selectedGoal === opt.value ? 'bg-brand-400' : 'bg-transparent'
                     }`}
                   />
-                  <span className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${opt.color}`}>
+                  <span className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 bg-white/5 text-slate-300">
                     <opt.icon size={24} />
                   </span>
                   <div className="flex-1 min-w-0">
@@ -387,8 +372,8 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                   </div>
                 </button>
               ))}
-              <label className="block rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="block rounded-2xl border border-panel-border bg-ink/60 p-4">
+                <span className="mb-1 block text-xs font-bold text-slate-400">
                   Target date — stay on this goal until then
                 </span>
                 <input
@@ -409,9 +394,11 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                 <button
                   key={feature.id}
                   type="button"
-                  className={`flex flex-col items-start gap-3 p-6 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${feature.color} bg-gradient-to-br ${feature.bgGradient} h-full min-w-0`}
+                  className={`flex flex-col items-start gap-3 p-6 rounded-2xl border transition-colors h-full min-w-0 ${
+                    'border-panel-border bg-panel-card'
+                  }`}
                 >
-                  <span className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${feature.iconColor}`}>
+                  <span className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl shrink-0 bg-white/5 text-slate-300">
                     <feature.icon size={24} />
                   </span>
                   <div className="flex-1 min-w-0">
@@ -436,7 +423,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
             <div>
               {step > 0 && (
                 <button type="button" onClick={() => { setFieldError(''); setStep((s) => s - 1); }}
-                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-800 transition">
+                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition">
                   <ArrowLeft size={16} /> Back
                 </button>
               )}
@@ -448,22 +435,22 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
               </button>
               {isOriginalStep && step < ORIGINAL_STEPS.length - 1 ? (
                 <button type="button" onClick={next}
-                  className="inline-flex items-center gap-1 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition">
+                  className="inline-flex items-center gap-1 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition">
                   Continue <ArrowRight size={16} />
                 </button>
               ) : isOriginalStep && step === ORIGINAL_STEPS.length - 1 ? (
                 <button type="button" onClick={next}
-                  className="inline-flex items-center gap-1 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition">
+                  className="inline-flex items-center gap-1 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition">
                   Continue <ArrowRight size={16} />
                 </button>
               ) : isGoalStep ? (
                 <button type="button" onClick={next} disabled={!selectedGoal || !targetDate}
-                  className="inline-flex items-center gap-1 px-6 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="inline-flex items-center gap-1 px-6 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
                   Continue <ArrowRight size={16} />
                 </button>
               ) : (
                 <button type="button" onClick={finish} disabled={saving}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition disabled:opacity-50 shadow-lg shadow-brand-400/20">
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink text-sm font-bold transition disabled:opacity-50">
                   {saving ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />

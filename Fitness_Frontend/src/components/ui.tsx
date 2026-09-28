@@ -18,7 +18,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-display font-semibold uppercase tracking-wide text-white flex items-center gap-2.5">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-2.5">
           {Icon && (
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/15 border border-brand-500/20">
               <Icon className="text-brand-400" size={20} />
@@ -34,27 +34,20 @@ export function PageHeader({
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  const padded = className.includes('p-0') ? '' : 'p-5 sm:p-6';
+  const padded = className.includes('p-0') ? '' : 'p-6';
   return (
-    <div className={`bg-[#0f1626] border border-[#1a263d] rounded-3xl shadow-lg ${padded} ${className}`}>
+    <div className={`rounded-2xl border border-panel-border bg-panel-card ${padded} ${className}`}>
       {children}
     </div>
   );
 }
 
-export function ProgressBar({
-  value,
-  max,
-  color = 'bg-[#ccff00]',
-}: {
-  value: number;
-  max: number;
-  color?: string;
-}) {
+export function ProgressBar(props: { value: number; max: number; color?: string }) {
+  const { value, max, color = 'bg-brand-500' } = props;
   const pct = max > 0 ? Math.min(140, Math.round((value / max) * 100)) : 0;
   const over = max > 0 && value > max;
   return (
-    <div className="w-full h-2 rounded-full bg-[#162238] overflow-hidden">
+    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
       <div
         className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-amber-400' : color}`}
         style={{ width: `${Math.min(100, pct)}%` }}
@@ -109,7 +102,7 @@ export function Ring({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#162238" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1a263d" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -166,10 +159,10 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className={`bg-panel border border-brand-600/30 rounded-3xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto shadow-2xl`}
+        className={`rounded-3xl border border-panel-border bg-panel-card shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 sticky top-0 bg-panel rounded-t-3xl z-10">
+        <div className="flex items-center justify-between p-5 border-b border-panel-border sticky top-0 bg-panel-card rounded-t-3xl z-10">
           <h3 className="text-lg font-bold text-white">{t(title)}</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1" aria-label="Close">
             <X size={22} />
@@ -198,7 +191,7 @@ export function PaginationBar({
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-800">
+    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-panel-border">
       <p className="text-xs text-slate-500">
         {from}–{to} of {total}
       </p>
@@ -207,7 +200,7 @@ export function PaginationBar({
           type="button"
           disabled={page <= 1}
           onClick={() => onPage(Math.max(1, page - 1))}
-          className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800"
+          className="p-2 rounded-lg border border-panel-border text-slate-300 disabled:opacity-30 hover:bg-white/5"
           aria-label="Previous page"
         >
           <ChevronLeft size={16} />
@@ -219,7 +212,7 @@ export function PaginationBar({
                 type="button"
                 onClick={() => onPage(n)}
                 className={`min-w-8 h-8 rounded-lg text-xs font-bold ${
-                  n === page ? 'bg-brand-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+                  n === page ? 'bg-brand-400 text-ink' : 'text-slate-400 hover:bg-white/5'
                 }`}
               >
                 {n}
@@ -232,7 +225,7 @@ export function PaginationBar({
           type="button"
           disabled={page >= pageCount}
           onClick={() => onPage(Math.min(pageCount, page + 1))}
-          className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800"
+          className="p-2 rounded-lg border border-panel-border text-slate-300 disabled:opacity-30 hover:bg-white/5"
           aria-label="Next page"
         >
           <ChevronRight size={16} />

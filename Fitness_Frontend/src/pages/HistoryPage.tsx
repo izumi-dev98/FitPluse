@@ -183,12 +183,12 @@ export default function HistoryPage() {
       {/* ========================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#ccff00] mb-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-brand-400 mb-1">
             <History size={14} />
-            <span>Daily History & Performance Logs</span>
+            <span>Daily history & performance logs</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight uppercase">
-            Performance History
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+            Performance history
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
             Detailed chronological record of your daily calorie balance, macronutrients, hydration, steps, and goal theory adherence.
@@ -198,15 +198,15 @@ export default function HistoryPage() {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowTheoryGuide(!showTheoryGuide)}
-            className="px-3.5 py-2.5 rounded-xl bg-[#0f1626] border border-[#1a263d] hover:border-[#ccff00]/40 text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5"
+            className="px-3.5 py-2.5 rounded-xl border border-panel-border bg-ink text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5"
           >
-            <BookOpen size={15} className="text-[#ccff00]" />
+            <BookOpen size={15} className="text-slate-400" />
             <span>{showTheoryGuide ? 'Hide Theory' : 'Goal Theory'}</span>
           </button>
 
           <button
             onClick={() => setQuickLogOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_15px_rgba(204,255,0,0.3)] flex items-center gap-1.5 active:scale-95"
+            className="px-4 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-xs transition disabled:opacity-50 flex items-center gap-1.5 active:scale-95"
           >
             <Plus size={16} className="stroke-[3]" />
             <span>Log Day</span>
@@ -218,17 +218,15 @@ export default function HistoryPage() {
       {/* 2. GOAL THEORY & NUTRITION GUIDANCE ACCORDION             */}
       {/* ========================================================= */}
       {showTheoryGuide && activeGoal && (
-        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#0f1726] to-[#0c1322] border border-[#1e2d48] shadow-xl relative overflow-hidden animate-in fade-in duration-300">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#ccff00]/5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#182338]">
+        <div className="p-5 sm:p-6 rounded-3xl border border-panel-border bg-panel-card shadow-xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-panel-border">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 flex items-center justify-center">
+              <span className="w-8 h-8 rounded-xl bg-brand-400/10 text-brand-400 border border-brand-500/30 flex items-center justify-center">
                 <Sparkles size={16} />
               </span>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#ccff00]">
-                  Active Goal Framework
+                <span className="text-xs font-bold text-brand-400">
+                  Active goal framework
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white capitalize">
                   {String(activeGoal.goal_type || 'Custom').replace(/_/g, ' ')} Strategy
@@ -237,34 +235,34 @@ export default function HistoryPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-black bg-[#152238] border border-[#223555] text-white">
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-white/10 border border-white/10 text-white">
                 Target: {fmtInt(activeGoal.target_calories ?? activeGoal.target_value)} kcal/day
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            <div className="p-3.5 rounded-2xl bg-[#090d16] border border-[#182338] space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                Calorie Strategy
+            <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 block">
+                Calorie strategy
               </span>
-              <p className="text-xs font-bold text-[#ccff00]">{theoryGuidance.calories}</p>
+              <p className="text-xs font-bold text-brand-400">{theoryGuidance.calories}</p>
               <p className="text-[11px] text-slate-400">{theoryGuidance.summary}</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#090d16] border border-[#182338] space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                Protein Intake
+            <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 block">
+                Protein intake
               </span>
-              <p className="text-xs font-bold text-sky-400">{theoryGuidance.protein}</p>
+              <p className="text-xs font-bold text-white">{theoryGuidance.protein}</p>
               <p className="text-[11px] text-slate-400">Essential for muscle protein synthesis and recovery.</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#090d16] border border-[#182338] space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                Recommended Routine
+            <div className="p-3.5 rounded-2xl border border-panel-border bg-ink/60 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 block">
+                Recommended routine
               </span>
-              <p className="text-xs font-bold text-amber-400">
+              <p className="text-xs font-bold text-white">
                 {theoryGuidance.exercise[0] || 'Structured progressive overload'}
               </p>
               <p className="text-[11px] text-slate-400">
@@ -279,9 +277,9 @@ export default function HistoryPage() {
       {/* 3. SUMMARY KPI STATS ROW                                  */}
       {/* ========================================================= */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] text-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-            Days Logged
+        <div className="p-4 rounded-2xl border border-panel-border bg-panel-card text-center">
+          <span className="text-[10px] font-bold text-slate-400 block">
+            Days logged
           </span>
           <span className="text-xl sm:text-2xl font-black text-white mt-1 block">
             {stats.totalDays}
@@ -289,42 +287,42 @@ export default function HistoryPage() {
           <span className="text-[10px] text-slate-500 font-semibold">in selected range</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] text-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-            Avg. Intake
+        <div className="p-4 rounded-2xl border border-panel-border bg-panel-card text-center">
+          <span className="text-[10px] font-bold text-slate-400 block">
+            Avg. intake
           </span>
-          <span className="text-xl sm:text-2xl font-black text-[#ccff00] mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-brand-400 mt-1 block">
             {fmtInt(stats.avgIntake)}
           </span>
           <span className="text-[10px] text-slate-500 font-semibold">kcal / day</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] text-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-            Avg. Burned
+        <div className="p-4 rounded-2xl border border-panel-border bg-panel-card text-center">
+          <span className="text-[10px] font-bold text-slate-400 block">
+            Avg. burned
           </span>
-          <span className="text-xl sm:text-2xl font-black text-orange-400 mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-white mt-1 block">
             {fmtInt(stats.avgBurned)}
           </span>
           <span className="text-[10px] text-slate-500 font-semibold">kcal active</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] text-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-            Target Hit Rate
+        <div className="p-4 rounded-2xl border border-panel-border bg-panel-card text-center">
+          <span className="text-[10px] font-bold text-slate-400 block">
+            Target hit rate
           </span>
-          <span className="text-xl sm:text-2xl font-black text-sky-400 mt-1 block">
+          <span className="text-xl sm:text-2xl font-black text-white mt-1 block">
             {stats.hitRate}%
           </span>
           <span className="text-[10px] text-slate-500 font-semibold">within ±10% goal</span>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] text-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-            Current Streak
+        <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl border border-panel-border bg-panel-card text-center">
+          <span className="text-[10px] font-bold text-slate-400 block">
+            Current streak
           </span>
-          <span className="text-xl sm:text-2xl font-black text-amber-400 mt-1 block flex items-center justify-center gap-1">
-            <Flame size={18} />
+          <span className="text-xl sm:text-2xl font-black text-white mt-1 flex items-center justify-center gap-1">
+            <Flame size={18} className="text-slate-400" />
             <span>{stats.streak}</span>
           </span>
           <span className="text-[10px] text-slate-500 font-semibold">days active</span>
@@ -334,7 +332,7 @@ export default function HistoryPage() {
       {/* ========================================================= */}
       {/* 4. FILTERS & SEARCH TOOLBAR                               */}
       {/* ========================================================= */}
-      <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1a263d] flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 rounded-2xl border border-panel-border bg-panel-card flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Date Range Selector */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 md:pb-0">
           {[
@@ -352,8 +350,8 @@ export default function HistoryPage() {
               }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                 range === item.val
-                  ? 'bg-[#ccff00] text-black shadow-[0_0_10px_rgba(204,255,0,0.25)]'
-                  : 'text-slate-400 hover:text-white bg-[#090d16]'
+                  ? 'bg-brand-400 text-ink'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               {item.label}
@@ -370,7 +368,7 @@ export default function HistoryPage() {
               setVerdictFilter(e.target.value as 'all' | 'green' | 'amber' | 'red');
               setPage(1);
             }}
-            className="px-3 py-1.5 rounded-xl bg-[#090d16] border border-[#182338] text-xs font-bold text-slate-300 focus:outline-none focus:border-[#ccff00]"
+            className="px-3 py-1.5 rounded-xl bg-ink border border-panel-border text-xs font-bold text-slate-300 focus:outline-none focus:border-brand-500"
           >
             <option value="all">All Verdicts</option>
             <option value="green">On Target (±10%)</option>
@@ -389,7 +387,7 @@ export default function HistoryPage() {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#090d16] border border-[#182338] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#ccff00]"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-ink border border-panel-border text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
             />
           </div>
         </div>
@@ -400,12 +398,12 @@ export default function HistoryPage() {
       {/* ========================================================= */}
       {loading ? (
         <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-[#ccff00] border-t-transparent animate-spin" />
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Loading history records…</p>
+          <div className="w-10 h-10 rounded-full border-2 border-brand-400 border-t-transparent animate-spin" />
+          <p className="text-xs font-bold text-slate-400">Loading history records…</p>
         </div>
       ) : pagedRows.length === 0 ? (
-        <div className="p-12 rounded-3xl bg-[#0f1626] border border-[#1a263d] text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-[#152033] text-slate-400 mx-auto flex items-center justify-center">
+        <div className="p-12 rounded-3xl border border-panel-border bg-panel-card text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-white/5 text-slate-400 mx-auto flex items-center justify-center">
             <Calendar size={24} />
           </div>
           <h3 className="text-base font-black text-white">No records found for this period</h3>
@@ -414,17 +412,17 @@ export default function HistoryPage() {
           </p>
           <button
             onClick={() => setQuickLogOpen(true)}
-            className="px-5 py-2.5 rounded-xl bg-[#ccff00] hover:bg-[#bbf000] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_12px_rgba(204,255,0,0.25)]"
+            className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-ink font-black text-xs transition disabled:opacity-50"
           >
             Log Today's Fuel
           </button>
         </div>
       ) : (
-        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] overflow-hidden shadow-xl">
+        <div className="rounded-3xl border border-panel-border bg-panel-card overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-sm border-collapse">
               <thead>
-                <tr className="bg-[#090d16] border-b border-[#1a263d] text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-panel-border text-[10px] font-bold text-slate-500">
                   <th className="text-left px-4 py-3">Date</th>
                   <th className="text-left px-4 py-3">Goal</th>
                   <th className="text-left px-4 py-3">Status</th>
@@ -446,35 +444,35 @@ export default function HistoryPage() {
                     <tr
                       key={row.date}
                       onClick={() => setSelectedRow(row)}
-                      className={`border-b border-[#182338] last:border-b-0 hover:bg-[#ccff00]/5 transition cursor-pointer ${isToday ? 'bg-[#ccff00]/5' : ''}`}
+                      className={`border-b border-panel-border last:border-b-0 hover:bg-white/[0.03] transition cursor-pointer ${isToday ? 'bg-brand-400/5' : ''}`}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-white whitespace-nowrap">{formatDay(row.date, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                           {isToday && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/40">Today</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-400/15 text-brand-300">Today</span>
                           )}
                         </div>
                         <div className="text-[11px] text-slate-500">{new Date(`${row.date}T12:00:00`).getFullYear()}</div>
                       </td>
                       <td className="px-4 py-3 capitalize text-slate-300 font-semibold whitespace-nowrap">{row.goalType}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                           row.goalStatus === 'active'
-                            ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                            ? 'bg-brand-400/15 text-brand-300 border-brand-500/30'
+                            : 'bg-white/10 text-slate-400 border-white/10'
                         }`}>
                           {row.goalStatus}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-black text-white whitespace-nowrap">{fmtInt(row.consumed)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
-                      <td className="px-4 py-3 text-right font-black text-[#ccff00] whitespace-nowrap">{fmtInt(row.burned)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
+                      <td className="px-4 py-3 text-right font-black text-white whitespace-nowrap">{fmtInt(row.burned)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
                       <td className="px-4 py-3 text-right font-bold text-white whitespace-nowrap">{fmtInt(row.net)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
                       <td className="px-4 py-3 text-right text-slate-400 whitespace-nowrap">{row.target > 0 ? fmtInt(row.target) : "-"}</td>
-                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${diff > 0 ? 'text-amber-400' : diff < 0 ? 'text-slate-300' : 'text-slate-500'}`}>
                         {row.target > 0 ? (diff !== 0 ? (diff > 0 ? `+${fmtInt(diff)}` : fmtInt(diff)) : 'Exact') : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right text-cyan-400 font-semibold whitespace-nowrap">{row.water > 0 ? `${(row.water / 1000).toFixed(1)}L` : "-"}</td>
+                      <td className="px-4 py-3 text-right text-slate-300 font-semibold whitespace-nowrap">{row.water > 0 ? `${(row.water / 1000).toFixed(1)}L` : "-"}</td>
                       <td className="px-4 py-3 text-right text-slate-300 whitespace-nowrap">{row.steps > 0 ? row.steps.toLocaleString() : "-"}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${verdictClass[row.verdict.tone]}`}>{row.verdict.label}</span>
@@ -485,7 +483,7 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
-          <div className="p-4 border-t border-[#1a263d]">
+          <div className="p-4 border-t border-panel-border">
             <PaginationBar page={page} pageCount={pageCount} total={filteredRows.length} pageSize={PAGE_SIZE} onPage={setPage} />
           </div>
         </div>
