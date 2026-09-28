@@ -29,6 +29,7 @@ export type DailyRow = {
   notes: string;
   target: number;
   goalType: string;
+  goalStatus: string;
   verdict: { label: string; tone: VerdictTone };
 };
 
@@ -89,6 +90,7 @@ export function enrichDailyRecord(r: RecordLike, goals: Goal[]): DailyRow {
     notes: r.notes ? String(r.notes) : '',
     target,
     goalType: goal?.goal_type ? String(goal.goal_type).replace(/_/g, ' ') : '—',
+    goalStatus: goal?.status ? String(goal.status) : '—',
     verdict: calorieVerdict(consumed, target),
   };
 }
@@ -113,6 +115,7 @@ export function emptyDayRow(date: string, goals: Goal[]): DailyRow {
     notes: '',
     target,
     goalType: goal?.goal_type ? String(goal.goal_type).replace(/_/g, ' ') : '—',
+    goalStatus: goal?.status ? String(goal.status) : '—',
     verdict: calorieVerdict(0, target),
   };
 }

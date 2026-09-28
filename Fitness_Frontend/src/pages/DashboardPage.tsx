@@ -14,9 +14,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Utensils,
-  Coffee,
-  Salad,
-  Apple,
   TrendingUp,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
@@ -29,6 +26,7 @@ import {
   useWaterIntake,
   useWeightHistory,
   useInvalidateDaily,
+  useBurnTarget,
   ensureTodayRecord,
 } from '../lib/queries';
 import { useQueryClient } from '@tanstack/react-query';
@@ -61,6 +59,7 @@ export default function DashboardPage() {
   const exercisesQ = useDailyExercises(uid);
   const waterQ = useWaterIntake(uid);
   const weightsQ = useWeightHistory(uid);
+  const burnTargetQ = useBurnTarget(uid);
 
   const loading =
     goalsQ.isLoading ||
@@ -79,6 +78,7 @@ export default function DashboardPage() {
     goalType,
     consumed,
     burned,
+    burnTarget,
     protein,
     fat,
     carbs,
@@ -138,26 +138,29 @@ export default function DashboardPage() {
     const c = todayFoods.reduce((sum: number, f) => sum + (Number(f.calories) || 0), 0);
     const b = todayEx.reduce((sum: number, e) => sum + (Number(e.calories_burned) || 0), 0);
 
+    const burnTarget = burnTargetQ.data;
+
     return {
       steps: Number(todayRec?.steps) || 0,
       goalCalories: active
-        ? Number(active.target_calories ?? active.target_value) || 2450
-        : 2450,
-      proteinTarget: active ? Number(active.protein_target) || 175 : 175,
-      fatTarget: active ? Number(active.fat_target) || 70 : 70,
-      carbTarget: active ? Number(active.carb_target) || 220 : 220,
+        ? Number(active.target_calories ?? active.target_value) || 0
+        : 0,
+      proteinTarget: active ? Number(active.protein_target) || 0 : 0,
+      fatTarget: active ? Number(active.fat_target) || 0 : 0,
+      carbTarget: active ? Number(active.carb_target) || 0 : 0,
       goalType: active
         ? String(active.goal_type || '').replace(/_/g, ' ')
-        : 'Lean & Strong',
+        : '',
       consumed: c,
       burned: b,
+      burnTarget,
       protein: todayFoods.reduce((sum: number, f) => sum + (Number(f.protein) || 0), 0),
       fat: todayFoods.reduce((sum: number, f) => sum + (Number(f.fat) || 0), 0),
       carbs: todayFoods.reduce((sum: number, f) => sum + (Number(f.carbohydrates) || 0), 0),
       water: waterSum || Number(todayRec?.water_ml) || 0,
-      streak: Math.max(s, 1),
-      latestWeight: latest ? Number(latest.weight) : (user?.weight_kg || 78.0),
-      targetWeight: active?.target_value ? Number(active.target_value) : 74.0,
+      streak: s,
+      latestWeight: latest ? Number(latest.weight) : 0,
+      targetWeight: active?.target_value ? Number(active.target_value) : 0,
       todayFoodsList: todayFoods,
     };
   }, [
@@ -167,6 +170,7 @@ export default function DashboardPage() {
     exercisesQ.data,
     waterQ.data,
     weightsQ.data,
+    burnTargetQ.data,
     user?.weight_kg,
   ]);
 
@@ -180,37 +184,37 @@ export default function DashboardPage() {
   }
 
   // Derived display values matching Figma default state
-  const displayConsumed = consumed > 0 ? consumed : 1830;
-  const displayBurned = burned > 0 ? burned : 430;
-  const displayGoal = goalCalories || 2450;
+  const displayConsumed = consumed;
+  const displayBurned = burned;
+  const displayGoal = goalCalories;
   const displayRemaining = Math.max(0, displayGoal - displayConsumed);
   const displayNet = displayConsumed - displayBurned;
-  const caloriePct = Math.min(100, Math.round((displayConsumed / displayGoal) * 100));
+  const caloriePct = displayGoal > 0 ? Math.min(100, Math.round((displayConsumed / displayGoal) * 100)) : 0;
 
-  const displaySteps = steps > 0 ? steps : 7842;
+  const displaySteps = steps;
   const STEPS_GOAL = 10000;
   const stepsRemaining = Math.max(0, STEPS_GOAL - displaySteps);
   const stepsPct = Math.min(100, Math.round((displaySteps / STEPS_GOAL) * 100));
 
-  const displayWater = water > 0 ? water : 1800;
+  const displayWater = water;
   const WATER_GOAL = 3000;
   const waterPct = Math.min(100, Math.round((displayWater / WATER_GOAL) * 100));
 
-  const displayProtein = protein > 0 ? protein : 142;
-  const displayCarbs = carbs > 0 ? carbs : 185;
-  const displayFat = fat > 0 ? fat : 52;
+  const displayProtein = protein;
+  const displayCarbs = carbs;
+  const displayFat = fat;
   const macroPct = Math.round(
     (((displayProtein / proteinTarget) + (displayCarbs / carbTarget) + (displayFat / fatTarget)) / 3) * 100
-  ) || 78;
+  ) || 0;
 
-  const displayStreak = streak >= 12 ? streak : 12;
-  const currentWeight = latestWeight || 78.0;
-  const goalWeight = targetWeight || 74.0;
+  const displayStreak = streak;
+  const currentWeight = latestWeight || user?.weight_kg || 0;
+  const goalWeight = targetWeight || 0;
   const weightChange = (currentWeight - goalWeight).toFixed(1);
 
   // User presentation
-  const rawName = user?.name || user?.email?.split('@')[0] || 'Alex';
-  const firstName = rawName.split(' ')[0] || 'Alex';
+  const rawName = user?.name || user?.email?.split('@')[0] || '';
+  const firstName = rawName.split(' ')[0] || '';
   const now = new Date();
   const dayName = now.toLocaleDateString(undefined, { weekday: 'long' });
   const dateFormatted = now
@@ -276,13 +280,6 @@ export default function DashboardPage() {
     setQuickLogTab(tab);
     setQuickLogOpen(true);
   };
-
-  // Sample meals if user has none logged today
-  const defaultMeals = [
-    { type: 'Breakfast', name: 'Oatmeal with berries & chia', calories: 410, icon: Coffee, color: 'text-amber-400' },
-    { type: 'Lunch', name: 'Grilled chicken quinoa bowl', calories: 620, icon: Salad, color: 'text-emerald-400' },
-    { type: 'Snack', name: 'Greek yogurt with honey', calories: 210, icon: Apple, color: 'text-sky-400' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -408,7 +405,15 @@ export default function DashboardPage() {
                 <div className="text-lg sm:text-xl font-black text-[#ccff00] mt-0.5">
                   {fmtInt(displayBurned)}
                 </div>
-                <div className="text-[10px] text-slate-500 font-medium">kcal active</div>
+                {burnTarget && burnTarget.offset !== 0 && (
+                  <div className="text-[10px] text-slate-500 font-medium">
+                    {burnTarget.offset > 0 ? '+' : ''}{fmtInt(burnTarget.offset)} ·{' '}
+                    {String(burnTarget.goalType).replace(/_/g, ' ')}
+                  </div>
+                )}
+                {burnTarget && burnTarget.offset === 0 && (
+                  <div className="text-[10px] text-slate-500 font-medium">Maintain</div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[#090e18] border border-[#18253b] text-center">
@@ -755,7 +760,7 @@ export default function DashboardPage() {
                     type: f.meal_type || 'Meal',
                     calories: Number(f.calories) || 0,
                   }))
-                : defaultMeals
+                : []
               ).map((meal, idx) => (
                 <div
                   key={idx}

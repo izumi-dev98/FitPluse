@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Droplets, Dumbbell, Flame, Footprints, Target, Utensils, X, BookOpen } from 'lucide-react';
 import { formatDay, todayKey, verdictClass, type DailyRow } from '../lib/dailyHistory';
-import { useDailyExercises, useDailyFoods } from '../lib/queries';
+import { useDailyExercises, useDailyFoods, useExercises, useFoods } from '../lib/queries';
 import { Ring } from './ui';
 import { fmtInt } from '../lib/format';
 import type { DailyExerciseRow, DailyFoodRow } from '../lib/database';
@@ -23,7 +23,20 @@ export default function DailyRecordModal({
   // when reopening a recently viewed day.
   const foodsQ = useDailyFoods(userId, row?.id);
   const exercisesQ = useDailyExercises(userId);
+  // Backend returns raw child rows (food_id / exercise_id, no joined names),
+  // so resolve display names from the user's own catalogs (shared cache
+  // with the Foods/Workout pages).
+  const foodsCatalogQ = useFoods(userId);
+  const exercisesCatalogQ = useExercises(userId);
   const loading = foodsQ.isLoading || exercisesQ.isLoading;
+  const foodNames = useMemo(
+    () => new Map((foodsCatalogQ.data ?? []).map((f) => [String(f.id), f.name])),
+    [foodsCatalogQ.data],
+  );
+  const exerciseNames = useMemo(
+    () => new Map((exercisesCatalogQ.data ?? []).map((e) => [String(e.id), e.name])),
+    [exercisesCatalogQ.data],
+  );
   const foods = useMemo(() => {
     if (!row) return [];
     const foodList = foodsQ.data ?? [];
@@ -181,7 +194,7 @@ export default function DailyRecordModal({
                     className="flex items-center justify-between text-xs bg-[#090d16] border border-[#182338] rounded-xl px-3 py-2.5"
                   >
                     <div>
-                      <span className="text-white font-bold block">{f.food_name || f.meal_type || 'Food'}</span>
+                      <span className="text-white font-bold block">{foodNames.get(String(f.food_id)) || f.food_name || f.meal_type || 'Food'}</span>
                       <span className="text-[10px] text-slate-400">
                         {f.meal_type} {f.protein ? `• ${f.protein}g P` : ''} {f.carbohydrates ? `• ${f.carbohydrates}g C` : ''}
                       </span>
@@ -212,7 +225,7 @@ export default function DailyRecordModal({
                     className="flex items-center justify-between text-xs bg-[#090d16] border border-[#182338] rounded-xl px-3 py-2.5"
                   >
                     <div>
-                      <span className="text-white font-bold block">{e.exercise_name || 'Workout'}</span>
+                      <span className="text-white font-bold block">{exerciseNames.get(String(e.exercise_id)) || e.exercise_name || 'Workout'}</span>
                       <span className="text-[10px] text-slate-400">
                         {e.duration_minutes ? `${e.duration_minutes} mins` : ''}{e.sets ? ` • ${e.sets} sets` : ''}{e.reps ? ` • ${e.reps} reps` : ''}
                       </span>

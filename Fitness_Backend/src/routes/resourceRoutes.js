@@ -67,4 +67,24 @@ router.post('/water-intake', async (req, res) => { const { user_id, amount_ml } 
 collection('/water-intake', 'water_intake', 'recorded_at');
 router.post('/storage/:bucket', (req, res) => { const { bucket } = req.params; const { fileName, file } = req.body; if (!fileName || !file) return res.status(400).json({ error: 'fileName and file are required' }); res.json({ path: `${bucket}/${fileName}`, bucket, fileName }); });
 
+// Full progress reset: wipes the user's daily logs, water, weights, photos
+// and goals so a new goal starts clean. Children first (FK → daily_records).
+// Keeps profile, food/exercise catalogs and badges.
+router.post('/reset-progress', async (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+  try {
+    const uid = String(user_id);
+    const tables = ['daily_foods', 'daily_exercises', 'body_progress_images', 'water_intake', 'weight_history', 'daily_records', 'goals'];
+    for (const table of tables) {
+      const { error } = await supabase.from(table).delete().eq('user_id', uid);
+      if (error) throw error;
+    }
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error('Failed to reset progress', error);
+    res.status(500).json({ error: 'Failed to reset progress' });
+  }
+});
+
 export default router;

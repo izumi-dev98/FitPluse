@@ -109,4 +109,5 @@ export const apiClient = {
   changePassword: (body: ApiBody) => api('/api/auth/change-password', { method: 'POST', body }),
   getBodyProgressImages: (userId: string) => api(`/api/body-progress-images?userId=${userId}`),
   createBodyProgressImage: (body: ApiBody) => api('/api/body-progress-images', { method: 'POST', body }),
+  resetProgress: (body: ApiBody) => api('/api/reset-progress', { method: 'POST', body }),
 };

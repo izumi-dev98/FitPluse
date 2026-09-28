@@ -1,4 +1,4 @@
-import { useState, useRef, type ElementType } from "react";
+import { useState, useRef } from "react";
 import {
   CalendarDays,
   Plus,
@@ -9,53 +9,43 @@ import {
   Target,
   Droplets,
   Footprints,
+  Flame,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { Card, EmptyState, MacroRow, PageHeader, Ring } from "../components/ui";
+import QuickLogModal, { type QuickLogTab } from "../components/QuickLogModal";
 import { fmtInt } from "../lib/format";
-import type { Exercise, Food } from "../lib/database";
+import type { GoalType } from "../lib/theory";
 import {
   ensureTodayRecord,
   useBodyImages,
+  useBurnTarget,
   useDailyExercises,
   useDailyFoods,
   useDailyRecords,
-  useExercises,
-  useFoods,
   useGoals,
   useInvalidateDaily,
   useWaterIntake,
 } from "../lib/queries";
 
-type TabType = "food" | "exercise" | "water" | "body";
+
+
 const MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 const WATER_GOAL = 2500;
 const STEPS_GOAL = 8000;
+const ACTIVE_MIN_GOAL = 30;
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export default function DailyPage() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("food");
-
-  const [foodSearch, setFoodSearch] = useState("");
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
-  const [foodQty, setFoodQty] = useState(1);
-  const [foodMeal, setFoodMeal] = useState("Breakfast");
-
-  const [exerciseSearch, setExerciseSearch] = useState("");
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [exLog, setExLog] = useState({
-    sets: 3,
-    reps: 10,
-    duration_minutes: 30,
-    calories_burned: 200,
-  });
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [quickLogTab, setQuickLogTab] = useState<QuickLogTab>("food");
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageType, setImageType] = useState<"front" | "side" | "back">(
@@ -74,19 +64,18 @@ export default function DailyPage() {
   // Shared cached queries (same keys as Dashboard) — revisits render instantly.
   const goalsQ = useGoals(uid);
   const recordsQ = useDailyRecords(uid);
-  const foodsQ = useFoods(uid);
-  const exercisesQ = useExercises(uid);
   const bodyImagesQ = useBodyImages(uid);
   const waterQ = useWaterIntake(uid);
   const dailyExercisesQ = useDailyExercises(uid);
+  const burnTargetQ = useBurnTarget(uid);
 
   const goals = goalsQ.data ?? [];
   const records = recordsQ.data ?? [];
-  const foods = foodsQ.data ?? [];
-  const exercises = exercisesQ.data ?? [];
   const bodyImages = bodyImagesQ.data ?? [];
   const waters = waterQ.data ?? [];
   const allLoggedExercises = dailyExercisesQ.data ?? [];
+
+  const burnTarget = burnTargetQ.data;
 
   const today = todayStr();
   const rec = records.find((r) => r.record_date === today);
@@ -137,73 +126,6 @@ export default function DailyPage() {
     invalidateDaily(uid);
   }
 
-  async function handleLogFood() {
-    if (!selectedFood || !uid) return;
-    try {
-      const rec = await ensureTodayRecord(qc, uid);
-      const q = Number(foodQty) || 1;
-      await apiClient.createDailyFood({
-        user_id: uid,
-        daily_record_id: rec.id,
-        food_id: selectedFood.id,
-        meal_type: foodMeal,
-        quantity: q,
-        calories: (Number(selectedFood.calories) || 0) * q,
-        protein: (Number(selectedFood.protein) || 0) * q,
-        carbohydrates: (Number(selectedFood.carbohydrates) || 0) * q,
-        fat: (Number(selectedFood.fat) || 0) * q,
-      });
-      setSelectedFood(null);
-      setFoodQty(1);
-      invalidateDaily(uid);
-      Swal.fire({
-        icon: "success",
-        title: "Food logged",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Could not log food",
-        confirmButtonColor: "#65a30d",
-      });
-    }
-  }
-
-  async function handleLogExercise() {
-    if (!selectedExercise || !uid) return;
-    try {
-      const rec = await ensureTodayRecord(qc, uid);
-      await apiClient.createDailyExercise({
-        user_id: uid,
-        daily_record_id: rec.id,
-        exercise_id: selectedExercise.id,
-        ...exLog,
-      });
-      setSelectedExercise(null);
-      setExLog({
-        sets: 3,
-        reps: 10,
-        duration_minutes: 30,
-        calories_burned: 200,
-      });
-      invalidateDaily(uid);
-      Swal.fire({
-        icon: "success",
-        title: "Workout logged",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Could not log exercise",
-        confirmButtonColor: "#65a30d",
-      });
-    }
-  }
-
   async function handleUploadImage() {
     if (!imageFile || !uid) return;
     try {
@@ -222,6 +144,7 @@ export default function DailyPage() {
       });
       setImageFile(null);
       setImagePreview(null);
+      setPhotoOpen(false);
       invalidateDaily(uid);
       Swal.fire({
         icon: "success",
@@ -286,19 +209,10 @@ export default function DailyPage() {
     }
   }
 
-  const filteredFoods = foods.filter((f) =>
-    f.name?.toLowerCase().includes(foodSearch.toLowerCase()),
-  );
-  const filteredExercises = exercises.filter((e) =>
-    e.name?.toLowerCase().includes(exerciseSearch.toLowerCase()),
-  );
-
-  const tabs: { key: TabType; label: string; icon: ElementType }[] = [
-    { key: "food", label: "Food", icon: Utensils },
-    { key: "exercise", label: "Exercise", icon: Dumbbell },
-    { key: "water", label: "Water & Steps", icon: Droplets },
-    { key: "body", label: "Photo", icon: ImageIcon },
-  ];
+  function openQuickLog(tab: QuickLogTab) {
+    setQuickLogTab(tab);
+    setQuickLogOpen(true);
+  }
 
   const todayFoodCal = loggedFoods.reduce(
     (s: number, f) => s + (Number(f.calories) || 0),
@@ -325,11 +239,6 @@ export default function DailyPage() {
     ? Math.round((todayFoodCal / goalCalories) * 100)
     : 0;
 
-  function openLog(tab: TabType) {
-    setActiveTab(tab);
-    setModalOpen(true);
-  }
-
   return (
     <div>
       <PageHeader
@@ -338,7 +247,7 @@ export default function DailyPage() {
         icon={CalendarDays}
         action={
           <button
-            onClick={() => openLog("food")}
+            onClick={() => openQuickLog("food")}
             className="px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold shadow-lg shadow-brand-400/20 flex items-center gap-2"
           >
             <Plus size={18} /> Add log
@@ -375,6 +284,18 @@ export default function DailyPage() {
                 <div className="font-bold text-white">
                   {fmtInt(todayExBurned)}
                 </div>
+                {burnTarget && (
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    {burnTarget.offset !== 0 && (
+                      <span>
+                        {burnTarget.offset > 0 ? '+' : ''}
+                        {fmtInt(burnTarget.offset)} kcal ·{' '}
+                        {String(burnTarget.goalType).replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {burnTarget.offset === 0 && 'Maintain goal'}
+                  </div>
+                )}
               </div>
             </div>
             <div className="space-y-3">
@@ -485,7 +406,7 @@ export default function DailyPage() {
               <Utensils size={18} className="text-yellow-400" /> Meals
             </h3>
             <button
-              onClick={() => openLog("food")}
+              onClick={() => openQuickLog("food")}
               className="text-xs font-bold text-brand-400"
             >
               + Food
@@ -497,7 +418,7 @@ export default function DailyPage() {
               hint="Log breakfast, lunch, dinner, or a snack."
               action={
                 <button
-                  onClick={() => openLog("food")}
+                  onClick={() => openQuickLog("food")}
                   className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold"
                 >
                   Log food
@@ -552,7 +473,7 @@ export default function DailyPage() {
               <Dumbbell size={18} className="text-brand-400" /> Workouts
             </h3>
             <button
-              onClick={() => openLog("exercise")}
+              onClick={() => openQuickLog("workout")}
               className="text-xs font-bold text-brand-400"
             >
               + Exercise
@@ -564,7 +485,7 @@ export default function DailyPage() {
               hint="Log sets, reps, or cardio minutes."
               action={
                 <button
-                  onClick={() => openLog("exercise")}
+                  onClick={() => openQuickLog("workout")}
                   className="px-4 py-2 rounded-xl bg-brand-400 text-slate-950 text-sm font-bold"
                 >
                   Log workout
@@ -608,7 +529,7 @@ export default function DailyPage() {
             <ImageIcon size={18} className="text-purple-400" /> Body photos
           </h3>
           <button
-            onClick={() => openLog("body")}
+            onClick={() => setPhotoOpen(true)}
             className="text-xs font-bold text-brand-400"
           >
             + Photo
@@ -646,319 +567,80 @@ export default function DailyPage() {
         )}
       </Card>
 
-      {modalOpen && (
+      <QuickLogModal
+        open={quickLogOpen}
+        onClose={() => setQuickLogOpen(false)}
+        initialTab={quickLogTab}
+        goalType={(burnTarget?.goalType as GoalType) ?? (active?.goal_type as GoalType) ?? undefined}
+      />
+
+      {photoOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-          onClick={() => setModalOpen(false)}
+          onClick={() => setPhotoOpen(false)}
         >
           <div
-            className="bg-panel border border-brand-600/30 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-panel border border-brand-600/30 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-5 border-b border-slate-800 sticky top-0 bg-panel rounded-t-3xl z-10">
-              <h3 className="text-lg font-bold text-white">Add to today</h3>
+              <h3 className="text-lg font-bold text-white">Add body photo</h3>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={() => setPhotoOpen(false)}
                 className="text-slate-400 hover:text-white"
                 aria-label="Close"
               >
                 <X size={22} />
               </button>
             </div>
-            <div className="flex gap-1 px-5 pt-4 overflow-x-auto">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setActiveTab(t.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap ${
-                    activeTab === t.key
-                      ? "bg-brand-400 text-slate-950"
-                      : "bg-slate-800 text-slate-400"
-                  }`}
-                >
-                  <t.icon size={16} /> {t.label}
-                </button>
-              ))}
-            </div>
             <div className="p-5">
-              {activeTab === "food" && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={foodSearch}
-                    onChange={(e) => setFoodSearch(e.target.value)}
-                    placeholder="Search foods..."
-                    className="w-full p-3 rounded-xl bg-ink border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
-                  />
-                  <div className="grid gap-2 max-h-40 overflow-y-auto">
-                    {filteredFoods.slice(0, 10).map((f) => (
-                      <button
-                        key={f.id}
-                        onClick={() => {
-                          setSelectedFood(f);
-                          setFoodSearch("");
-                        }}
-                        className={`text-left p-3 rounded-xl border text-sm ${
-                          selectedFood?.id === f.id
-                            ? "border-brand-500 bg-brand-900/20"
-                            : "border-slate-800 bg-slate-950/40"
-                        }`}
-                      >
-                        <div className="text-white font-medium">{f.name}</div>
-                        <div className="text-slate-400 text-xs">
-                          {f.calories} kcal · P {f.protein}g · C{" "}
-                          {f.carbohydrates}g · F {f.fat}g
-                        </div>
-                      </button>
-                    ))}
-                    {filteredFoods.length === 0 && (
-                      <p className="text-slate-500 text-sm text-center py-4">
-                        No foods yet. Add some on the Foods page.
-                      </p>
-                    )}
-                  </div>
-                  {selectedFood && (
-                    <div className="bg-slate-950/60 border border-brand-600/20 rounded-xl p-4 space-y-3">
-                      <div className="text-brand-400 font-bold text-sm">
-                        {selectedFood.name}
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-slate-400">Meal</label>
-                          <select
-                            value={foodMeal}
-                            onChange={(e) => setFoodMeal(e.target.value)}
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          >
-                            {MEALS.map((m) => (
-                              <option key={m}>{m}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-400">
-                            Quantity
-                          </label>
-                          <input
-                            type="number"
-                            min={0.25}
-                            step={0.25}
-                            value={foodQty}
-                            onChange={(e) => setFoodQty(Number(e.target.value))}
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleLogFood}
-                        className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm"
-                      >
-                        Add to log
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "exercise" && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={exerciseSearch}
-                    onChange={(e) => setExerciseSearch(e.target.value)}
-                    placeholder="Search exercises..."
-                    className="w-full p-3 rounded-xl bg-ink border border-slate-700 text-white text-sm"
-                  />
-                  <div className="grid gap-2 max-h-40 overflow-y-auto">
-                    {filteredExercises.slice(0, 10).map((e) => (
-                      <button
-                        key={e.id}
-                        onClick={() => {
-                          setSelectedExercise(e);
-                          setExerciseSearch("");
-                        }}
-                        className={`text-left p-3 rounded-xl border text-sm ${
-                          selectedExercise?.id === e.id
-                            ? "border-brand-500 bg-brand-900/20"
-                            : "border-slate-800 bg-slate-950/40"
-                        }`}
-                      >
-                        <div className="text-white font-medium">{e.name}</div>
-                        <div className="text-slate-400 text-xs">
-                          {e.exercise_type}
-                        </div>
-                      </button>
-                    ))}
-                    {filteredExercises.length === 0 && (
-                      <p className="text-slate-500 text-sm text-center py-4">
-                        No exercises yet. Add some on the Workout page.
-                      </p>
-                    )}
-                  </div>
-                  {selectedExercise && (
-                    <div className="bg-slate-950/60 border border-brand-600/20 rounded-xl p-4 space-y-3">
-                      <div className="text-brand-400 font-bold text-sm">
-                        {selectedExercise.name}
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-slate-400">Sets</label>
-                          <input
-                            type="number"
-                            value={exLog.sets}
-                            onChange={(e) =>
-                              setExLog({
-                                ...exLog,
-                                sets: Number(e.target.value),
-                              })
-                            }
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-400">Reps</label>
-                          <input
-                            type="number"
-                            value={exLog.reps}
-                            onChange={(e) =>
-                              setExLog({
-                                ...exLog,
-                                reps: Number(e.target.value),
-                              })
-                            }
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-400">
-                            Minutes
-                          </label>
-                          <input
-                            type="number"
-                            value={exLog.duration_minutes}
-                            onChange={(e) =>
-                              setExLog({
-                                ...exLog,
-                                duration_minutes: Number(e.target.value),
-                              })
-                            }
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-400">
-                            kcal burned
-                          </label>
-                          <input
-                            type="number"
-                            value={exLog.calories_burned}
-                            onChange={(e) =>
-                              setExLog({
-                                ...exLog,
-                                calories_burned: Number(e.target.value),
-                              })
-                            }
-                            className="w-full p-2 rounded-lg bg-ink border border-slate-700 text-white text-sm"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleLogExercise}
-                        className="w-full py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm"
-                      >
-                        Add to log
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "water" && (
-                <div className="space-y-4">
-                  <p className="text-sm text-slate-400">
-                    Quick-add water or set today’s step count.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[250, 500, 750].map((ml) => (
-                      <button
-                        key={ml}
-                        onClick={() => addWater(ml)}
-                        className="py-3 rounded-xl bg-sky-950/50 border border-sky-800 text-sky-200 font-bold"
-                      >
-                        +{ml} ml
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-sm text-white">
-                    Today: <b className="text-sky-400">{water} ml</b>
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Steps"
-                      value={stepInput}
-                      onChange={(e) => setStepInput(e.target.value)}
-                      className="flex-1 p-3 rounded-xl bg-ink border border-slate-700 text-white text-sm"
-                    />
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {(["front", "side", "back"] as const).map((t) => (
                     <button
-                      onClick={saveSteps}
-                      className="px-4 rounded-xl bg-brand-400 text-slate-950 font-bold"
+                      key={t}
+                      onClick={() => setImageType(t)}
+                      className={`py-2 rounded-xl text-sm font-bold capitalize ${imageType === t ? "bg-brand-400 text-slate-950" : "bg-slate-800 text-slate-400"}`}
                     >
-                      Save
+                      {t}
                     </button>
-                  </div>
+                  ))}
                 </div>
-              )}
-
-              {activeTab === "body" && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["front", "side", "back"] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setImageType(t)}
-                        className={`py-2 rounded-xl text-sm font-bold capitalize ${imageType === t ? "bg-brand-400 text-slate-950" : "bg-slate-800 text-slate-400"}`}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        setImageFile(e.target.files[0]);
-                        setImagePreview(URL.createObjectURL(e.target.files[0]));
-                      }
-                    }}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      setImageFile(e.target.files[0]);
+                      setImagePreview(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                >
+                  {imagePreview ? "Change image" : "Choose image"}
+                </button>
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-xl"
                   />
+                )}
+                {imageFile && (
                   <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                    onClick={handleUploadImage}
+                    className="w-full py-2.5 rounded-xl bg-brand-400 text-slate-950 font-bold"
                   >
-                    {imagePreview ? "Change image" : "Choose image"}
+                    Upload photo
                   </button>
-                  {imagePreview && (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded-xl"
-                    />
-                  )}
-                  {imageFile && (
-                    <button
-                      onClick={handleUploadImage}
-                      className="w-full py-2.5 rounded-xl bg-brand-400 text-slate-950 font-bold"
-                    >
-                      Upload photo
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

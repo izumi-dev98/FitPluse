@@ -38,17 +38,29 @@ const EXTRA_NAV = [
   { to: '/profile', label: 'Profile', icon: User },
 ];
 
+// Mobile bottom bar shows 5 tabs — everything else lives under "More".
+const MORE_NAV = [
+  { to: '/foods', label: 'Nutrition', icon: Apple },
+  { to: '/exercises', label: 'Workouts', icon: Dumbbell },
+  { to: '/progress', label: 'Progress', icon: BarChart3 },
+  { to: '/history', label: 'History', icon: History },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/badges', label: 'Badges', icon: Trophy },
+  { to: '/profile', label: 'Profile', icon: User },
+];
+const MORE_PATHS = MORE_NAV.map((i) => i.to);
+
 function ShellContent({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { language, setLanguage, t: label } = useLanguage();
   const user = useAuthStore((s) => s.user);
-  const name = user?.name || user?.email?.split('@')[0] || 'Alex Morgan';
+  const name = user?.name || user?.email?.split('@')[0] || '';
   const initials = name
     .split(' ')
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase() || 'AM';
+    .toUpperCase();
 
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [coachingOpen, setCoachingOpen] = useState(false);
@@ -199,7 +211,7 @@ function ShellContent({ children }: { children: ReactNode }) {
                 </div>
                 <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
-                  <span>Pro Athlete</span>
+                  <span>Active</span>
                 </div>
               </div>
             </Link>
@@ -319,10 +331,10 @@ function ShellContent({ children }: { children: ReactNode }) {
 
       {/* ========================================================= */}
       {/* 5. MOBILE BOTTOM NAVIGATION (< 1024px)                     */}
-      {/* Includes all nav items with "More" dropdown               */}
+      {/* 5 tabs fit small screens — the rest live under "More"     */}
       {/* ========================================================= */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-[#151d2d] pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
-        <div className="grid grid-cols-7 items-center max-w-md mx-auto relative px-1 py-1">
+        <div className="grid grid-cols-5 items-center max-w-md mx-auto relative px-2 py-1">
           {/* Tab 1: Overview */}
           <Link
             to="/"
@@ -330,7 +342,7 @@ function ShellContent({ children }: { children: ReactNode }) {
               location.pathname === '/' ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <LayoutDashboard size={19} />
+            <LayoutDashboard size={20} />
             <span>Overview</span>
           </Link>
 
@@ -341,22 +353,11 @@ function ShellContent({ children }: { children: ReactNode }) {
               location.pathname.startsWith('/daily') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <Flame size={19} />
+            <Flame size={20} />
             <span>Activity</span>
           </Link>
 
-          {/* Tab 3: Nutrition */}
-          <Link
-            to="/foods"
-            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname.startsWith('/foods') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <Apple size={19} />
-            <span>Nutrition</span>
-          </Link>
-
-          {/* Tab 4: (+) Quick Log (center elevated) */}
+          {/* Tab 3: (+) Quick Log (center elevated) */}
           <div className="flex flex-col items-center justify-center -mt-6">
             <button
               onClick={() => setQuickLogOpen(true)}
@@ -368,42 +369,33 @@ function ShellContent({ children }: { children: ReactNode }) {
             <span className="text-[9px] font-bold text-slate-400 mt-0.5">Log</span>
           </div>
 
-          {/* Tab 5: Workouts */}
+          {/* Tab 4: Goals */}
           <Link
-            to="/exercises"
+            to="/goals"
             className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname.startsWith('/exercises') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              location.pathname.startsWith('/goals') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <Dumbbell size={19} />
-            <span>Workouts</span>
+            <Target size={20} />
+            <span>Goals</span>
           </Link>
 
-          {/* Tab 6: Profile */}
-          <Link
-            to="/profile"
-            className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-              location.pathname.startsWith('/profile') ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <User size={19} />
-            <span>Profile</span>
-          </Link>
-
-          {/* Tab 7: More */}
+          {/* Tab 5: More — every other page lives here */}
           <div className="relative">
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition ${
-                moreOpen ? 'text-[#ccff00]' : 'text-slate-500 hover:text-slate-300'
+              className={`flex flex-col items-center gap-1 py-2 text-[10px] font-bold transition w-full ${
+                moreOpen || MORE_PATHS.some((p) => location.pathname.startsWith(p))
+                  ? 'text-[#ccff00]'
+                  : 'text-slate-500 hover:text-slate-300'
               }`}
             >
-              <ChevronDown size={19} />
+              <ChevronDown size={20} />
               <span>More</span>
             </button>
             {moreOpen && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#0f1626] border border-[#151d2d] rounded-2xl shadow-xl overflow-hidden z-50">
-                {MAIN_NAV.slice(2).map((item) => {
+              <div className="absolute bottom-full right-0 mb-2 w-52 max-h-[60vh] overflow-y-auto bg-[#0f1626] border border-[#151d2d] rounded-2xl shadow-xl overflow-hidden z-50">
+                {MORE_NAV.map((item, i) => {
                   const active = location.pathname.startsWith(item.to);
                   return (
                     <NavLink
@@ -411,22 +403,8 @@ function ShellContent({ children }: { children: ReactNode }) {
                       to={item.to}
                       onClick={() => setMoreOpen(false)}
                       className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition ${
-                        active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
-                      }`}
-                    >
-                      <item.icon size={16} />
-                      <span>{label(item.label)}</span>
-                    </NavLink>
-                  );
-                })}
-                {EXTRA_NAV.map((item) => {
-                  const active = location.pathname.startsWith(item.to);
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setMoreOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition border-t border-[#151d2d] ${
+                        i > 0 ? 'border-t border-[#151d2d]' : ''
+                      } ${
                         active ? 'bg-[#152033] text-[#ccff00]' : 'text-slate-400 hover:text-white hover:bg-[#0f1726]'
                       }`}
                     >

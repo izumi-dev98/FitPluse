@@ -38,7 +38,6 @@ const ACTIVITY_OPTIONS: { value: string; label: string; hint: string; icon: Luci
 const GOAL_OPTIONS: { value: GoalType; label: string; icon: LucideIcon; description: string; color: string }[] = [
   { value: 'fat_loss', label: 'Fat Loss', icon: Flame, description: 'Reduce body fat with a moderate deficit and high protein', color: 'bg-orange-500/20 border-orange-500/30 text-orange-400' },
   { value: 'weight_loss', label: 'Weight Loss', icon: TrendingUp, description: 'Reduce body weight gradually without an aggressive deficit', color: 'bg-pink-500/20 border-pink-500/30 text-pink-400' },
-  { value: 'muscle_gain', label: 'Muscle Gain', icon: Dumbbell, description: 'Prioritize lean mass with a small, controlled surplus', color: 'bg-red-500/20 border-red-500/30 text-red-400' },
   { value: 'weight_gain', label: 'Weight Gain', icon: Heart, description: 'Increase body weight gradually while monitoring progress', color: 'bg-blue-500/20 border-blue-500/30 text-blue-400' },
   { value: 'skinny_to_fit', label: 'Skinny → Fit', icon: Zap, description: 'Build body weight and strength with a controlled surplus', color: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' },
   { value: 'maintain', label: 'Fit / Maintain', icon: Leaf, description: 'Keep body weight stable while supporting training', color: 'bg-violet-500/20 border-violet-500/30 text-violet-400' },
@@ -94,8 +93,8 @@ const FEATURE_CARDS = [
     title: 'Badge System',
     subtitle: 'Earn rewards, build streaks, level up',
     icon: Award,
-    description: '30 unique badges across 6 goal types. 5 levels per goal: Starter → Momentum → Dedicated → Master → Legend. XP, ranks, and bragging rights.',
-    highlight: '30 badges • 7 ranks',
+    description: '25 unique badges across 5 goal types. 5 levels per goal: Starter → Momentum → Dedicated → Master → Legend. XP, ranks, and bragging rights.',
+    highlight: '25 badges • 7 ranks',
     color: 'bg-yellow-500/20 border-yellow-500/30',
     iconColor: 'text-yellow-400',
     bgGradient: 'from-yellow-900/20 to-yellow-900/5',
@@ -121,6 +120,12 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
   
   // New slides state
   const [selectedGoal, setSelectedGoal] = useState<GoalType | null>(null);
+  // Default target: 12 weeks out. Used for the initial goal's target_date.
+  const [targetDate, setTargetDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 84);
+    return d.toISOString().slice(0, 10);
+  });
   
   const [fieldError, setFieldError] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -152,7 +157,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
     if (isOriginalStep) {
       if (validateOriginal(step)) setStep((s) => s + 1);
     } else if (isGoalStep) {
-      if (selectedGoal) setStep((s) => s + 1);
+      if (selectedGoal && targetDate) setStep((s) => s + 1);
     } else if (isFeaturesStep) {
       finish();
     }
@@ -195,7 +200,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
       }
 
       // 2. Calculate proper goal values using theory functions
-      const bmr = calcBMR(gender, Number(weight), Number(height), ageFromDob(dob) || 30);
+      const bmr = calcBMR(gender, Number(weight), Number(height), ageFromDob(dob) ?? 0);
       const tdee = calcTDEE(bmr, activity as keyof typeof ACTIVITY_MULTIPLIERS);
       const targetCalories = Math.round(calcTarget(tdee, selectedGoal));
       const macros = calcMacros(targetCalories, Number(weight));
@@ -209,6 +214,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
         protein_target: macros.protein,
         fat_target: macros.fat,
         carb_target: macros.carbs,
+        target_date: targetDate,
         status: 'active',
       });
       await qc.invalidateQueries({ queryKey: qk.profile() });
@@ -381,6 +387,18 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                   </div>
                 </button>
               ))}
+              <label className="block rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Target date — stay on this goal until then
+                </span>
+                <input
+                  type="date"
+                  value={targetDate}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  className="w-full rounded-xl border border-panel-border bg-ink p-3 text-white focus:border-brand-500 focus:outline-none"
+                />
+              </label>
             </div>
           )}
 
@@ -439,7 +457,7 @@ export default function OnboardingPage({ onDone, onSkip }: { onDone: () => void;
                   Continue <ArrowRight size={16} />
                 </button>
               ) : isGoalStep ? (
-                <button type="button" onClick={next} disabled={!selectedGoal}
+                <button type="button" onClick={next} disabled={!selectedGoal || !targetDate}
                   className="inline-flex items-center gap-1 px-6 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
                   Continue <ArrowRight size={16} />
                 </button>

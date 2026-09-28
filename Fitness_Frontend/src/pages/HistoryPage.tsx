@@ -3,17 +3,18 @@ import {
   History,
   Calendar,
   Flame,
-  Droplets,
   Search,
   BookOpen,
   Sparkles,
-  ChevronRight,
   Plus,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import {
+  useDailyExercises,
+  useDailyFoods,
   useDailyRecords,
   useGoals,
+  useWaterIntake,
 } from '../lib/queries';
 import {
   enrichDailyRecords,
@@ -42,15 +43,75 @@ export default function HistoryPage() {
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [showTheoryGuide, setShowTheoryGuide] = useState(false);
 
-  // Queries
+  // Queries (shared cache keys — same entries as Daily/Dashboard/Goals)
   const recordsQ = useDailyRecords(uid);
   const goalsQ = useGoals(uid);
+  const foodsQ = useDailyFoods(uid);
+  const exercisesQ = useDailyExercises(uid);
+  const waterQ = useWaterIntake(uid);
 
-  const loading = recordsQ.isLoading || goalsQ.isLoading;
+  const loading =
+    recordsQ.isLoading ||
+    goalsQ.isLoading ||
+    foodsQ.isLoading ||
+    exercisesQ.isLoading ||
+    waterQ.isLoading;
 
-  const records = recordsQ.data ?? [];
   const goals = goalsQ.data ?? [];
   const activeGoal = goals.find((g) => g.status === 'active') || goals[0] || null;
+
+  // Merge real log totals into the records: food/exercise/water writes only
+  // insert child rows, they never update daily_records columns — so derive
+  // consumed/burned/water from the child tables (same pattern as GoalsPage).
+  const records = useMemo(() => {
+    const recs = recordsQ.data ?? [];
+    const dateByRecordId = new Map(recs.map((r) => [String(r.id), r.record_date]));
+    const foodByRecord = new Map<string, number>();
+    const foodByDate = new Map<string, number>();
+    for (const f of foodsQ.data ?? []) {
+      const v = Number(f.calories) || 0;
+      if (f.daily_record_id) {
+        const k = String(f.daily_record_id);
+        foodByRecord.set(k, (foodByRecord.get(k) || 0) + v);
+      }
+      const d = String(
+        f.record_date || dateByRecordId.get(String(f.daily_record_id)) || f.created_at || '',
+      ).slice(0, 10);
+      if (d) foodByDate.set(d, (foodByDate.get(d) || 0) + v);
+    }
+    const burnByRecord = new Map<string, number>();
+    const burnByDate = new Map<string, number>();
+    for (const e of exercisesQ.data ?? []) {
+      const v = Number(e.calories_burned) || 0;
+      if (e.daily_record_id) {
+        const k = String(e.daily_record_id);
+        burnByRecord.set(k, (burnByRecord.get(k) || 0) + v);
+      }
+      const d = String(
+        e.record_date || dateByRecordId.get(String(e.daily_record_id)) || e.created_at || '',
+      ).slice(0, 10);
+      if (d) burnByDate.set(d, (burnByDate.get(d) || 0) + v);
+    }
+    const waterByDate = new Map<string, number>();
+    for (const w of waterQ.data ?? []) {
+      const d = String(w.recorded_at || w.created_at || '').slice(0, 10);
+      if (d) waterByDate.set(d, (waterByDate.get(d) || 0) + (Number(w.amount_ml) || 0));
+    }
+    return recs.map((r) => ({
+      ...r,
+      calories_consumed: Math.max(
+        Number(r.calories_consumed) || 0,
+        foodByRecord.get(String(r.id)) || 0,
+        foodByDate.get(r.record_date) || 0,
+      ),
+      calories_burned: Math.max(
+        Number(r.calories_burned) || 0,
+        burnByRecord.get(String(r.id)) || 0,
+        burnByDate.get(r.record_date) || 0,
+      ),
+      water_ml: Math.max(Number(r.water_ml) || 0, waterByDate.get(r.record_date) || 0),
+    }));
+  }, [recordsQ.data, foodsQ.data, exercisesQ.data, waterQ.data]);
 
   // Enriched daily rows with real theory and goal calculations
   const allDailyRows = useMemo(() => {
@@ -359,113 +420,73 @@ export default function HistoryPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {pagedRows.map((row) => {
-            const isToday = row.date === todayKey();
-            const diff = row.target > 0 ? row.consumed - row.target : 0;
-
-            return (
-              <div
-                key={row.date}
-                onClick={() => setSelectedRow(row)}
-                className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0f1626] border border-[#1a263d] hover:border-[#ccff00]/40 transition cursor-pointer shadow-md group relative overflow-hidden"
-              >
-                {/* Accent glow on hover */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-[#ccff00] transition" />
-
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  {/* Left: Date, Goal & Verdict Badge */}
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-[#090d16] border border-[#182338] flex flex-col items-center justify-center shrink-0 group-hover:border-[#ccff00]/40 transition">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">
-                        {new Date(`${row.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' })}
-                      </span>
-                      <span className="text-sm font-black text-white leading-none">
-                        {new Date(`${row.date}T12:00:00`).getDate()}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-sm sm:text-base font-black text-white">
-                          {formatDay(row.date, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-                        </h4>
-                        {isToday && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/40">
-                            Today
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-400">
-                        <span className="capitalize text-slate-300 font-semibold">{row.goalType}</span>
-                        {row.target > 0 && <span>• Target {fmtInt(row.target)} kcal</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Middle: Calorie Breakdown Pill Cards */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center text-xs">
-                    <div className="p-2.5 rounded-xl bg-[#090d16] border border-[#182338]">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Intake</span>
-                      <span className="text-sm font-black text-white block mt-0.5">{fmtInt(row.consumed)}</span>
-                      <span className="text-[9px] text-slate-500 font-medium">kcal</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-[#090d16] border border-[#182338]">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Burned</span>
-                      <span className="text-sm font-black text-[#ccff00] block mt-0.5">{fmtInt(row.burned)}</span>
-                      <span className="text-[9px] text-slate-500 font-medium">kcal</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-[#090d16] border border-[#182338]">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Net</span>
-                      <span className="text-sm font-black text-white block mt-0.5">{fmtInt(row.net)}</span>
-                      <span className="text-[9px] text-slate-500 font-medium">kcal</span>
-                    </div>
-
-                    <div className="hidden sm:block p-2.5 rounded-xl bg-[#090d16] border border-[#182338]">
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase block flex items-center justify-center gap-0.5">
-                        <Droplets size={10} /> Water
-                      </span>
-                      <span className="text-sm font-black text-white block mt-0.5">
-                        {row.water > 0 ? `${(row.water / 1000).toFixed(1)}L` : '—'}
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-medium">{row.steps > 0 ? `${row.steps} steps` : ''}</span>
-                    </div>
-                  </div>
-
-                  {/* Right: Verdict Badge & Arrow Action */}
-                  <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t border-[#182338] lg:border-t-0">
-                    <div className="flex flex-col items-start lg:items-end">
-                      <span className={`px-3 py-1 rounded-full text-xs font-extrabold border ${verdictClass[row.verdict.tone]}`}>
-                        {row.verdict.label}
-                      </span>
-                      {row.target > 0 && (
-                        <span className="text-[10px] text-slate-400 mt-1 font-semibold">
-                          {diff > 0 ? `+${diff} kcal` : diff < 0 ? `${diff} kcal` : 'Exact goal'}
+        <div className="rounded-3xl bg-[#0f1626] border border-[#1a263d] overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] text-sm border-collapse">
+              <thead>
+                <tr className="bg-[#090d16] border-b border-[#1a263d] text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Goal</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-right px-4 py-3">Intake</th>
+                  <th className="text-right px-4 py-3">Burned</th>
+                  <th className="text-right px-4 py-3">Net</th>
+                  <th className="text-right px-4 py-3">Target</th>
+                  <th className="text-right px-4 py-3">Over/Under</th>
+                  <th className="text-right px-4 py-3">Water</th>
+                  <th className="text-right px-4 py-3">Steps</th>
+                  <th className="text-right px-4 py-3">Verdict</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagedRows.map((row) => {
+                  const isToday = row.date === todayKey();
+                  const diff = row.target > 0 ? row.consumed - row.target : 0;
+                  return (
+                    <tr
+                      key={row.date}
+                      onClick={() => setSelectedRow(row)}
+                      className={`border-b border-[#182338] last:border-b-0 hover:bg-[#ccff00]/5 transition cursor-pointer ${isToday ? 'bg-[#ccff00]/5' : ''}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white whitespace-nowrap">{formatDay(row.date, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                          {isToday && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/40">Today</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500">{new Date(`${row.date}T12:00:00`).getFullYear()}</div>
+                      </td>
+                      <td className="px-4 py-3 capitalize text-slate-300 font-semibold whitespace-nowrap">{row.goalType}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          row.goalStatus === 'active'
+                            ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/30'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {row.goalStatus}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="w-8 h-8 rounded-xl bg-[#090d16] border border-[#182338] flex items-center justify-center text-slate-400 group-hover:text-[#ccff00] group-hover:border-[#ccff00]/40 transition">
-                      <ChevronRight size={16} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Pagination Controls */}
-          <div className="pt-2">
-            <PaginationBar
-              page={page}
-              pageCount={pageCount}
-              total={filteredRows.length}
-              pageSize={PAGE_SIZE}
-              onPage={setPage}
-            />
+                      </td>
+                      <td className="px-4 py-3 text-right font-black text-white whitespace-nowrap">{fmtInt(row.consumed)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
+                      <td className="px-4 py-3 text-right font-black text-[#ccff00] whitespace-nowrap">{fmtInt(row.burned)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
+                      <td className="px-4 py-3 text-right font-bold text-white whitespace-nowrap">{fmtInt(row.net)}<span className="ml-1 text-[10px] font-medium text-slate-500">kcal</span></td>
+                      <td className="px-4 py-3 text-right text-slate-400 whitespace-nowrap">{row.target > 0 ? fmtInt(row.target) : "-"}</td>
+                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${diff > 0 ? 'text-red-400' : diff < 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                        {row.target > 0 ? (diff !== 0 ? (diff > 0 ? `+${fmtInt(diff)}` : fmtInt(diff)) : 'Exact') : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-cyan-400 font-semibold whitespace-nowrap">{row.water > 0 ? `${(row.water / 1000).toFixed(1)}L` : "-"}</td>
+                      <td className="px-4 py-3 text-right text-slate-300 whitespace-nowrap">{row.steps > 0 ? row.steps.toLocaleString() : "-"}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${verdictClass[row.verdict.tone]}`}>{row.verdict.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-4 border-t border-[#1a263d]">
+            <PaginationBar page={page} pageCount={pageCount} total={filteredRows.length} pageSize={PAGE_SIZE} onPage={setPage} />
           </div>
         </div>
       )}

@@ -216,6 +216,7 @@ export type Database = {
           calories_burned: number
           calories_consumed: number
           created_at: string
+          goal_type: string | null
           id: string
           notes: string | null
           record_date: string
@@ -227,6 +228,7 @@ export type Database = {
           calories_burned?: number
           calories_consumed?: number
           created_at?: string
+          goal_type?: string | null
           id?: string
           notes?: string | null
           record_date: string
@@ -238,6 +240,7 @@ export type Database = {
           calories_burned?: number
           calories_consumed?: number
           created_at?: string
+          goal_type?: string | null
           id?: string
           notes?: string | null
           record_date?: string

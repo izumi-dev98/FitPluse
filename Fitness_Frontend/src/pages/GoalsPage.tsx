@@ -1,22 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Target,
   X,
   Calculator,
-  ArrowRight,
   Trash2,
   RotateCcw,
   Flag,
-  Sparkles,
   CalendarDays,
-  Droplets,
-  Footprints,
-  Flame,
-  Utensils,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
   Plus,
   Dumbbell,
   GlassWater,
@@ -24,6 +15,7 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
+  History,
 } from "lucide-react";
 import { PageHeader, EmptyState, Ring } from "../components/ui";
 import DailyRecordModal from "../components/DailyRecordModal";
@@ -44,28 +36,17 @@ import {
   GOAL_LABELS,
   type GoalType,
 } from "../lib/theory";
-import {
-  enrichDailyRecords,
-  formatDay,
-  todayKey,
-  verdictClass,
-  type DailyRow,
-} from "../lib/dailyHistory";
+import type { DailyRow } from "../lib/dailyHistory";
 
-const PAGE_SIZE = 7;
+const CONFIRM_COLOR = "#65a30d";
 
-type HistoryTab = "goals" | "daily";
-type RangeKey = 7 | 14 | 30 | 0;
-
-type CalcInputs = {
-  goal_type: GoalType;
-  gender: string;
-  weight_kg: number;
-  height_cm: number;
-  dob: string;
-  age: number;
-  activity_level: ActivityLevel;
-};
+const card = "rounded-2xl border border-panel-border bg-panel-card";
+const btnPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-4 py-2 text-sm font-bold text-ink transition hover:bg-brand-300 disabled:opacity-50";
+const btnGhost =
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-panel-border px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white";
+const inputCls =
+  "w-full rounded-xl border border-panel-border bg-ink p-3 text-white focus:border-brand-500 focus:outline-none";
 
 const ACTIVITY_LEVELS = [
   "sedentary",
@@ -76,32 +57,135 @@ const ACTIVITY_LEVELS = [
 ] as const;
 type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
 
+type CalcInputs = {
+  goal_type: GoalType;
+  gender: string;
+  weight_kg: number;
+  height_cm: number;
+  dob: string;
+  age: number;
+  activity_level: ActivityLevel;
+  target_date: string;
+};
+
+function defaultTargetDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 84);
+  return d.toISOString().slice(0, 10);
+}
+
+// Days left until the goal's target date. Null = no lock (no date or reached).
+function targetDaysLeft(g: Goal | null | undefined): number | null {
+  if (!g?.target_date) return null;
+  const t = new Date(`${String(g.target_date).slice(0, 10)}T00:00:00`).getTime();
+  if (!Number.isFinite(t)) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((t - now.getTime()) / 86400000);
+  return diff > 0 ? diff : null;
+}
+
 function toActivityLevel(v: unknown, fallback: ActivityLevel): ActivityLevel {
   return typeof v === "string" && (ACTIVITY_LEVELS as readonly string[]).includes(v)
     ? (v as ActivityLevel)
     : fallback;
 }
 
-function RecommendationList({
-  title,
-  items,
-  compact = false,
+function applyProfile(prev: CalcInputs, p: { gender?: string; weight?: number; height?: number; dob?: string; age?: number; activity_level?: string }): CalcInputs {
+  return {
+    ...prev,
+    gender: p.gender || prev.gender,
+    weight_kg: Number(p.weight) || prev.weight_kg,
+    height_cm: Number(p.height) || prev.height_cm,
+    dob: p.dob ? String(p.dob).slice(0, 10) : prev.dob,
+    age: (p.dob ? ageFromDob(p.dob) : Number(p.age)) || prev.age,
+    activity_level: toActivityLevel(p.activity_level, prev.activity_level),
+  };
+}
+
+const pct = (value: number, target: number) =>
+  target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+
+const sumByDate = <T,>(rows: T[], dateOf: (r: T) => string, valueOf: (r: T) => number) => {
+  const out = new Map<string, number>();
+  for (const r of rows) {
+    const d = dateOf(r);
+    if (d) out.set(d, (out.get(d) || 0) + valueOf(r));
+  }
+  return out;
+};
+
+/* ---------------------------- small pieces ---------------------------- */
+
+function MacroBar({
+  label,
+  value,
+  target,
+  tone,
 }: {
-  title: string;
-  items: string[];
-  compact?: boolean;
+  label: string;
+  value: number;
+  target: number;
+  tone: string;
 }) {
   return (
-    <div className={`rounded-xl bg-slate-950/40 border border-white/10 ${compact ? "p-3" : "p-4"}`}>
-      <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">
-        {title}
+    <div>
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="flex items-center gap-2 text-slate-300">
+          <span className={`h-2 w-2 rounded-full ${tone}`} />
+          {label}
+        </span>
+        <span className="text-slate-500">
+          <span className="font-semibold text-white">{Math.round(value)}</span> / {Math.round(target)} g
+        </span>
       </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct(value, target)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value, unit, dot }: { label: string; value: React.ReactNode; unit?: string; dot?: string }) {
+  return (
+    <div className="rounded-xl border border-panel-border bg-ink/60 p-4">
+      <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+        {dot && <span className={`h-2 w-2 rounded-full ${dot}`} />}
+        {label}
+      </div>
+      <div className="text-2xl font-extrabold text-white">
+        {value}
+        {unit && <span className="ml-1 text-sm font-medium text-slate-500">{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function QuickLog({ to, icon: Icon, label, hint }: { to: string; icon: typeof Sandwich; label: string; hint: string }) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-center gap-3 rounded-xl border border-panel-border bg-ink/60 p-3 transition hover:border-brand-500/50"
+    >
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-slate-300 transition group-hover:text-brand-400">
+        <Icon size={20} />
+      </span>
+      <span className="flex-1">
+        <span className="block text-sm font-semibold text-white">{label}</span>
+        <span className="block text-xs text-slate-500">{hint}</span>
+      </span>
+      <Plus size={16} className="text-slate-600 transition group-hover:text-brand-400" />
+    </Link>
+  );
+}
+
+function RecommendationList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-xl border border-panel-border bg-ink/60 p-4">
+      <div className="mb-2 text-xs font-semibold text-slate-400">{title}</div>
       <ul className="space-y-2">
         {items.map((item) => (
-          <li
-            key={item}
-            className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-brand-500/50"
-          >
+          <li key={item} className="border-l-2 border-brand-500/40 pl-3 text-xs leading-relaxed text-slate-300">
             {item}
           </li>
         ))}
@@ -110,47 +194,187 @@ function RecommendationList({
   );
 }
 
-function MacroRing({ label, value, target, unit = "g" }: { 
-  label: string; 
-  value: number; 
-  target: number; 
-  unit?: string; 
+/* ------------------------------ goal modal ------------------------------ */
+
+function GoalModal({
+  form,
+  setForm,
+  preview,
+  isEditing,
+  saving,
+  onSave,
+  onClose,
+}: {
+  form: CalcInputs;
+  setForm: React.Dispatch<React.SetStateAction<CalcInputs>>;
+  preview: { bmr: number; tdee: number; target: number; macros: { protein: number; fat: number; carbs: number } };
+  isEditing: boolean;
+  saving: boolean;
+  onSave: () => void;
+  onClose: () => void;
 }) {
-  const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const set = <K extends keyof CalcInputs>(k: K, v: CalcInputs[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const derivedAge = form.dob ? ageFromDob(form.dob) : null;
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <Ring percent={pct} size={80}>
-        <div className="text-center">
-          <div className="text-white font-bold text-lg">{Math.round(value)}</div>
-          <div className="text-slate-500 text-xs">{unit}</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="goal-modal-title"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-panel-border bg-panel-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-3xl border-b border-panel-border bg-panel-card p-6">
+          <h3 id="goal-modal-title" className="text-xl font-bold text-white">
+            {isEditing ? "Change goal" : "Create your goal"}
+          </h3>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white" aria-label="Close">
+            <X size={22} />
+          </button>
         </div>
-      </Ring>
-      <div className="text-center">
-        <div className="text-slate-400 text-xs uppercase tracking-wide">{label}</div>
-        <div className="text-white font-medium text-sm">{pct}% of {Math.round(target)}{unit}</div>
+
+        <div className="space-y-6 p-6">
+          <div>
+            <label className="mb-3 block text-sm font-medium text-slate-300">What's your goal?</label>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+              {(Object.keys(GOAL_LABELS) as GoalType[]).map((gt) => (
+                <button
+                  key={gt}
+                  type="button"
+                  aria-pressed={form.goal_type === gt}
+                  onClick={() => set("goal_type", gt)}
+                  className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                    form.goal_type === gt
+                      ? "border-brand-400 bg-brand-400 text-ink"
+                      : "border-panel-border bg-ink text-slate-300 hover:border-brand-500/50"
+                  }`}
+                >
+                  {GOAL_LABELS[gt]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-panel-border pt-4">
+            <label className="mb-3 block text-sm font-medium text-slate-300">Your stats</label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs text-slate-500">Weight (kg)</span>
+                <input type="number" min="30" max="300" step="0.1" value={form.weight_kg} onChange={(e) => set("weight_kg", Number(e.target.value))} className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs text-slate-500">Height (cm)</span>
+                <input type="number" min="100" max="250" value={form.height_cm} onChange={(e) => set("height_cm", Number(e.target.value))} className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs text-slate-500">
+                  Date of birth {derivedAge !== null && <span className="font-semibold text-brand-400">· Age {derivedAge}</span>}
+                </span>
+                <input
+                  type="date"
+                  value={form.dob}
+                  onChange={(e) => {
+                    const dob = e.target.value;
+                    setForm((f) => ({ ...f, dob, age: ageFromDob(dob) ?? f.age }));
+                  }}
+                  className={inputCls}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs text-slate-500">Gender</span>
+                <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className={inputCls}>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </label>
+              <label className="col-span-2 block">
+                <span className="mb-1 block text-xs text-slate-500">Activity level</span>
+                <select value={form.activity_level} onChange={(e) => set("activity_level", e.target.value as ActivityLevel)} className={inputCls}>
+                  <option value="sedentary">Sedentary — little or no exercise (1.20x)</option>
+                  <option value="lightly_active">Lightly active — 1–3 days/week (1.375x)</option>
+                  <option value="moderately_active">Moderately active — 3–5 days/week (1.55x)</option>
+                  <option value="very_active">Very active — 6–7 days/week (1.725x)</option>
+                  <option value="extremely_active">Extremely active — hard training or physical job (1.90x)</option>
+                </select>
+              </label>
+              <label className="col-span-2 block">
+                <span className="mb-1 block text-xs text-slate-500">Target date — goal stays locked until then</span>
+                <input
+                  type="date"
+                  value={form.target_date}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => set("target_date", e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-panel-border bg-ink/60 p-4">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-slate-400">
+              <Calculator size={14} /> Live preview
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <StatTile label="BMR" value={fmtInt(preview.bmr)} unit="kcal" />
+              <StatTile label="TDEE" value={fmtInt(preview.tdee)} unit="kcal" />
+              <div className="rounded-xl border border-brand-500/30 bg-brand-400/10 p-4">
+                <div className="mb-1 text-xs text-brand-300">Target</div>
+                <div className="text-2xl font-extrabold text-brand-400">
+                  {fmtInt(preview.target)}
+                  <span className="ml-1 text-sm font-medium text-brand-300/70">kcal</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-300">
+              <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-protein" />Protein {fmtInt(preview.macros.protein)}g</span>
+              <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-fat" />Fat {fmtInt(preview.macros.fat)}g</span>
+              <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-carbs" />Carbs {fmtInt(preview.macros.carbs)}g</span>
+            </div>
+            <p className="mt-3 text-[11px] text-slate-500">Mifflin-St Jeor equation · {GOAL_LABELS[form.goal_type]} adjustment</p>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onClose} className={`${btnGhost} flex-1 py-3`}>Cancel</button>
+            <button onClick={onSave} disabled={saving} className={`${btnPrimary} flex-1 py-3`}>
+              {saving ? (
+                <><Loader2 size={16} className="animate-spin" /> Saving…</>
+              ) : (
+                <><CheckCircle2 size={16} /> {isEditing ? "Update goal" : "Create goal"}</>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
+/* --------------------------------- page --------------------------------- */
+
 export default function GoalsPage() {
   const { user } = useAuthStore();
   const uid = user?.id;
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [historyTab, setHistoryTab] = useState<HistoryTab>("daily");
-  const [range, setRange] = useState<RangeKey>(14);
-  const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<DailyRow | null>(null);
   const [form, setForm] = useState<CalcInputs>({
-    goal_type: "muscle_gain",
+    goal_type: "weight_loss",
     gender: user?.gender || "male",
-    weight_kg: user?.weight_kg || 70,
-    height_cm: user?.height_cm || 175,
+    weight_kg: user?.weight_kg ? Number(user.weight_kg) : 0,
+    height_cm: user?.height_cm ? Number(user.height_cm) : 0,
     dob: "",
-    age: user?.age || 30,
+    age: user?.age || 0,
     activity_level: toActivityLevel(user?.activity_level, "moderately_active"),
+    target_date: defaultTargetDate(),
   });
 
   const profileQ = useProfile();
@@ -159,25 +383,10 @@ export default function GoalsPage() {
     const p = profileQ.data;
     if (!p || prefilledRef.current === p.id || showModal) return;
     prefilledRef.current = p.id;
-    setForm((prev) => ({
-      ...prev,
-      gender: p.gender || prev.gender,
-      weight_kg: Number(p.weight) || prev.weight_kg,
-      height_cm: Number(p.height) || prev.height_cm,
-      dob: p.dob ? String(p.dob).slice(0, 10) : prev.dob,
-      age: (p.dob ? ageFromDob(p.dob) : Number(p.age)) || prev.age,
-      activity_level: toActivityLevel(p.activity_level, prev.activity_level),
-    }));
+    setForm((prev) => applyProfile(prev, p));
   }, [profileQ.data, showModal]);
 
-  const bmr = Math.round(
-    calcBMR(
-      form.gender,
-      Number(form.weight_kg) || 0,
-      Number(form.height_cm) || 0,
-      Number(form.age) || 0,
-    ),
-  );
+  const bmr = Math.round(calcBMR(form.gender, Number(form.weight_kg) || 0, Number(form.height_cm) || 0, Number(form.age) || 0));
   const tdee = Math.round(calcTDEE(bmr, form.activity_level));
   const target = Math.round(calcTarget(tdee, form.goal_type));
   const macros = calcMacros(target, Number(form.weight_kg) || 0);
@@ -186,10 +395,8 @@ export default function GoalsPage() {
   const recordsQ = useDailyRecords(uid);
   const foodsQ = useDailyFoods(uid);
   const exercisesQ = useDailyExercises(uid);
-  const loading =
-    goalsQ.isLoading || recordsQ.isLoading || foodsQ.isLoading || exercisesQ.isLoading;
+  const loading = goalsQ.isLoading || recordsQ.isLoading || foodsQ.isLoading || exercisesQ.isLoading;
 
-  // Shared cached queries — revisits render instantly with no refetch.
   const { goals, records, activeGoal, todayMacros } = useMemo(() => {
     try {
       const allGoals: Goal[] = goalsQ.data ?? [];
@@ -207,7 +414,7 @@ export default function GoalsPage() {
       const proteinTotals = new Map<string, number>();
       const fatTotals = new Map<string, number>();
       const carbTotals = new Map<string, number>();
-      
+
       (Array.isArray(foodLogs) ? foodLogs : []).forEach((food: DailyFoodRow) => {
         const date = String(
           recordsById.get(String(food.daily_record_id)) ||
@@ -216,57 +423,29 @@ export default function GoalsPage() {
             "",
         ).slice(0, 10);
         if (date) {
-          foodTotals.set(
-            date,
-            (foodTotals.get(date) || 0) + (Number(food.calories) || 0),
-          );
-          proteinTotals.set(
-            date,
-            (proteinTotals.get(date) || 0) + (Number(food.protein) || 0),
-          );
-          fatTotals.set(
-            date,
-            (fatTotals.get(date) || 0) + (Number(food.fat) || 0),
-          );
-          carbTotals.set(
-            date,
-            (carbTotals.get(date) || 0) + (Number(food.carbohydrates) || 0),
-          );
+          foodTotals.set(date, (foodTotals.get(date) || 0) + (Number(food.calories) || 0));
+          proteinTotals.set(date, (proteinTotals.get(date) || 0) + (Number(food.protein) || 0));
+          fatTotals.set(date, (fatTotals.get(date) || 0) + (Number(food.fat) || 0));
+          carbTotals.set(date, (carbTotals.get(date) || 0) + (Number(food.carbohydrates) || 0));
         }
       });
-      (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach(
-        (exercise: DailyExerciseRow) => {
-          const date = String(
-            recordsById.get(String(exercise.daily_record_id)) ||
-              exercise.record_date ||
-              exercise.created_at ||
-              "",
-          ).slice(0, 10);
-          if (date)
-            exerciseTotals.set(
-              date,
-              (exerciseTotals.get(date) || 0) +
-                (Number(exercise.calories_burned) || 0),
-            );
-        },
-      );
-      const mergedRecords = recs.map(
-        (record: DailyRecord) => ({
-          ...record,
-          calories_consumed: Math.max(
-            Number(record.calories_consumed) || 0,
-            foodTotals.get(String(record.record_date)) || 0,
-          ),
-          calories_burned: Math.max(
-            Number(record.calories_burned) || 0,
-            exerciseTotals.get(String(record.record_date)) || 0,
-          ),
-        }),
-      );
+      (Array.isArray(exerciseLogs) ? exerciseLogs : []).forEach((exercise: DailyExerciseRow) => {
+        const date = String(
+          recordsById.get(String(exercise.daily_record_id)) ||
+            exercise.record_date ||
+            exercise.created_at ||
+            "",
+        ).slice(0, 10);
+        if (date)
+          exerciseTotals.set(date, (exerciseTotals.get(date) || 0) + (Number(exercise.calories_burned) || 0));
+      });
+      const mergedRecords = recs.map((record: DailyRecord) => ({
+        ...record,
+        calories_consumed: Math.max(Number(record.calories_consumed) || 0, foodTotals.get(String(record.record_date)) || 0),
+        calories_burned: Math.max(Number(record.calories_burned) || 0, exerciseTotals.get(String(record.record_date)) || 0),
+      }));
       const activeGoal = allGoals.find((g: Goal) => g.status === "active") || null;
-      
-      // Today's macros
-      const today = todayKey();
+      const today = new Date().toISOString().slice(0, 10);
       return {
         goals: allGoals,
         records: mergedRecords,
@@ -278,118 +457,82 @@ export default function GoalsPage() {
         },
       };
     } catch {
-      return {
-        goals: [],
-        records: [],
-        activeGoal: null,
-        todayMacros: { protein: 0, fat: 0, carbs: 0 },
-      };
+      return { goals: [], records: [], activeGoal: null, todayMacros: { protein: 0, fat: 0, carbs: 0 } };
     }
   }, [goalsQ.data, recordsQ.data, foodsQ.data, exercisesQ.data]);
 
-  const dailyRows = useMemo(() => {
-    const cutoff = range
-      ? new Date(Date.now() - range * 86400000).toISOString().slice(0, 10)
-      : "";
-    return enrichDailyRecords(records, goals).filter(
-      (r) => !cutoff || r.date >= cutoff,
-    );
-  }, [records, goals, range]);
-
-  const pageCount = Math.max(1, Math.ceil(dailyRows.length / PAGE_SIZE));
-  const pagedRows = dailyRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   useEffect(() => {
-    setPage(1);
-  }, [range, historyTab]);
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
-
-  const dailyStats = useMemo(() => {
-    if (!dailyRows.length) {
-      return { days: 0, avgIn: 0, avgBurn: 0, hitRate: 0, streak: 0 };
-    }
-    const days = dailyRows.length;
-    const avgIn = Math.round(
-      dailyRows.reduce((s, r) => s + r.consumed, 0) / days,
-    );
-    const avgBurn = Math.round(
-      dailyRows.reduce((s, r) => s + r.burned, 0) / days,
-    );
-    const scored = dailyRows.filter((r) => r.target > 0);
-    const hits = scored.filter((r) => r.verdict.tone === "green").length;
-    const hitRate = scored.length
-      ? Math.round((hits / scored.length) * 100)
-      : 0;
-
-    const byDate = new Map(dailyRows.map((r) => [r.date, r]));
-    let streak = 0;
-    const cursor = new Date();
-    for (let i = 0; i < 60; i++) {
-      const key = cursor.toISOString().slice(0, 10);
-      const row = byDate.get(key);
-      if (
-        !row ||
-        (row.consumed <= 0 &&
-          row.burned <= 0 &&
-          row.water <= 0 &&
-          row.steps <= 0)
-      )
-        break;
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return { days, avgIn, avgBurn, hitRate, streak };
-  }, [dailyRows]);
-
-  // Auto-open modal for new users with no goals
-  useEffect(() => {
-    if (!loading && !activeGoal && goals.length === 0 && user?.id) {
+    if (!loading && goals.length === 0 && user?.id && !prefilledRef.current) {
+      prefilledRef.current = true;
       setShowModal(true);
     }
-  }, [loading, activeGoal, goals.length, user?.id]);
+  }, [loading, goals.length, user?.id]);
 
   async function handleSave() {
     if (!user?.id) return;
+    if (rejectLockedGoal() && !forceWipe) return;
+    if (!form.target_date) {
+      Swal.fire({
+        icon: "error",
+        title: "Target date required",
+        text: "Pick a target date for the new goal.",
+        confirmButtonColor: CONFIRM_COLOR,
+      });
+      return;
+    }
+    // Early-change override: second explicit confirm before wiping.
+    if (forceWipe) {
+      const wipe = await Swal.fire({
+        icon: "warning",
+        title: "Wipe history & progress?",
+        html: `<div style="text-align:left;font-size:13px;line-height:1.8;">This permanently deletes:<br>· All daily logs (food, workouts)<br>· Water, weight & photo records<br>· All goals (active + history)<br><br>Profile, foods and badges stay.</div>`,
+        showCancelButton: true,
+        confirmButtonText: "Wipe everything & start new",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#64748b",
+      });
+      if (!wipe.isConfirmed) return;
+    }
     setSaving(true);
     try {
-      if (activeGoal) {
+      if (activeGoal && !forceWipe) {
+        const currentRecord = [
+          `<b class="capitalize">${String(activeGoal.goal_type).replace(/_/g, " ")}</b>`,
+          `Target ${fmtInt(activeGoal.target_calories ?? activeGoal.target_value)} kcal/day`,
+          `P ${fmtInt(activeGoal.protein_target)}g · F ${fmtInt(activeGoal.fat_target)}g · C ${fmtInt(activeGoal.carb_target)}g`,
+          `Started ${new Date(activeGoal.created_at).toLocaleDateString()}`,
+        ].join("<br>");
         const confirmation = await Swal.fire({
           icon: "question",
-          title: "Change active goal?",
-          text: "Your current goal will be marked completed and kept in Goal History. A new active goal will be created.",
+          title: "Change goal? Current record will be completed",
+          html: `<div style="text-align:left;font-size:13px;line-height:1.8;">Current goal record:<br>${currentRecord}<br><br>This marks it <b>completed</b> and keeps it in history. Old days stay linked to it with their targets.</div>`,
           showCancelButton: true,
           confirmButtonText: "Complete and start new",
           cancelButtonText: "Keep current goal",
-          confirmButtonColor: "#65a30d",
+          confirmButtonColor: CONFIRM_COLOR,
+          cancelButtonColor: "#64748b",
         });
         if (!confirmation.isConfirmed) return;
       }
-      // 1. Verify with backend calculators
       const bmrRes = await apiClient.calcBMR({
         gender: form.gender,
         weight_kg: Number(form.weight_kg),
         height_cm: Number(form.height_cm),
         age: Number(form.age),
       });
-      const tdeeRes = await apiClient.calcTDEE({
-        bmr: bmrRes.bmr,
-        activity_level: form.activity_level,
-      });
-      const targetRes = await apiClient.calcCalorieTarget({
-        tdee: tdeeRes.tdee,
-        goal_type: form.goal_type,
-      });
+      const tdeeRes = await apiClient.calcTDEE({ bmr: bmrRes.bmr, activity_level: form.activity_level });
+      const targetRes = await apiClient.calcCalorieTarget({ tdee: tdeeRes.tdee, goal_type: form.goal_type });
       const finalTarget = Math.round(targetRes.targetCalories ?? target);
       const finalMacros = calcMacros(finalTarget, Number(form.weight_kg) || 0);
-
-      // 2. Complete the existing row so history preserves the actual goal.
-      if (activeGoal) {
+      if (forceWipe) {
+        // Override flow: wipe history + progress, goals included.
+        await apiClient.resetProgress({ user_id: user.id });
+      } else if (activeGoal) {
+        // Status lifecycle: complete the current goal (kept in history),
+        // then create the new active goal.
         await apiClient.updateGoal(activeGoal.id, { status: "completed" });
       }
-
-      // 3. Create new active goal
       await apiClient.createGoal({
         user_id: user.id,
         goal_type: form.goal_type,
@@ -398,678 +541,314 @@ export default function GoalsPage() {
         protein_target: finalMacros.protein,
         fat_target: finalMacros.fat,
         carb_target: finalMacros.carbs,
+        target_date: form.target_date,
         status: "active",
       });
-
-      qc.invalidateQueries({ queryKey: qk.goals(user.id) });
+      invalidateGoalCaches(user.id);
       setShowModal(false);
+      setForceWipe(false);
       Swal.fire({
         icon: "success",
-        title: activeGoal ? "Goal Updated!" : "Goal Created!",
-        text: activeGoal
-          ? "Your previous goal was completed and new one is active."
-          : "Your fitness goal is now active.",
-        confirmButtonColor: "#65a30d",
+        title: forceWipe ? "Fresh start" : activeGoal ? "Goal replaced" : "Goal created",
+        text: forceWipe
+          ? "History & progress wiped. Your new goal is active."
+          : activeGoal
+            ? "Your previous goal was completed and kept in history. The new one is active."
+            : "Your fitness goal is now active.",
+        confirmButtonColor: CONFIRM_COLOR,
         timer: 2000,
         timerProgressBar: true,
       });
     } catch (e: unknown) {
+      if (user?.id) invalidateGoalCaches(user.id);
       Swal.fire({
         icon: "error",
-        title: "Save Failed",
-        text:
-          (e instanceof Error ? e.message : null) || "Failed to create goal. Make sure backend is running.",
-        confirmButtonColor: "#65a30d",
+        title: "Couldn't save goal",
+        text: (e instanceof Error ? e.message : null) || "Something went wrong. Please try again.",
+        confirmButtonColor: CONFIRM_COLOR,
       });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
-  async function handleChangeGoal() {
-    const p = profileQ.data;
-    if (activeGoal) {
-      setForm((prev) => ({
-        ...prev,
-        goal_type: activeGoal.goal_type as GoalType,
-      }));
+  function rejectLockedGoal(): boolean {
+    const daysLeft = targetDaysLeft(activeGoal);
+    if (daysLeft === null) return false;
+    Swal.fire({
+      icon: "error",
+      title: "Goal change rejected",
+      html: `<div style="text-align:left;font-size:13px;line-height:1.8;">Target date not reached yet — <b>${daysLeft} day${daysLeft === 1 ? "" : "s"} left</b> until ${activeGoal?.target_date ? new Date(`${String(activeGoal.target_date).slice(0, 10)}T12:00:00`).toLocaleDateString() : ""}.<br><br>Stay consistent with your current goal. You can change it once the target date arrives.</div>`,
+      confirmButtonColor: CONFIRM_COLOR,
+    });
+    return true;
+  }
+
+  // Locked-goal override: returns true when the user insists on changing
+  // early (history + progress will be wiped on save).
+  const [forceWipe, setForceWipe] = useState(false);
+  async function confirmLockedOverride(daysLeft: number): Promise<boolean> {
+    const choice = await Swal.fire({
+      icon: "warning",
+      title: "Target date not reached",
+      html: `<div style="text-align:left;font-size:13px;line-height:1.8;">Still <b>${daysLeft} day${daysLeft === 1 ? "" : "s"} left</b> until the target date.<br><br>Changing now <b>wipes all history & progress records</b> (daily logs, water, weights, photos, goals) and starts clean.</div>`,
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: "Keep current goal",
+      denyButtonText: "Change anyway + wipe",
+      confirmButtonColor: CONFIRM_COLOR,
+      denyButtonColor: "#ef4444",
+    });
+    return choice.isDenied;
+  }
+
+  function invalidateGoalCaches(uid: string) {
+    qc.invalidateQueries({ queryKey: qk.goals(uid) });
+    qc.invalidateQueries({ queryKey: qk.burnTarget(uid) });
+    qc.invalidateQueries({ queryKey: qk.dailyRecords(uid) });
+    qc.invalidateQueries({ queryKey: qk.dailyFoods(uid) });
+    qc.invalidateQueries({ queryKey: qk.dailyExercises(uid) });
+    qc.invalidateQueries({ queryKey: qk.water(uid) });
+    qc.invalidateQueries({ queryKey: qk.weights(uid) });
+    qc.invalidateQueries({ queryKey: qk.bodyImages(uid) });
+  }
+
+  async function openGoalModal() {
+    const daysLeft = targetDaysLeft(activeGoal);
+    if (daysLeft !== null) {
+      if (!(await confirmLockedOverride(daysLeft))) return;
+      setForceWipe(true);
     }
-    if (p) {
-      setForm((prev) => ({
-        ...prev,
-        gender: p.gender || prev.gender,
-        weight_kg: Number(p.weight) || prev.weight_kg,
-        height_cm: Number(p.height) || prev.height_cm,
-        dob: p.dob ? String(p.dob).slice(0, 10) : prev.dob,
-        age: (p.dob ? ageFromDob(p.dob) : Number(p.age)) || prev.age,
-        activity_level: toActivityLevel(p.activity_level, prev.activity_level),
-      }));
-    }
+    setForm((prev) => {
+      let next = prev;
+      if (activeGoal) {
+        next = { ...next, goal_type: activeGoal.goal_type as GoalType };
+        next = { ...next, target_date: activeGoal.target_date ? String(activeGoal.target_date).slice(0, 10) : defaultTargetDate() };
+      }
+      if (profileQ.data) next = applyProfile(next, profileQ.data);
+      return next;
+    });
     setShowModal(true);
   }
 
   async function handleDeleteGoal(goalId: string) {
     const result = await Swal.fire({
       icon: "warning",
-      title: "Delete Goal?",
-      text: "This will permanently remove this goal from your history.",
+      title: "Delete goal?",
+      text: "This permanently removes the goal from your history.",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, delete it",
+      confirmButtonText: "Delete",
       cancelButtonText: "Cancel",
     });
-    if (!result.isConfirmed) return;
-
+    if (!result.isConfirmed || !uid) return;
     try {
       await apiClient.deleteGoal(goalId);
-      qc.invalidateQueries({ queryKey: qk.goals(user!.id) });
-      Swal.fire({
-        icon: "success",
-        title: "Deleted",
-        timer: 1500,
-        timerProgressBar: true,
-      });
+      qc.invalidateQueries({ queryKey: qk.goals(uid) });
+      Swal.fire({ icon: "success", title: "Deleted", timer: 1500, timerProgressBar: true });
     } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Failed",
-        text: "Could not delete goal",
-      });
+      Swal.fire({ icon: "error", title: "Couldn't delete goal", text: "Please try again." });
     }
   }
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="text-center py-12">
-          <Target className="text-brand-400 animate-spin mx-auto mb-4" size={40} />
-          <p className="text-slate-400">Loading your goals...</p>
-        </div>
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+        <Loader2 className="mx-auto mb-4 animate-spin text-brand-400" size={36} />
+        <p className="text-slate-400">Loading your goals…</p>
       </div>
     );
   }
 
   const isNewUser = !activeGoal && goals.length === 0;
   const guidance = activeGoal ? GOAL_GUIDANCE[activeGoal.goal_type as GoalType] : null;
+  const calTarget = activeGoal?.target_calories || activeGoal?.target_value || 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
+    <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
       <PageHeader
         title="Goals"
         subtitle={isNewUser ? "Set your first goal to get calorie and macro targets." : "One active goal at a time. History stays below."}
         icon={Target}
-        action={activeGoal ? (
-          <button
-            onClick={handleChangeGoal}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
-          >
-            <RotateCcw size={16} /> Change Goal
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
-          >
-            <Target size={16} /> Create Goal
-          </button>
-        )}
+        action={
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate("/history")} className={btnGhost}>
+              <History size={16} /> History
+            </button>
+            {activeGoal ? (
+              <button onClick={openGoalModal} className={btnPrimary}>
+                <RotateCcw size={16} /> Change goal
+              </button>
+            ) : (
+              <button onClick={() => setShowModal(true)} className={btnPrimary}>
+                <Target size={16} /> Create goal
+              </button>
+            )}
+          </div>
+        }
       />
 
-      {/* ===== ACTIVE GOAL CARD ===== */}
+      {/* ===== ACTIVE GOAL ===== */}
       {activeGoal ? (
-        <div className="relative bg-gradient-to-br from-brand-900/30 to-brand-900/10 border border-brand-600/30 rounded-3xl p-6 md:p-8 shadow-xl shadow-brand-600/10 overflow-hidden">
-          {/* Top badges */}
-          <div className="absolute top-4 right-4 flex gap-2">
-            <button
-              onClick={handleChangeGoal}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition backdrop-blur-sm"
-              title="Change Goal"
-            >
-              <RotateCcw size={18} />
-            </button>
+        <section className={`${card} space-y-6 p-6 md:p-8`}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-brand-400/10 p-3 text-brand-400">
+                <Flag size={26} />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-2xl font-extrabold capitalize text-white">
+                    {String(activeGoal.goal_type).replace(/_/g, " ")}
+                  </h2>
+                  <span className="rounded-full bg-brand-400/15 text-brand-300 px-2.5 py-0.5 text-xs font-bold">Active</span>
+                  {targetDaysLeft(activeGoal) !== null ? (
+                    <span className="rounded-full bg-amber-400/15 text-amber-300 px-2.5 py-0.5 text-xs font-bold">
+                      Locked · {targetDaysLeft(activeGoal)}d left
+                    </span>
+                  ) : (
+                    activeGoal.target_date && (
+                      <span className="rounded-full bg-sky-400/15 text-sky-300 px-2.5 py-0.5 text-xs font-bold">
+                        Target reached · can change
+                      </span>
+                    )
+                  )}
+                </div>
+                <p className="mt-1 text-sm text-slate-400">
+                  Started {new Date(activeGoal.created_at).toLocaleDateString()}
+                  {activeGoal.target_date && ` · Target ${new Date(activeGoal.target_date).toLocaleDateString()}`}
+                </p>
+              </div>
+            </div>
             <button
               onClick={() => handleDeleteGoal(activeGoal.id)}
-              className="p-2 rounded-xl bg-white/10 hover:bg-red-500/20 text-white/80 hover:text-red-400 transition backdrop-blur-sm"
-              title="Delete Goal"
+              className="rounded-xl p-2 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400"
+              title="Delete goal"
+              aria-label="Delete goal"
             >
               <Trash2 size={18} />
             </button>
           </div>
 
-          {/* Goal Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 text-brand-400">
-                <Flag size={28} />
-              </div>
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="text-2xl md:text-3xl font-extrabold text-white capitalize">
-                    {String(activeGoal.goal_type).replace(/_/g, " ")}
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-brand-600/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
-                    Active
-                  </span>
-                </div>
-                <p className="text-slate-400 text-sm">
-                  Started {new Date(activeGoal.created_at).toLocaleDateString()}
-                  {activeGoal.target_date &&
-                    ` · Target: ${new Date(activeGoal.target_date).toLocaleDateString()}`}
-                </p>
-              </div>
-            </div>
+          {/* Targets */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatTile label="Daily calories" value={fmtInt(activeGoal.target_calories) ?? activeGoal.target_value ?? "—"} unit="kcal" />
+            <StatTile label="Protein" value={fmtInt(activeGoal.protein_target ?? 0)} unit="g" dot="bg-protein" />
+            <StatTile label="Fat" value={fmtInt(activeGoal.fat_target ?? 0)} unit="g" dot="bg-fat" />
+            <StatTile label="Carbs" value={fmtInt(activeGoal.carb_target ?? 0)} unit="g" dot="bg-carbs" />
           </div>
 
-          {/* Macro Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Daily Calories</div>
-              <div className="text-2xl md:text-3xl font-extrabold text-brand-400">
-                {fmtInt(activeGoal.target_calories) ?? activeGoal.target_value ?? "—"}
-              </div>
-              <div className="text-[12px] text-slate-600 mt-1">kcal</div>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Protein</div>
-              <div className="text-2xl md:text-3xl font-extrabold text-red-400">
-                {fmtInt(activeGoal.protein_target) ?? 0}g
-              </div>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Fat</div>
-              <div className="text-2xl md:text-3xl font-extrabold text-blue-400">
-                {fmtInt(activeGoal.fat_target) ?? 0}g
-              </div>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Carbs</div>
-              <div className="text-2xl md:text-3xl font-extrabold text-yellow-400">
-                {fmtInt(activeGoal.carb_target) ?? 0}g
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              onClick={handleChangeGoal}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition shadow-lg shadow-brand-400/20"
-            >
-              <RotateCcw size={16} /> Change Goal
-            </button>
-            <Link
-              to="/daily"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700"
-            >
-              <ArrowRight size={16} /> Go to Daily Tracker
-            </Link>
-          </div>
-
-          {/* Today Section - Quick Log */}
-          <div className="border-t border-white/10 pt-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <CalendarDays size={20} className="text-brand-400" /> Today ({new Date().toLocaleDateString()})
+          {/* Today */}
+          <div className="border-t border-panel-border pt-6">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                <CalendarDays size={18} className="text-slate-400" /> Today
               </h3>
-              <Link
-                to="/daily"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-sm transition"
-              >
-                <Plus size={16} /> Add Log
-              </Link>
+              <button onClick={() => setShowModal(true)} className={btnPrimary}>
+                <Plus size={16} /> Add log
+              </button>
             </div>
 
-            {/* Today's Macro Progress Rings */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <MacroRing
-                label="Calories"
-                value={0}
-                target={activeGoal.target_calories || activeGoal.target_value || 0}
-                unit="kcal"
-              />
-              <MacroRing
-                label="Protein"
-                value={todayMacros.protein}
-                target={activeGoal.protein_target || 0}
-              />
-              <MacroRing
-                label="Fat"
-                value={todayMacros.fat}
-                target={activeGoal.fat_target || 0}
-              />
-              <MacroRing
-                label="Carbs"
-                value={todayMacros.carbs}
-                target={activeGoal.carb_target || 0}
-              />
+            <div className="grid items-center gap-6 md:grid-cols-[auto_1fr]">
+              <div className="flex flex-col items-center gap-2">
+                <Ring percent={pct(calTarget > 0 ? 0 : 0, calTarget) || 0} size={112}>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-white">0</div>
+                    <div className="text-xs text-slate-500">kcal</div>
+                  </div>
+                </Ring>
+                <div className="text-xs text-slate-400">
+                  0% of {fmtInt(calTarget)}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <MacroBar label="Protein" value={todayMacros.protein} target={activeGoal.protein_target || 0} tone="bg-protein" />
+                <MacroBar label="Fat" value={todayMacros.fat} target={activeGoal.fat_target || 0} tone="bg-fat" />
+                <MacroBar label="Carbs" value={todayMacros.carbs} target={activeGoal.carb_target || 0} tone="bg-carbs" />
+              </div>
             </div>
 
-            {/* Quick Log Buttons - link to daily page */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Link
-                to="/daily?log=food"
-                className="flex items-center gap-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/20 hover:border-amber-500/50 transition-all hover:shadow-lg"
-              >
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                  <Sandwich size={22} className="text-white" />
-                </span>
-                <div className="flex-1 text-left">
-                  <div className="text-white font-semibold">Food</div>
-                  <div className="text-slate-500 text-sm">Log meal</div>
-                </div>
-                <Plus size={20} className="text-slate-500" />
-              </Link>
-              <Link
-                to="/daily?log=exercise"
-                className="flex items-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-500/20 hover:border-red-500/50 transition-all hover:shadow-lg"
-              >
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                  <Dumbbell size={22} className="text-white" />
-                </span>
-                <div className="flex-1 text-left">
-                  <div className="text-white font-semibold">Exercise</div>
-                  <div className="text-slate-500 text-sm">Log workout</div>
-                </div>
-                <Plus size={20} className="text-slate-500" />
-              </Link>
-              <Link
-                to="/daily?log=water"
-                className="flex items-center gap-3 p-4 rounded-2xl border border-sky-500/30 bg-sky-500/20 hover:border-sky-500/50 transition-all hover:shadow-lg"
-              >
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                  <GlassWater size={22} className="text-white" />
-                </span>
-                <div className="flex-1 text-left">
-                  <div className="text-white font-semibold">Water</div>
-                  <div className="text-slate-500 text-sm">Add glasses</div>
-                </div>
-                <Plus size={20} className="text-slate-500" />
-              </Link>
-              <Link
-                to="/daily?log=weight"
-                className="flex items-center gap-3 p-4 rounded-2xl border border-violet-500/30 bg-violet-500/20 hover:border-violet-500/50 transition-all hover:shadow-lg"
-              >
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                  <Clock size={22} className="text-white" />
-                </span>
-                <div className="flex-1 text-left">
-                  <div className="text-white font-semibold">Weight</div>
-                  <div className="text-slate-500 text-sm">Log weight</div>
-                </div>
-                <Plus size={20} className="text-slate-500" />
-              </Link>
+            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <QuickLog to="/daily" icon={Sandwich} label="Food" hint="Log meal" />
+              <QuickLog to="/daily" icon={Dumbbell} label="Exercise" hint="Log workout" />
+              <QuickLog to="/daily" icon={GlassWater} label="Water" hint="Add glasses" />
+              <QuickLog to="/daily" icon={Clock} label="Weight" hint="Log weight" />
             </div>
           </div>
 
-          {/* Recommended Plan */}
+          {/* Guidance */}
           {guidance && (
-            <div className="border-t border-white/10 pt-6">
-              <div className="flex items-center gap-2 text-brand-300 font-bold text-sm mb-2">
-                <Sparkles size={16} /> Recommended plan for your selected goal
-              </div>
-              <p className="text-sm text-slate-400 mb-3">{guidance.summary}</p>
-              <div className="grid md:grid-cols-3 gap-3 mb-4">
+            <div className="border-t border-panel-border pt-6">
+              <h3 className="mb-1 text-sm font-bold text-white">Recommended plan</h3>
+              <p className="mb-3 text-sm text-slate-400">{guidance.summary}</p>
+              <div className="grid gap-3 md:grid-cols-3">
                 {(guidance.plan || []).map((step) => (
-                  <div key={step} className="rounded-xl bg-slate-950/40 border border-white/10 p-3 text-xs text-slate-300">
+                  <div key={step} className="rounded-xl border border-panel-border bg-ink/60 p-3 text-xs text-slate-300">
                     {step}
                   </div>
                 ))}
               </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <RecommendationList
-                  title="Recommended food and nutrition"
-                  items={guidance.food || []}
-                  compact
-                />
-                <RecommendationList
-                  title="Recommended exercise routine"
-                  items={guidance.exercise || []}
-                  compact
-                />
+              <div className="grid gap-3 md:grid-cols-2">
+                <RecommendationList title="Recommended food and nutrition" items={guidance.food || []} />
+                <RecommendationList title="Recommended exercise routine" items={guidance.exercise || []} />
               </div>
-              <p className="text-[11px] text-slate-500 mt-3">
-                These are practical starting suggestions, not medical advice. A
-                qualified trainer or registered dietitian can personalize them.
+              <p className="mt-3 text-[11px] text-slate-500">
+                Practical starting suggestions, not medical advice. A qualified trainer or registered dietitian can personalize them.
               </p>
             </div>
           )}
-        </div>
+        </section>
       ) : (
-        /* Empty State - No Goal Yet */
-        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-500 to-brand-400" />
-          <Sparkles className="text-brand-400 mx-auto mb-4" size={48} />
-          <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">Ready to Start?</h3>
-          <p className="text-slate-400 text-lg mb-6 max-w-md mx-auto">
-            We'll calculate your BMR, TDEE, and daily macro targets based on
-            your profile. This takes less than a minute.
+        <section className={`${card} p-8 text-center md:p-10`}>
+          <Target className="mx-auto mb-4 text-brand-400" size={40} />
+          <h3 className="mb-2 text-2xl font-bold text-white">Set your first goal</h3>
+          <p className="mx-auto mb-6 max-w-md text-slate-400 text-sm">
+            We'll calculate your BMR, TDEE and daily macro targets from your profile. It takes under a minute.
           </p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold text-lg transition shadow-xl shadow-brand-600/30"
-          >
-            <Target size={20} /> Create My First Goal
+          <button onClick={() => setShowModal(true)} className={`${btnPrimary} px-8 py-3 text-base`}>
+            <Target size={18} /> Create my first goal
           </button>
-        </div>
+        </section>
       )}
 
-      {/* ===== HISTORY SECTION ===== */}
-      <div className="bg-panel/80 border border-slate-800/80 rounded-2xl overflow-hidden">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 md:p-5 border-b border-slate-800">
-          <div>
-            <h3 className="text-lg font-bold text-white">History</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Goals you set, plus every day you logged against them.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/calendar"
-              className="text-sm font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1 px-2"
-            >
-              <CalendarDays size={14} /> Calendar
-            </Link>
-            <div className="flex rounded-xl bg-slate-950 border border-slate-800 p-1">
-              <button
-                type="button"
-                onClick={() => setHistoryTab("daily")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ${
-                  historyTab === "daily"
-                    ? "bg-brand-400 text-slate-950"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <CalendarDays size={14} /> Daily records
-              </button>
-              <button
-                type="button"
-                onClick={() => setHistoryTab("goals")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ${
-                  historyTab === "goals"
-                    ? "bg-brand-400 text-slate-950"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <Flag size={14} /> Goal history
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ===== HOW IT WORKS ===== */}
+      <section className={card}>
+        <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
+          <Calculator size={18} className="text-slate-400" /> How it works
+        </h4>
+        <ol className="grid gap-3 text-sm md:grid-cols-4">
+          {[
+            ["BMR", "Basal metabolic rate", "Mifflin-St Jeor: weight, height, age, gender"],
+            ["TDEE", "Total daily energy expenditure", "BMR × activity multiplier (1.2–1.9)"],
+            ["Calorie target", "Adjusted for your goal", "TDEE plus or minus a deficit or surplus"],
+            ["Macros", "Protein, fat, carbs", "Protein 1.6–2.2 g/kg, fat 25–30%, rest carbs"],
+          ].map(([title, sub, body]) => (
+            <li key={title} className="rounded-xl border border-panel-border bg-ink/50 p-4">
+              <div className="font-semibold text-white">{title}</div>
+              <div className="text-xs text-slate-400">{sub}</div>
+              <p className="mt-1 text-[11px] text-slate-500">{body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        {historyTab === "daily" ? (
-          <div className="p-4 md:p-5">
-            {/* Daily Stats Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-              {[
-                { label: "Days logged", value: dailyStats.days, icon: CalendarDays },
-                { label: "Avg intake", value: dailyStats.days ? `${fmtInt(dailyStats.avgIn)}` : "—", icon: Utensils },
-                { label: "Avg burned", value: dailyStats.days ? `${fmtInt(dailyStats.avgBurn)}` : "—", icon: Flame },
-                { label: "Target hit rate", value: dailyStats.days ? `${dailyStats.hitRate}%` : "—", icon: Target },
-                { label: "Log streak", value: dailyStats.streak ? `${dailyStats.streak}d` : "0", icon: Flag },
-              ].map((s) => (
-                <div key={s.label} className="rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-                    <s.icon size={12} className="text-brand-400" /> {s.label}
-                  </div>
-                  <div className="text-white font-bold text-lg">
-                    {s.value}
-                    {(s.label === "Avg intake" || s.label === "Avg burned") &&
-                      dailyStats.days > 0 && (
-                        <span className="text-xs text-slate-500 font-medium ml-1">kcal</span>
-                      )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Range Selector */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div className="flex gap-1.5">
-                {([7, 14, 30, 0] as RangeKey[]).map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setRange(n)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition ${
-                      range === n
-                        ? "bg-brand-600/20 border-brand-500/40 text-brand-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {n === 0 ? "All" : `${n}d`}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-slate-500">
-                On target = intake within 10% of the goal that was active that day.
-              </p>
-            </div>
-
-            {/* Daily Records Table */}
-            {dailyRows.length === 0 ? (
-              <EmptyState
-                title="No daily records yet"
-                hint="Log food, exercise, water, or steps using the quick log buttons above. They'll show up here against your calorie target."
-                action={
-                  <Link
-                    to="/daily"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 text-sm font-bold"
-                  >
-                    <ArrowRight size={14} /> Open Daily Tracker
-                  </Link>
-                }
-              />
-            ) : (
-              <div className="overflow-x-auto pb-8 lg:pb-0">
-                <table className="w-full text-sm min-w-[720px]">
-                  <thead>
-                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-y border-slate-800">
-                      <th className="px-4 md:px-5 py-2.5 font-semibold">Date</th>
-                      <th className="px-3 py-2.5 font-semibold">Intake</th>
-                      <th className="px-3 py-2.5 font-semibold">Burned</th>
-                      <th className="px-3 py-2.5 font-semibold">Net</th>
-                      <th className="px-3 py-2.5 font-semibold">Vs goal</th>
-                      <th className="px-3 py-2.5 font-semibold">Water</th>
-                      <th className="px-3 py-2.5 font-semibold">Steps</th>
-                      <th className="px-3 py-2.5 font-semibold">Result</th>
-                      <th className="px-3 py-2.5 font-semibold"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedRows.map((row) => {
-                      const isToday = row.date === todayKey();
-                      return (
-                        <tr
-                          key={row.id || row.date}
-                          className="border-b border-slate-800/70 hover:bg-white/[0.03] cursor-pointer"
-                          onClick={() => setSelectedRow(row)}
-                        >
-                          <td className="px-4 md:px-5 py-3 whitespace-nowrap">
-                            <div className="text-white font-semibold">
-                              {formatDay(row.date, { weekday: "short", month: "short", day: "numeric" })}
-                            </div>
-                            <div className="text-[11px] text-slate-500 capitalize">
-                              {isToday ? "Today · " : ""}{row.goalType}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-brand-300 font-semibold">
-                            {fmtInt(row.consumed)}
-                            <span className="text-slate-600 font-normal text-xs ml-0.5">kcal</span>
-                          </td>
-                          <td className="px-3 py-3 text-orange-300 font-semibold">
-                            {fmtInt(row.burned)}
-                            <span className="text-slate-600 font-normal text-xs ml-0.5">kcal</span>
-                          </td>
-                          <td className="px-3 py-3 text-white font-semibold">{fmtInt(row.net)}</td>
-                          <td className="px-3 py-3">
-                            {row.target ? (
-                              <div>
-                                <div className="text-slate-200">{fmtInt(row.consumed)} / {fmtInt(row.target)}</div>
-                                <div className="h-1.5 w-24 rounded-full bg-slate-800 mt-1 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${row.consumed > row.target ? "bg-amber-400" : "bg-brand-500"}`}
-                                    style={{ width: `${Math.min(100, Math.round((row.consumed / row.target) * 100))}%` }}
-                                  />
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-sky-300">
-                            <span className="inline-flex items-center gap-1"><Droplets size={12} /> {fmtInt(row.water)} ml</span>
-                          </td>
-                          <td className="px-3 py-3 text-violet-300">
-                            <span className="inline-flex items-center gap-1"><Footprints size={12} /> {row.steps.toLocaleString()}</span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold border ${verdictClass[row.verdict.tone]}`}>
-                              {row.verdict.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className="inline-flex items-center gap-1 text-xs text-brand-400 font-semibold"><Eye size={14} /> View</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {dailyRows.length > PAGE_SIZE && (
-                  <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-t border-slate-800 mt-4">
-                    <p className="text-xs text-slate-500">
-                      {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, dailyRows.length)} of {dailyRows.length}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <button type="button" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800" aria-label="Previous page"><ChevronLeft size={16} /></button>
-                      {pageCount <= 8 ? (
-                        Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-                          <button key={n} type="button" onClick={() => setPage(n)} className={`min-w-8 h-8 rounded-lg text-xs font-bold ${n === page ? "bg-brand-400 text-slate-950" : "text-slate-400 hover:bg-slate-800"}`}>{n}</button>
-                        ))
-                      ) : (
-                        <span className="px-2 text-xs font-bold text-slate-300">{page} / {pageCount}</span>
-                      )}
-                      <button type="button" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))} className="p-2 rounded-lg border border-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-800" aria-label="Next page"><ChevronRight size={16} /></button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : goals.length === 0 ? (
-          <EmptyState title="No goals yet" hint="Create your first goal to get calorie and macro targets." />
-        ) : (
-          <div className="overflow-x-auto p-4 md:p-5 pb-8 lg:pb-0">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-800">
-                  <th className="px-4 md:px-5 py-2.5 font-semibold">Goal</th>
-                  <th className="px-3 py-2.5 font-semibold">Calories</th>
-                  <th className="px-3 py-2.5 font-semibold">Macros</th>
-                  <th className="px-3 py-2.5 font-semibold">Started</th>
-                  <th className="px-3 py-2.5 font-semibold text-right"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {goals.map((g) => {
-                  const isActive = g.status === "active";
-                  const isCompleted = g.status === "completed";
-                  return (
-                    <tr key={g.id} className={`border-b border-slate-800/70 ${isActive ? "bg-brand-900/10" : ""}`}>
-                      <td className="px-4 md:px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold capitalize ${isActive ? "text-brand-400" : "text-white"}`}>{String(g.goal_type).replace(/_/g, " ")}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isActive ? "bg-brand-600/30 text-brand-300" : isCompleted ? "bg-green-600/30 text-green-300" : "bg-slate-700 text-slate-400"}`}>{g.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-white font-semibold">{g.target_calories ?? g.target_value ?? "—"} <span className="text-slate-500 font-normal">kcal</span></td>
-                      <td className="px-3 py-3 text-slate-400"><span className="text-red-400">P {g.protein_target ?? 0}g</span> · <span className="text-blue-400">F {g.fat_target ?? 0}g</span> · <span className="text-yellow-400">C {g.carb_target ?? 0}g</span></td>
-                      <td className="px-3 py-3 text-slate-400 whitespace-nowrap">{new Date(g.created_at).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-right">
-                        {!isActive && <button onClick={() => handleDeleteGoal(g.id)} className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition" title="Delete"><Trash2 size={16} /></button>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Theory Info Card */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
-        <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Calculator size={20} className="text-brand-400" /> How It Works</h4>
-        <div className="grid md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">1. BMR</div><div className="text-white font-medium">Basal Metabolic Rate</div><p className="text-slate-500 text-[11px] mt-1">Mifflin-St Jeor equation (weight, height, age, gender)</p></div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">2. TDEE</div><div className="text-white font-medium">Total Daily Energy Expenditure</div><p className="text-slate-500 text-[11px] mt-1">BMR × Activity Multiplier (1.2–1.9)</p></div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">3. Goal</div><div className="text-white font-medium">Calorie Target</div><p className="text-slate-500 text-[11px] mt-1">TDEE ± deficit/surplus based on goal type</p></div>
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800"><div className="text-slate-500 text-xs uppercase tracking-wide mb-1">4. Macros</div><div className="text-white font-medium">Protein / Fat / Carbs</div><p className="text-slate-500 text-[11px] mt-1">Protein 1.6–2.2g/kg, Fat 25–30%, rest Carbs</p></div>
-        </div>
-      </div>
-
-      {/* Popup Modal for Goal Creation/Editing */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-slate-900 border border-brand-600/30 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-slate-800 sticky top-0 bg-slate-900 rounded-t-3xl z-10">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2"><Calculator size={20} className="text-brand-400" /> {activeGoal ? "Change Goal" : "Create Your Goal"}</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white p-1" aria-label="Close"><X size={22} /></button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Goal Type Selector */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">What's your goal?</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {(Object.keys(GOAL_LABELS) as GoalType[]).map((gt) => (
-                    <button key={gt} type="button" onClick={() => setForm({ ...form, goal_type: gt })} className={`px-3 py-3 rounded-xl text-sm font-bold border transition relative overflow-hidden ${form.goal_type === gt ? "bg-brand-400 border-brand-300 text-slate-950 shadow-lg shadow-brand-400/20" : "bg-slate-950 border-slate-800 text-slate-300 hover:border-brand-500/50 hover:bg-slate-900"}`}>{GOAL_LABELS[gt]}{form.goal_type === gt && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg></span>}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Calculator Fields */}
-              <div className="border-t border-slate-800 pt-4">
-                <label className="block text-sm font-medium text-slate-300 mb-3">Your Stats</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-xs text-slate-500 block mb-1">Weight (kg)</span><input type="number" min="30" max="300" step="0.1" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
-                  <div><span className="text-xs text-slate-500 block mb-1">Height (cm)</span><input type="number" min="100" max="250" value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
-                  <div><span className="text-xs text-slate-500 block mb-1">Date of birth {form.dob && ageFromDob(form.dob) !== null && <span className="text-brand-400 font-semibold">· Age {ageFromDob(form.dob)}</span>}</span><input type="date" value={form.dob} onChange={(e) => { const dob = e.target.value; const derived = ageFromDob(dob); setForm({ ...form, dob, age: derived ?? form.age }); }} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500" /></div>
-                  <div><span className="text-xs text-slate-500 block mb-1">Gender</span><select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"><option value="male">Male</option><option value="female">Female</option></select></div>
-                  <div className="col-span-2"><span className="text-xs text-slate-500 block mb-1">Activity Level</span><select value={form.activity_level} onChange={(e) => setForm({ ...form, activity_level: e.target.value as CalcInputs["activity_level"] })} className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500"><option value="sedentary">Sedentary — Little/no exercise (1.20x)</option><option value="lightly_active">Lightly Active — Light exercise 1–3 days/week (1.375x)</option><option value="moderately_active">Moderately Active — Moderate exercise 3–5 days/week (1.55x)</option><option value="very_active">Very Active — Hard exercise 6–7 days/week (1.725x)</option><option value="extremely_active">Extremely Active — Very hard exercise, physical job (1.90x)</option></select></div>
-                </div>
-              </div>
-
-              {/* Live Result Preview */}
-              <div className="bg-brand-900/20 border border-brand-600/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-brand-400 mb-3"><Calculator size={14} /> Live Preview</div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">BMR</div><div className="text-white font-bold text-lg">{fmtInt(bmr)} kcal</div></div>
-                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">TDEE</div><div className="text-white font-bold text-lg">{fmtInt(tdee)} kcal</div></div>
-                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">Target</div><div className="text-brand-400 font-bold text-lg">{fmtInt(target)} kcal</div></div>
-                  <div className="bg-slate-950/50 rounded-xl p-3"><div className="text-slate-500 text-xs">Macros</div><div className="text-white font-medium">P: {fmtInt(macros.protein)}g · F: {fmtInt(macros.fat)}g · C: {fmtInt(macros.carbs)}g</div></div>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-3 text-center">Based on Mifflin-St Jeor equation • {GOAL_LABELS[form.goal_type]} multiplier</p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition border border-slate-700">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-3 rounded-xl bg-brand-400 hover:bg-brand-300 text-slate-950 font-bold transition disabled:opacity-50 shadow-lg shadow-brand-400/20">{saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><CheckCircle2 size={16} /> {activeGoal ? "Update Goal" : "Create Goal"}</>}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Daily Record Modal */}
-      {selectedRow && (
-        <DailyRecordModal
-          row={selectedRow}
-          userId={user?.id}
-          onClose={() => setSelectedRow(null)}
+        <GoalModal
+          form={form}
+          setForm={setForm}
+          preview={{ bmr, tdee, target, macros }}
+          isEditing={!!activeGoal}
+          saving={saving}
+          onSave={handleSave}
+          onClose={() => {
+            setShowModal(false);
+            setForceWipe(false);
+          }}
         />
       )}
+
+      {selectedRow && <DailyRecordModal row={selectedRow} userId={user?.id} onClose={() => setSelectedRow(null)} />}
     </div>
   );
 }

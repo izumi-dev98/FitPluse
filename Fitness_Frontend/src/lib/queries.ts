@@ -14,6 +14,7 @@ import type {
   WaterRow,
   WeightEntry,
 } from './database';
+import { GOAL_CALORIE_OFFSETS, type GoalType } from './theory';
 
 // Shared cache keys. Screens that show the same data reuse the same key,
 // so switching routes within `staleTime` renders instantly with no refetch.
@@ -31,6 +32,7 @@ export const qk = {
   profile: () => ['profile'] as const,
   badges: (uid?: string) => ['badges', uid] as const,
   userBadges: (uid?: string) => ['user-badges', uid] as const,
+  burnTarget: (uid?: string) => ['burn-target', uid] as const,
 };
 
 export const STALE_TIME = 60_000;
@@ -73,6 +75,38 @@ export const useBadges = (uid?: string) => useArr<Badge>(qk.badges(uid), () => a
 export const useUserBadges = (uid?: string) =>
   useArr<UserBadge>(qk.userBadges(uid), () => apiClient.getUserBadges(uid!), uid);
 
+// Burn target derived from the active goal's calorie offset.
+// Returns the additive adjustment applied to TDEE for the current goal.
+export const useBurnTarget = (uid?: string) => {
+  const { data: profile } = useProfile();
+  const { data: goals } = useGoals(uid);
+
+  return useQuery({
+    queryKey: qk.burnTarget(uid),
+    queryFn: async () => {
+      if (!uid) return null;
+      const allGoals = await arr<Goal>(apiClient.getGoals(uid));
+      const activeGoal = allGoals.find((g) => g.status === 'active');
+      if (!activeGoal) return null;
+
+      const goalType = (activeGoal.goal_type as GoalType) ?? 'maintain';
+      const offset = GOAL_CALORIE_OFFSETS[goalType] ?? 0;
+      const tdee = profile?.tdee ?? 0;
+
+      return {
+        tdee,
+        goalType,
+        offset,
+        targetCalories: tdee + offset,
+      };
+    },
+    enabled: !!uid,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    retry: 1,
+  });
+};
+
 // Own profile (auth token identifies the user — no id needed).
 export const useProfile = () => {
   const token = useAuthStore((s) => s.accessToken);
@@ -102,6 +136,10 @@ export async function ensureTodayRecord(qc: QueryClient, uid: string) {
   });
   const rec = recs.find((r) => r.record_date === todayStr());
   if (rec?.id) return rec;
+
+  const allGoals = await arr<Goal>(apiClient.getGoals(uid));
+  const activeGoal = allGoals.find((g) => g.status === 'active');
+
   const created = await apiClient.createDailyRecord({
     user_id: uid,
     record_date: todayStr(),
@@ -109,6 +147,7 @@ export async function ensureTodayRecord(qc: QueryClient, uid: string) {
     calories_burned: 0,
     water_ml: 0,
     steps: 0,
+    goal_type: activeGoal?.goal_type ?? null,
   });
   qc.invalidateQueries({ queryKey: qk.dailyRecords(uid) });
   return created;
